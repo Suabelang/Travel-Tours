@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SNS Travel · Admin Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+     <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23076653'>🌴</text></svg>"
+    />
+    <style>
+        * { font-family: system-ui, -apple-system, sans-serif; }
+        #userDropdown { display: none; position: absolute; right: 0; top: 100%; margin-top: 0.5rem; }
+        #userDropdown.show { display: block; }
+        /* Navigation active state */
+        .nav-active {
+            background-color: #059669 !important;
+            color: white !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Top Navigation Bar -->
+    <header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30">
+        <div class="px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo and Title -->
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 bg-gradient-to-br from-emerald-600 to-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+                        <span class="font-bold">SNS</span>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-800">SNS Travel</h1>
+                        <p class="text-xs text-gray-500">Admin Dashboard</p>
+                    </div>
+                </div>
+                    
+        <!-- Admin Dropdown -->
+                    <div class="relative" style="z-index: 9999;">
+                        <button id="userMenuBtn" class="flex items-center gap-2 p-2 pr-3 rounded-full hover:bg-gray-100 transition">
+                            <div class="h-8 w-8 bg-gradient-to-br from-emerald-600 to-emerald-500 rounded-full flex items-center justify-center text-white">
+                                <span class="text-sm font-bold">AD</span>
+                            </div>
+                            <span class="text-sm font-medium text-gray-700 hidden sm:inline">Admin</span>
+                            <i class="fas fa-chevron-down text-xs text-gray-500"></i>
+                        </button>
+
+                        <!-- Dropdown Menu - Only Navigation and Logout -->
+                        <div id="userDropdown" class="bg-white rounded-xl shadow-xl border border-gray-200 w-48">
+                            <!-- Navigation Links -->
+                            <div class="py-2">
+                                <a href="#" data-page="dashboard" class="dropdown-item nav-item flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50">
+                                    <i class="fas fa-grid-2 text-emerald-500 w-5"></i> Dashboard
+                                </a>
+                                <a href="#" data-page="destinations" class="dropdown-item nav-item flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50">
+                                    <i class="fas fa-map-pin text-emerald-500 w-5"></i> Destinations
+                                </a>
+                                <a href="#" data-page="bookings" class="dropdown-item nav-item flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50">
+                                    <i class="fas fa-calendar-check text-emerald-500 w-5"></i> Bookings
+                                </a>
+                            </div>
+                            
+                            <hr class="border-gray-200">
+                            
+                            <!-- Logout Only -->
+                            <div class="py-2">
+                                <a href="#" id="dropdownLogout" class="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                    <i class="fas fa-sign-out-alt w-5"></i> Logout
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-4 sm:p-6 lg:p-8" id="mainContent">
+        <div class="flex items-center justify-center h-64">
+            <div class="text-center">
+                <div class="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent"></div>
+                <p class="mt-4 text-gray-600">Loading dashboard...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // SIMPLE DROPDOWN - ONLY NAVIGATION AND LOGOUT
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.getElementById('userMenuBtn');
+            const dropdown = document.getElementById('userDropdown');
+            
+            console.log('Button found:', btn);
+            console.log('Dropdown found:', dropdown);
+            
+            // Hide dropdown by default
+            dropdown.style.display = 'none';
+            
+            // Simple click handler
+            btn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Button clicked');
+                
+                if (dropdown.style.display === 'none') {
+                    dropdown.style.display = 'block';
+                    console.log('Showing dropdown');
+                } else {
+                    dropdown.style.display = 'none';
+                    console.log('Hiding dropdown');
+                }
+            };
+            
+            // Close when clicking outside
+            document.onclick = function(e) {
+                if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            };
+            
+            // Handle dropdown item clicks (navigation only)
+            document.querySelectorAll('.dropdown-item').forEach(item => {
+                item.onclick = function(e) {
+                    e.preventDefault();
+                    const page = this.dataset.page;
+                    console.log('Navigating to:', page);
+                    dropdown.style.display = 'none';
+                    
+                    // Update active states
+                    document.querySelectorAll('.dropdown-item').forEach(i => {
+                        i.classList.remove('bg-emerald-100', 'text-emerald-700');
+                    });
+                    this.classList.add('bg-emerald-100', 'text-emerald-700');
+                    
+                    // Call router if available
+                    if (window.navigateTo) {
+                        window.navigateTo(page);
+                    } else {
+                        // Fallback
+                        document.getElementById('mainContent').innerHTML = '<div class="p-8"><h2 class="text-2xl">' + page + ' page</h2></div>';
+                    }
+                };
+            });
+            
+            // Logout handler
+            document.getElementById('dropdownLogout').onclick = function(e) {
+                e.preventDefault();
+                if (confirm('Are you sure you want to logout?')) {
+                    window.location.href = 'login.html';
+                }
+            };
+
+            // Refresh button handler
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (refreshBtn) {
+                refreshBtn.onclick = function(e) {
+                    e.preventDefault();
+                    if (window.refreshDashboard) {
+                        window.refreshDashboard();
+                    } else if (window.navigateTo && window.state?.currentPage) {
+                        window.navigateTo(window.state.currentPage);
+                    }
+                };
+            }
+
+            // Quick upload button handler
+            const quickUploadBtn = document.getElementById('quickUploadBtn');
+            if (quickUploadBtn) {
+                quickUploadBtn.onclick = function(e) {
+                    e.preventDefault();
+                    if (window.navigateTo) {
+                        window.navigateTo('destinations').then(() => {
+                            setTimeout(() => {
+                                const uploadBtn = document.querySelector('[onclick*="showImageUploadModal"]');
+                                if (uploadBtn) {
+                                    uploadBtn.click();
+                                } else {
+                                    if (window.showToast) {
+                                        window.showToast('Click on any destination card and use the camera icon to upload photos!', 'info');
+                                    }
+                                }
+                            }, 500);
+                        });
+                    }
+                };
+            }
+
+            // Notification button handler
+            const notificationBtn = document.getElementById('notificationBtn');
+            if (notificationBtn) {
+                notificationBtn.onclick = function(e) {
+                    e.preventDefault();
+                    if (window.showToast) {
+                        window.showToast('No new notifications', 'info');
+                    } else {
+                        alert('No new notifications');
+                    }
+                };
+            }
+        });
+    </script>
+    
+    <!-- Main JS -->
+    <script type="module" src="../assets/js/main_admin.js"></script>
+</body>
+</html>

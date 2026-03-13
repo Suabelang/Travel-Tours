@@ -52,6 +52,202 @@
       };
     </script>
 
+    <!-- ===== ADVANCED ANTI-COPY PROTECTION ===== -->
+    <script>
+      (function () {
+        "use strict";
+
+        // ============================================
+        // 1. DISABLE RIGHT CLICK
+        // ============================================
+        document.addEventListener("contextmenu", function (e) {
+          e.preventDefault();
+          return false;
+        });
+
+        // ============================================
+        // 2. DISABLE KEYBOARD SHORTCUTS
+        // ============================================
+        document.addEventListener("keydown", function (e) {
+          // Allow typing in input fields
+          if (
+            e.target.tagName === "INPUT" ||
+            e.target.tagName === "TEXTAREA" ||
+            e.target.isContentEditable
+          ) {
+            return true;
+          }
+
+          // List of keys to disable
+          const disabledKeys = {
+            c: "copy",
+            v: "paste",
+            x: "cut",
+            a: "select all",
+            s: "save",
+            u: "view source",
+            p: "print",
+            i: "dev tools",
+            j: "console",
+            k: "console",
+          };
+
+          // Ctrl+Key combinations
+          if (e.ctrlKey && disabledKeys[e.key]) {
+            e.preventDefault();
+            return false;
+          }
+
+          // Ctrl+Shift+I (Dev Tools)
+          if (e.ctrlKey && e.shiftKey && e.key === "I") {
+            e.preventDefault();
+            return false;
+          }
+
+          // Ctrl+Shift+J (Console)
+          if (e.ctrlKey && e.shiftKey && e.key === "J") {
+            e.preventDefault();
+            return false;
+          }
+
+          // Ctrl+Shift+C (Inspect Element)
+          if (e.ctrlKey && e.shiftKey && e.key === "C") {
+            e.preventDefault();
+            return false;
+          }
+
+          // F12 (Dev Tools)
+          if (e.key === "F12") {
+            e.preventDefault();
+            return false;
+          }
+
+          // PrintScreen
+          if (e.key === "PrintScreen") {
+            e.preventDefault();
+            return false;
+          }
+        });
+
+        // ============================================
+        // 3. DISABLE COPY/PASTE/CUT EVENTS
+        // ============================================
+        document.addEventListener("copy", function (e) {
+          e.preventDefault();
+          return false;
+        });
+
+        document.addEventListener("cut", function (e) {
+          e.preventDefault();
+          return false;
+        });
+
+        document.addEventListener("paste", function (e) {
+          e.preventDefault();
+          return false;
+        });
+
+        // ============================================
+        // 4. DETECT AND BLOCK DEV TOOLS
+        // ============================================
+        (function () {
+          let devtoolsOpen = false;
+          const threshold = 160;
+
+          function checkDevTools() {
+            try {
+              const widthThreshold =
+                window.outerWidth - window.innerWidth > threshold;
+              const heightThreshold =
+                window.outerHeight - window.innerHeight > threshold;
+
+              if (widthThreshold && heightThreshold && !devtoolsOpen) {
+                devtoolsOpen = true;
+                // Clear the page content
+                document.body.innerHTML =
+                  '<div style="position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:999999; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:Arial, sans-serif;"><h1 style="color:#ef4444;">🚫 Developer Tools Detected</h1><p style="color:#6b7280; margin-top:20px;">Please close DevTools to continue viewing this site.</p><button onclick="location.reload()" style="margin-top:30px; padding:10px 20px; background:#076653; color:white; border:none; border-radius:8px; cursor:pointer;">Reload Page</button></div>';
+              } else if (!widthThreshold && !heightThreshold && devtoolsOpen) {
+                devtoolsOpen = false;
+                location.reload();
+              }
+            } catch (e) {}
+          }
+
+          setInterval(checkDevTools, 1000);
+        })();
+
+        // ============================================
+        // 5. DISABLE DEBUGGER
+        // ============================================
+        setInterval(function () {
+          debugger;
+        }, 100);
+
+        // ============================================
+        // 6. HIDE SOURCE CODE IN CONSOLE
+        // ============================================
+        console.clear();
+        console.log(
+          "%c⚠️ This website is protected by S&S Travel",
+          "color: red; font-size: 16px; font-weight: bold;",
+        );
+        console.log(
+          "%cCopying source code is prohibited",
+          "color: orange; font-size: 14px;",
+        );
+
+        // Block console methods
+        const originalLog = console.log;
+        console.log = function () {};
+        console.info = function () {};
+        console.debug = function () {};
+        console.warn = function () {};
+        console.error = function () {};
+        console.table = function () {};
+
+        // ============================================
+        // 7. DISABLE TEXT SELECTION
+        // ============================================
+        document.addEventListener("selectstart", function (e) {
+          if (e.target.tagName !== "INPUT" && e.target.tagName !== "TEXTAREA") {
+            e.preventDefault();
+            return false;
+          }
+        });
+      })();
+    </script>
+
+    <!-- ===== ANTI-SELECT CSS ===== -->
+    <style>
+      /* Disable text selection */
+      body {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+
+      /* Allow selection in input fields and textareas */
+      input,
+      textarea,
+      [contenteditable="true"] {
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
+        user-select: text;
+      }
+
+      /* Disable drag and drop */
+      img,
+      a {
+        -webkit-user-drag: none;
+        -khtml-user-drag: none;
+        -moz-user-drag: none;
+        -o-user-drag: none;
+        user-drag: none;
+      }
+    </style>
+
     <style>
       .carousel-card {
         transition: opacity 0.3s ease;
@@ -2955,6 +3151,7 @@
     <script src="./assets/js/ferryassistance.js"></script>
     <script src="./assets/js/visaassistance.js"></script>
 
+    <!-- MOBILE MENU FUNCTIONS -->
     <script>
       // ===== MOBILE MENU FIX =====
       function toggleMobileMenu() {
@@ -3170,7 +3367,11 @@
       // ===== BACK TO TOP =====
       const backToTop = document.getElementById("backToTop");
       window.addEventListener("scroll", () => {
-        backToTop.style.display = window.scrollY > 300 ? "flex" : "none";
+        if (window.scrollY > 300) {
+          backToTop.classList.add("show");
+        } else {
+          backToTop.classList.remove("show");
+        }
       });
 
       backToTop.addEventListener("click", () => {

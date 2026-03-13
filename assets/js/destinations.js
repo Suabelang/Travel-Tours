@@ -1491,27 +1491,35 @@ export async function createOptionalTour(formData) {
 
 export async function fetchOptionalTourById(id) {
   try {
-    const { data: tour, error: tourError } = await supabase
+    console.log("🔍 Fetching optional tour by ID:", id);
+
+    // Fetch tour with its rates in a single query
+    const { data: tour, error } = await supabase
       .from("optional_tours")
       .select(
         `
         *,
-        rates:optional_tour_rates(*),
-        destination:destinations(name, country)
+        rates:optional_tour_rates(*)
       `,
-      ) // ❌ Removed category
+      )
       .eq("id", id)
       .single();
 
-    if (tourError) throw tourError;
+    if (error) {
+      console.error("Error fetching tour:", error);
+      throw error;
+    }
+
+    console.log("✅ Tour fetched:", tour);
+    console.log("💰 Rates fetched:", tour?.rates);
+
     return tour;
   } catch (error) {
-    console.error("Error fetching optional tour:", error);
+    console.error("Error in fetchOptionalTourById:", error);
     showToast("Failed to load optional tour", "error");
     return null;
   }
 }
-
 // DELETE Optional Tour
 export async function deleteOptionalTour(id) {
   showConfirmDialog(
@@ -2848,7 +2856,7 @@ ${
                               </div>
                             `;
                             })
-                            .join("")}
+                            .join("")} 
                         </div>
                       </div>
                     `
@@ -2862,117 +2870,91 @@ ${
                     `
                     }
                     
-                    <!-- Transportation -->
-                    ${
-                      pkg.transportation && pkg.transportation.length > 0
-                        ? `
-                      <div class="border rounded-lg p-3 bg-blue-50">
-                        <h5 class="font-semibold text-sm mb-1 flex items-center gap-1 text-blue-700">
-                          <i class="fas fa-truck"></i> Transportation
-                        </h5>
-                        <ul class="list-disc list-inside text-xs space-y-0.5">
-                          ${pkg.transportation
-                            .map(
-                              (t) => `
-                            <li>
-                              ${t.mode?.name || "N/A"} 
-                              ${t.description ? `- ${t.description}` : ""}
-                              ${t.is_included ? '<span class="text-green-600 ml-1">(Included)</span>' : '<span class="text-gray-400 ml-1">(Not Included)</span>'}
-                            </li>
-                          `,
-                            )
-                            .join("")}
-                        </ul>
-                      </div>
-                    `
-                        : `
-                      <div class="border rounded-lg p-3 bg-gray-50">
-                        <h5 class="font-semibold text-sm mb-1 flex items-center gap-1 text-gray-500">
-                          <i class="fas fa-truck"></i> Transportation
-                        </h5>
-                        <p class="text-xs text-gray-400 italic">N/A - No transportation specified</p>
-                      </div>
-                    `
-                    }
-                    
-                    <!-- Optional Tours -->
-                    ${
-                      pkg.optional_tours && pkg.optional_tours.length > 0
-                        ? `
-                      <div class="border rounded-lg p-3 bg-purple-50">
-                        <div class="flex items-center justify-between mb-2">
-                          <h5 class="font-semibold text-sm flex items-center gap-1 text-purple-700">
-                            <i class="fas fa-compass"></i> Optional Tours
-                          </h5>
-                          <span class="text-xs bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full">
-                            ${pkg.optional_tours.length} tour(s)
-                          </span>
-                        </div>
-                        
-                        <!-- Tours List -->
-                        <div class="space-y-2">
-                          ${pkg.optional_tours
-                            .map(
-                              (tour) => `
-                            <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-purple-200 hover:bg-purple-50 transition">
-                              <div class="flex items-center gap-2">
-                                ${
-                                  tour.image_url
-                                    ? `
-                                  <img src="${tour.image_url}" alt="${tour.tour_name}" class="w-8 h-8 rounded-lg object-cover">
-                                `
-                                    : `
-                                  <i class="fas fa-compass text-purple-400 text-sm"></i>
-                                `
-                                }
-                                <div>
-                                  <span class="text-sm font-medium">${tour.tour_name}</span>
-                                  ${
-                                    tour.duration_hours
-                                      ? `
-                                    <span class="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded ml-2">
-                                      ${tour.duration_hours}h
-                                    </span>
-                                  `
-                                      : ""
-                                  }
-                                </div>
-                              </div>
-                              <button onclick="window.viewOptionalTourDetails(${tour.id})" 
-                                      class="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-100 px-2 py-1 rounded transition flex items-center gap-1"
-                                      title="View Full Details">
-                                <i class="fas fa-eye"></i> View
-                              </button>
-                            </div>
-                          `,
-                            )
-                            .join("")}
-                        </div>
-                        
-                        <!-- Add Tours Button -->
-                        <div class="mt-3 pt-2 border-t-2 border-dashed border-gray-200">
-                         <button onclick="openAddMultipleToursToPackageModal(${pkg.id}, ${destination.id})" 
-                                  class="w-full px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition flex items-center justify-center gap-2">
-                            <i class="fas fa-plus-circle"></i>
-                            <span class="font-medium">Add Optional Tours to this Package</span>
-                          </button>
-                        </div>
-                      </div>
-                    `
-                        : `
-                      <div class="border rounded-lg p-3 bg-gray-50">
-                        <div class="text-center py-2">
-                          <i class="fas fa-compass text-2xl text-gray-400 mb-1"></i>
-                          <h5 class="font-semibold text-sm text-gray-500 mb-1">Optional Tours</h5>
-                          <p class="text-xs text-gray-400 italic">N/A - No optional tours in this package</p>
-                         <button onclick="openAddMultipleToursToPackageModal(${pkg.id}, ${destination.id})" 
-                                  class="mt-2 px-3 py-1 bg-purple-500 text-white rounded-lg text-xs hover:bg-purple-600">
-                            <i class="fas fa-plus-circle mr-1"></i> Add Optional Tours
-                          </button>
-                        </div>
-                      </div>
-                    `
-                    }
+                  <!-- Optional Tours -->
+${
+  pkg.optional_tours && pkg.optional_tours.length > 0
+    ? `
+  <div class="border rounded-lg p-3 bg-purple-50">
+    <div class="flex items-center justify-between mb-2">
+      <h5 class="font-semibold text-sm flex items-center gap-1 text-purple-700">
+        <i class="fas fa-compass"></i> Optional Tours
+      </h5>
+      <span class="text-xs bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full">
+        ${pkg.optional_tours.length} tour(s)
+      </span>
+    </div>
+    
+    <!-- Tours List with Delete Button -->
+    <div class="space-y-2">
+      ${pkg.optional_tours
+        .map(
+          (tour) => `
+        <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-purple-200 hover:bg-purple-50 transition">
+          <div class="flex items-center gap-2 flex-1">
+            ${
+              tour.image_url
+                ? `
+              <img src="${tour.image_url}" alt="${tour.tour_name}" class="w-8 h-8 rounded-lg object-cover">
+            `
+                : `
+              <i class="fas fa-compass text-purple-400 text-sm"></i>
+            `
+            }
+            <div>
+              <span class="text-sm font-medium">${tour.tour_name}</span>
+              ${
+                tour.duration_hours
+                  ? `
+                <span class="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded ml-2">
+                  ${tour.duration_hours}h
+                </span>
+              `
+                  : ""
+              }
+            </div>
+          </div>
+          <div class="flex gap-1">
+            <button onclick="window.viewOptionalTourDetails(${tour.id})" 
+                    class="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-100 px-2 py-1 rounded transition flex items-center gap-1"
+                    title="View Full Details">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button onclick="window.confirmDeleteOptionalTour(${tour.id})" 
+                    class="text-xs text-red-600 hover:text-red-800 hover:bg-red-100 px-2 py-1 rounded transition flex items-center gap-1"
+                    title="Delete Tour">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `,
+        )
+        .join("")}
+    </div>
+    
+    <!-- Add Tours Button -->
+    <div class="mt-3 pt-2 border-t-2 border-dashed border-gray-200">
+      <button onclick="openAddMultipleToursToPackageModal(${pkg.id}, ${destination.id})" 
+                class="w-full px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition flex items-center justify-center gap-2">
+          <i class="fas fa-plus-circle"></i>
+          <span class="font-medium">Add Optional Tours to this Package</span>
+        </button>
+    </div>
+  </div>
+`
+    : `
+  <div class="border rounded-lg p-3 bg-gray-50">
+    <div class="text-center py-2">
+      <i class="fas fa-compass text-2xl text-gray-400 mb-1"></i>
+      <h5 class="font-semibold text-sm text-gray-500 mb-1">Optional Tours</h5>
+      <p class="text-xs text-gray-400 italic">N/A - No optional tours in this package</p>
+      <button onclick="openAddMultipleToursToPackageModal(${pkg.id}, ${destination.id})" 
+                class="mt-2 px-3 py-1 bg-purple-500 text-white rounded-lg text-xs hover:bg-purple-600">
+          <i class="fas fa-plus-circle mr-1"></i> Add Optional Tours
+        </button>
+    </div>
+  </div>
+`
+}
                   </div>
                 </div>
               `,
@@ -3097,6 +3079,11 @@ export async function refreshDestinationsPage() {
 
   showToast("✅ Data refreshed!", "success");
 }
+
+// =====================================================
+// CREATE DESTINATION MODAL
+// =====================================================
+
 export function openCreateDestinationModal() {
   const modal = document.createElement("div");
   modal.id = "createDestinationModal";
@@ -3344,7 +3331,26 @@ export function openCreateDestinationModal() {
             </div>
           </div>
 
-        
+          <!-- ========================================= -->
+          <!-- SECTION 5: OPTIONAL TOURS -->
+          <!-- ========================================= -->
+          <div class="bg-gradient-to-br from-purple-50 to-white p-5 rounded-xl border-2 border-purple-100">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-compass text-purple-500"></i>
+                Optional Tours
+              </h4>
+              <button type="button" onclick="addOptionalTourRow()" 
+                      class="px-3 py-1.5 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600 flex items-center gap-1">
+                <i class="fas fa-plus-circle"></i> Add Optional Tour
+              </button>
+            </div>
+            <p class="text-xs text-gray-500 mb-3">Add optional tours that can be added to packages</p>
+            
+            <div id="optionalToursContainer" class="space-y-4">
+              <!-- Optional tours will be added here dynamically -->
+            </div>
+          </div>
 
           <!-- ========================================= -->
           <!-- ACTION BUTTONS -->
@@ -3638,6 +3644,164 @@ export function openCreateDestinationModal() {
         select.innerHTML = options;
       });
   }
+
+  // =====================================================
+  // OPTIONAL TOUR FUNCTIONS FOR CREATE DESTINATION
+  // =====================================================
+  window.addOptionalTourRow = function () {
+    const container = document.getElementById("optionalToursContainer");
+    const tourCount = container.children.length;
+
+    const tourHtml = `
+      <div class="optional-tour-row bg-purple-50 p-4 rounded-lg border-2 border-purple-200 relative">
+        <div class="flex justify-between items-start mb-3">
+          <h5 class="font-semibold text-sm text-purple-700">Optional Tour #${tourCount + 1}</h5>
+          <button type="button" onclick="this.closest('.optional-tour-row').remove()" 
+                  class="text-red-500 hover:text-red-700 p-1">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="md:col-span-2">
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Tour Name</label>
+            <input type="text" name="optional_tours[${tourCount}][name]" 
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="e.g., Island Hopping Tour">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Duration (hours)</label>
+            <input type="number" name="optional_tours[${tourCount}][duration]" step="0.5"
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="e.g., 4">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Image URL</label>
+            <input type="url" name="optional_tours[${tourCount}][image_url]" 
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="https://example.com/image.jpg">
+          </div>
+          
+          <!-- Rates -->
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Rate Solo</label>
+            <input type="number" name="optional_tours[${tourCount}][rate_solo]" step="0.01"
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="0.00">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Rate 2 Pax</label>
+            <input type="number" name="optional_tours[${tourCount}][rate_2pax]" step="0.01"
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="0.00">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Rate 3 Pax</label>
+            <input type="number" name="optional_tours[${tourCount}][rate_3pax]" step="0.01"
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="0.00">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Rate 4 Pax</label>
+            <input type="number" name="optional_tours[${tourCount}][rate_4pax]" step="0.01"
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="0.00">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Rate 5 Pax</label>
+            <input type="number" name="optional_tours[${tourCount}][rate_5pax]" step="0.01"
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="0.00">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Rate 6 Pax</label>
+            <input type="number" name="optional_tours[${tourCount}][rate_6pax]" step="0.01"
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="0.00">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Rate 7 Pax</label>
+            <input type="number" name="optional_tours[${tourCount}][rate_7pax]" step="0.01"
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="0.00">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Rate 8 Pax</label>
+            <input type="number" name="optional_tours[${tourCount}][rate_8pax]" step="0.01"
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="0.00">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Rate 9 Pax</label>
+            <input type="number" name="optional_tours[${tourCount}][rate_9pax]" step="0.01"
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="0.00">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Rate 10 Pax</label>
+            <input type="number" name="optional_tours[${tourCount}][rate_10pax]" step="0.01"
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="0.00">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Rate 11 Pax</label>
+            <input type="number" name="optional_tours[${tourCount}][rate_11pax]" step="0.01"
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="0.00">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Rate 12 Pax</label>
+            <input type="number" name="optional_tours[${tourCount}][rate_12pax]" step="0.01"
+                   class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="0.00">
+          </div>
+          
+          <div class="col-span-2">
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Itinerary (one per line)</label>
+            <textarea name="optional_tours[${tourCount}][itinerary]" rows="3"
+                      class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                      placeholder="08:00 AM - Pick up from hotel&#10;09:00 AM - Visit attraction 1&#10;12:00 PM - Lunch"></textarea>
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Inclusions (one per line)</label>
+            <textarea name="optional_tours[${tourCount}][inclusions]" rows="3"
+                      class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                      placeholder="Hotel pick up&#10;Tour guide&#10;Lunch"></textarea>
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Exclusions (one per line)</label>
+            <textarea name="optional_tours[${tourCount}][exclusions]" rows="3"
+                      class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                      placeholder="Personal expenses&#10;Gratuities"></textarea>
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.insertAdjacentHTML("beforeend", tourHtml);
+  };
+
+  // Add one default optional tour row
+  setTimeout(() => {
+    if (document.getElementById("optionalToursContainer")) {
+      window.addOptionalTourRow();
+    }
+  }, 100);
 
   // =====================================================
   // HOTEL FUNCTIONS
@@ -4047,127 +4211,117 @@ export function openCreateDestinationModal() {
     const rowCount = tbody.children.length;
     const rateType = type === "regular" ? "rates" : "extra";
 
-    // Get the category ID from the category row
-    const categoryRow = document.querySelectorAll(".hotel-category-row")[
-      catIndex
-    ];
-    const catNameInput = categoryRow?.querySelector('input[name*="[name]"]');
-    const catName = catNameInput?.value || `Category ${catIndex + 1}`;
-
-    // We need the actual category ID from the database, but for now use the index
-    // In a real scenario, you'd need to map this to the actual ID when saving
-    const tempCategoryId = catIndex; // This is temporary, will be mapped later
-
     const rowHtml = `
-    <tr class="hover:bg-gray-50">
-      <td class="border border-gray-300 px-3 py-2 min-w-[180px]">
-        <input type="text" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][season]" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
-               placeholder="e.g., Peak Season 2024">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[150px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][sneak]" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
-               step="0.01"
-               placeholder="e.g., 1000.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[120px]">
-        <input type="text" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][duration]" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
-               placeholder="e.g., 3D2N">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_solo]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_2pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_3pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_4pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_5pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_6pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_7pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_8pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_9pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_10pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_11pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_12pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_13pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_14pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_15pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_child]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 text-center min-w-[80px]">
-        <button type="button" onclick="this.closest('tr').remove()" 
-                class="text-red-500 hover:text-red-700 p-2 bg-red-50 hover:bg-red-100 rounded-lg transition" 
-                title="Delete Row">
-          <i class="fas fa-trash"></i>
-        </button>
-      </td>
-    </tr>
-  `;
+      <tr class="hover:bg-gray-50">
+        <td class="border border-gray-300 px-3 py-2 min-w-[180px]">
+          <input type="text" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][season]" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+                 placeholder="e.g., Peak Season 2024">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[150px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][sneak]" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+                 step="0.01"
+                 placeholder="e.g., 1000.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[120px]">
+          <input type="text" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][duration]" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+                 placeholder="e.g., 3D2N">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_solo]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_2pax]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_3pax]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_4pax]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_5pax]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_6pax]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_7pax]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_8pax]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_9pax]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_10pax]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_11pax]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_12pax]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_13pax]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_14pax]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_15pax]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_child]" step="0.01" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                 placeholder="0.00">
+        </td>
+        <td class="border border-gray-300 px-3 py-2 text-center min-w-[80px]">
+          <button type="button" onclick="this.closest('tr').remove()" 
+                  class="text-red-500 hover:text-red-700 p-2 bg-red-50 hover:bg-red-100 rounded-lg transition" 
+                  title="Delete Row">
+            <i class="fas fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `;
 
     tbody.insertAdjacentHTML("beforeend", rowHtml);
   };
+
   // Watch for changes in hotel categories to update rates in all packages
   function updateAllPackagesHotelRates() {
     const packageSections = document.querySelectorAll(".package-section");
@@ -4183,6 +4337,7 @@ export function openCreateDestinationModal() {
   const observer = new MutationObserver(() => {
     updateAllPackagesHotelRates();
   });
+
   observer.observe(document.getElementById("hotelCategoriesContainer"), {
     childList: true,
     subtree: true,
@@ -4326,7 +4481,41 @@ export function openCreateDestinationModal() {
         }
       }
 
-      // 5. Create Packages
+      // 5. Create Optional Tours
+      const optionalTourRows = document.querySelectorAll(".optional-tour-row");
+
+      for (let i = 0; i < optionalTourRows.length; i++) {
+        const tourName = formData.get(`optional_tours[${i}][name]`);
+        if (!tourName) continue;
+
+        const tourData = {
+          destination_id: destination.id,
+          tour_name: tourName,
+          duration_hours:
+            formData.get(`optional_tours[${i}][duration]`) || null,
+          image_url: formData.get(`optional_tours[${i}][image_url]`) || null,
+          itinerary: formData.get(`optional_tours[${i}][itinerary]`) || null,
+          inclusions: formData.get(`optional_tours[${i}][inclusions]`) || null,
+          exclusions: formData.get(`optional_tours[${i}][exclusions]`) || null,
+          rate_solo: formData.get(`optional_tours[${i}][rate_solo]`),
+          rate_2pax: formData.get(`optional_tours[${i}][rate_2pax]`),
+          rate_3pax: formData.get(`optional_tours[${i}][rate_3pax]`),
+          rate_4pax: formData.get(`optional_tours[${i}][rate_4pax]`),
+          rate_5pax: formData.get(`optional_tours[${i}][rate_5pax]`),
+          rate_6pax: formData.get(`optional_tours[${i}][rate_6pax]`),
+          rate_7pax: formData.get(`optional_tours[${i}][rate_7pax]`),
+          rate_8pax: formData.get(`optional_tours[${i}][rate_8pax]`),
+          rate_9pax: formData.get(`optional_tours[${i}][rate_9pax]`),
+          rate_10pax: formData.get(`optional_tours[${i}][rate_10pax]`),
+          rate_11pax: formData.get(`optional_tours[${i}][rate_11pax]`),
+          rate_12pax: formData.get(`optional_tours[${i}][rate_12pax]`),
+          rate_child_4_9: null,
+        };
+
+        await createOptionalTour(tourData);
+      }
+
+      // 6. Create Packages
       const packageSections = document.querySelectorAll(".package-section");
 
       for (let p = 0; p < packageSections.length; p++) {
@@ -4380,7 +4569,7 @@ export function openCreateDestinationModal() {
           ]);
         }
 
-        // Create hotel rates for this package - PROCESS TABLE ROWS WITH SEASON, SNEAK AND DURATION
+        // Create hotel rates for this package
         const categoryCount = categoryMap.size;
         for (let c = 0; c < categoryCount; c++) {
           const categoryId = categoryMap.get(c);
@@ -4403,7 +4592,6 @@ export function openCreateDestinationModal() {
               `packages[${p}][hotel_rates][${c}][rates][${regularRowIndex}][duration]`,
             );
 
-            // Only create rate if at least one field has value
             const hasValue =
               season ||
               sneak ||
@@ -4419,9 +4607,7 @@ export function openCreateDestinationModal() {
               const rateData = {
                 package_id: newPackage.id,
                 hotel_category_id: categoryId,
-                sneak: formData.sneak
-                  ? parseFloat(formData.sneak).toString()
-                  : null,
+                season: season || null,
                 sneak: sneak ? parseFloat(sneak) : null,
                 duration: duration || null,
                 rate_solo: formData.get(
@@ -4600,7 +4786,6 @@ export function openCreateDestinationModal() {
               `packages[${p}][hotel_rates][${c}][extra][${extraRowIndex}][duration]`,
             );
 
-            // Only create rate if at least one field has value
             const hasValue =
               season ||
               sneak ||
@@ -4825,7 +5010,6 @@ export function openCreateDestinationModal() {
     }
   });
 }
-
 export async function openEditDestinationModal(id) {
   console.log("🔄 Opening edit destination modal for ID:", id);
 
@@ -8998,7 +9182,7 @@ export function openEditHotelModal(hotelId) {
 }
 
 // =====================================================
-// UPDATED CREATE OPTIONAL TOUR MODAL - NO CATEGORY
+// UPDATED CREATE OPTIONAL TOUR MODAL - WITH FILE UPLOAD
 // =====================================================
 
 export function openCreateOptionalTourModal(destinationId) {
@@ -9028,35 +9212,80 @@ export function openCreateOptionalTourModal(destinationId) {
         </div>
       </div>
 
-
-
       <div class="flex-1 overflow-y-auto p-6">
         <form id="createOptionalTourForm" class="space-y-6">
           <input type="hidden" name="destination_id" value="${destinationId}">
-          <div class="bg-gradient-to-br from-purple-50 to-white p-5 rounded-xl border-2 border-purple-100">
-  <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-    <i class="fas fa-image text-purple-500"></i>
-    Tour Image
-  </h4>
-  
-  <div class="space-y-4">
-    <div>
-      <label class="block text-sm font-semibold text-gray-600 mb-2">Image URL</label>
-      <input type="url" name="image_url" 
-             class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-sm"
-             placeholder="https://example.com/tour-image.jpg">
-      <p class="text-xs text-gray-500 mt-1">Enter a direct link to an image (optional)</p>
-    </div>
-    
-    <!-- Image Preview -->
-    <div id="tourImagePreview" class="hidden">
-      <label class="block text-sm font-semibold text-gray-600 mb-2">Preview</label>
-      <img id="tourPreviewImg" src="#" alt="Tour preview" class="max-h-40 rounded-lg border-2 border-gray-200">
-    </div>
-  </div>
-</div>
+          
           <!-- ========================================= -->
-          <!-- SECTION 1: BASIC INFO -->
+          <!-- IMAGE UPLOAD SECTION - WITH FILE UPLOAD -->
+          <!-- ========================================= -->
+          <div class="bg-gradient-to-br from-purple-50 to-white p-5 rounded-xl border-2 border-purple-100">
+            <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <i class="fas fa-image text-purple-500"></i>
+              Tour Image
+            </h4>
+            
+            <!-- Image Source Tabs -->
+            <div class="flex border-b border-gray-200 mb-4">
+              <button type="button" id="createUploadTabBtn" class="px-4 py-2 text-sm font-medium text-purple-600 border-b-2 border-purple-600">Upload File</button>
+              <button type="button" id="createUrlTabBtn" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">Image URL</button>
+            </div>
+            
+            <!-- Upload Method (Default) -->
+            <div id="createUploadMethod" class="space-y-3">
+              <div id="createImageUploadArea" 
+                   class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-500 transition cursor-pointer relative">
+                
+                <!-- Hidden file input -->
+                <input type="file" id="createImageFileInput" name="image_file" 
+                       accept="image/png,image/jpeg,image/jpg,image/webp" 
+                       class="hidden">
+                
+                <!-- Default Upload Icon -->
+                <div id="createUploadPlaceholder" class="space-y-2">
+                  <i class="fas fa-cloud-upload-alt text-3xl text-gray-400"></i>
+                  <p class="text-sm text-gray-600">Click to select an image or drag and drop</p>
+                  <p class="text-xs text-gray-400">PNG, JPG, WEBP up to 5MB</p>
+                </div>
+                
+                <!-- Image Preview (hidden by default) -->
+                <div id="createImagePreview" class="hidden space-y-3">
+                  <img id="createPreviewImg" src="#" alt="Preview" class="max-h-40 mx-auto rounded-lg shadow-md">
+                  <div class="flex items-center justify-center gap-2 text-sm">
+                    <i class="fas fa-check-circle text-green-500"></i>
+                    <span id="createFileName" class="font-medium text-gray-700"></span>
+                    <span id="createFileSize" class="text-xs text-gray-500"></span>
+                  </div>
+                  <button type="button" onclick="clearCreateSelectedImage(event)" 
+                          class="text-xs text-red-600 hover:text-red-800 bg-red-50 px-3 py-1 rounded-full">
+                    <i class="fas fa-times mr-1"></i> Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- URL Method (Hidden by Default) -->
+            <div id="createUrlMethod" class="hidden space-y-3">
+              <div class="border-2 border-gray-300 rounded-lg p-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Image URL</label>
+                <input type="url" name="image_url" id="createImageUrlInput"
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all text-sm"
+                       placeholder="https://example.com/image.jpg">
+                <p class="text-xs text-gray-500 mt-2">
+                  <i class="fas fa-info-circle"></i>
+                  Enter a publicly accessible image URL
+                </p>
+                
+                <!-- URL Preview -->
+                <div id="createUrlPreviewContainer" class="mt-3 hidden">
+                  <img id="createUrlPreviewImg" src="#" alt="URL Preview" class="max-h-40 mx-auto rounded-lg shadow-md">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- ========================================= -->
+          <!-- BASIC INFO -->
           <!-- ========================================= -->
           <div class="bg-gradient-to-br from-gray-50 to-white p-5 rounded-xl border-2 border-gray-100">
             <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -9078,13 +9307,11 @@ export function openCreateOptionalTourModal(destinationId) {
                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 text-sm"
                        placeholder="e.g., 4">
               </div>
-              
-              <!-- ❌ CATEGORY DROPDOWN REMOVED -->
             </div>
           </div>
           
           <!-- ========================================= -->
-          <!-- SECTION 2: ITINERARY (Schedule) -->
+          <!-- TOUR ITINERARY -->
           <!-- ========================================= -->
           <div class="bg-gradient-to-br from-indigo-50 to-white p-5 rounded-xl border-2 border-indigo-100">
             <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
@@ -9098,7 +9325,7 @@ export function openCreateOptionalTourModal(destinationId) {
           </div>
           
           <!-- ========================================= -->
-          <!-- SECTION 3: INCLUSIONS (What's included) -->
+          <!-- TOUR INCLUSIONS -->
           <!-- ========================================= -->
           <div class="bg-gradient-to-br from-green-50 to-white p-5 rounded-xl border-2 border-green-100">
             <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
@@ -9112,7 +9339,7 @@ export function openCreateOptionalTourModal(destinationId) {
           </div>
           
           <!-- ========================================= -->
-          <!-- SECTION 4: EXCLUSIONS (What's NOT included) -->
+          <!-- TOUR EXCLUSIONS -->
           <!-- ========================================= -->
           <div class="bg-gradient-to-br from-red-50 to-white p-5 rounded-xl border-2 border-red-100">
             <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
@@ -9126,7 +9353,7 @@ export function openCreateOptionalTourModal(destinationId) {
           </div>
           
           <!-- ========================================= -->
-          <!-- SECTION 5: RATES -->
+          <!-- TOUR RATES -->
           <!-- ========================================= -->
           <div class="bg-gradient-to-br from-purple-50 to-white p-5 rounded-xl border-2 border-purple-100">
             <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -9232,84 +9459,333 @@ export function openCreateOptionalTourModal(destinationId) {
         </form>
       </div>
     </div>
-    
   `;
 
   document.body.appendChild(modal);
-  // =====================================================
-  // IMAGE PREVIEW FOR CREATE MODAL
-  // =====================================================
-  const imageUrlInput = document.querySelector('input[name="image_url"]');
-  const previewDiv = document.getElementById("tourImagePreview");
-  const previewImg = document.getElementById("tourPreviewImg");
 
-  if (imageUrlInput) {
-    imageUrlInput.addEventListener("input", function (e) {
-      const url = e.target.value;
-      if (url && url.trim()) {
-        previewImg.src = url;
-        previewDiv.classList.remove("hidden");
-      } else {
-        previewDiv.classList.add("hidden");
-        previewImg.src = "#";
+  // =====================================================
+  // IMAGE UPLOAD/URL TAB FUNCTIONALITY
+  // =====================================================
+  const uploadTabBtn = document.getElementById("createUploadTabBtn");
+  const urlTabBtn = document.getElementById("createUrlTabBtn");
+  const uploadMethod = document.getElementById("createUploadMethod");
+  const urlMethod = document.getElementById("createUrlMethod");
+  const urlInput = document.getElementById("createImageUrlInput");
+  const urlPreviewContainer = document.getElementById(
+    "createUrlPreviewContainer",
+  );
+  const urlPreviewImg = document.getElementById("createUrlPreviewImg");
+  const fileInput = document.getElementById("createImageFileInput");
+
+  if (uploadTabBtn && urlTabBtn) {
+    uploadTabBtn.addEventListener("click", () => {
+      uploadTabBtn.classList.add(
+        "text-purple-600",
+        "border-b-2",
+        "border-purple-600",
+      );
+      uploadTabBtn.classList.remove("text-gray-500");
+      urlTabBtn.classList.remove(
+        "text-purple-600",
+        "border-b-2",
+        "border-purple-600",
+      );
+      urlTabBtn.classList.add("text-gray-500");
+
+      if (uploadMethod) uploadMethod.classList.remove("hidden");
+      if (urlMethod) urlMethod.classList.add("hidden");
+
+      if (urlInput) {
+        urlInput.disabled = true;
+        urlInput.required = false;
+      }
+      if (fileInput) fileInput.disabled = false;
+    });
+
+    urlTabBtn.addEventListener("click", () => {
+      urlTabBtn.classList.add(
+        "text-purple-600",
+        "border-b-2",
+        "border-purple-600",
+      );
+      urlTabBtn.classList.remove("text-gray-500");
+      uploadTabBtn.classList.remove(
+        "text-purple-600",
+        "border-b-2",
+        "border-purple-600",
+      );
+      uploadTabBtn.classList.add("text-gray-500");
+
+      if (urlMethod) urlMethod.classList.remove("hidden");
+      if (uploadMethod) uploadMethod.classList.add("hidden");
+
+      if (urlInput) {
+        urlInput.disabled = false;
+        urlInput.required = false;
+      }
+      if (fileInput) {
+        fileInput.disabled = true;
+        fileInput.value = "";
+        clearCreateSelectedImage();
       }
     });
   }
 
+  // URL preview on input
+  if (urlInput) {
+    urlInput.addEventListener("input", function () {
+      const url = this.value.trim();
+      if (url && urlPreviewContainer && urlPreviewImg) {
+        urlPreviewImg.src = url;
+        urlPreviewContainer.classList.remove("hidden");
+
+        urlPreviewImg.onerror = function () {
+          urlPreviewContainer.classList.add("hidden");
+          showToast("Invalid image URL or image cannot be loaded", "warning");
+        };
+
+        urlPreviewImg.onload = function () {
+          urlPreviewContainer.classList.remove("hidden");
+        };
+      } else if (urlPreviewContainer) {
+        urlPreviewContainer.classList.add("hidden");
+      }
+    });
+  }
+
+  // =====================================================
+  // IMAGE PREVIEW FUNCTIONALITY
+  // =====================================================
+  const uploadArea = document.getElementById("createImageUploadArea");
+  const uploadPlaceholder = document.getElementById("createUploadPlaceholder");
+  const imagePreview = document.getElementById("createImagePreview");
+  const previewImg = document.getElementById("createPreviewImg");
+  const fileName = document.getElementById("createFileName");
+  const fileSize = document.getElementById("createFileSize");
+
+  window.clearCreateSelectedImage = function (event) {
+    if (event) event.stopPropagation();
+
+    if (fileInput) fileInput.value = "";
+    if (uploadPlaceholder) uploadPlaceholder.classList.remove("hidden");
+    if (imagePreview) imagePreview.classList.add("hidden");
+    if (previewImg) previewImg.src = "#";
+    if (uploadArea)
+      uploadArea.classList.remove("border-purple-500", "bg-purple-50");
+
+    if (urlInput) urlInput.value = "";
+    if (urlPreviewContainer) urlPreviewContainer.classList.add("hidden");
+  };
+
+  if (uploadArea && fileInput) {
+    uploadArea.addEventListener("click", function (e) {
+      if (e.target.closest("button")) return;
+      fileInput.click();
+    });
+
+    fileInput.addEventListener("change", function (e) {
+      const file = e.target.files[0];
+      if (file) {
+        const validTypes = [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/webp",
+        ];
+        if (!validTypes.includes(file.type)) {
+          showToast(
+            "Please select a valid image file (PNG, JPG, JPEG, WEBP)",
+            "error",
+          );
+          fileInput.value = "";
+          return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+          showToast("File size must be less than 5MB", "error");
+          fileInput.value = "";
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          if (previewImg) previewImg.src = e.target.result;
+          if (uploadPlaceholder) uploadPlaceholder.classList.add("hidden");
+          if (imagePreview) imagePreview.classList.remove("hidden");
+
+          const fileSizeKB = (file.size / 1024).toFixed(1);
+          const fileSizeDisplay =
+            fileSizeKB > 1024
+              ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+              : `${fileSizeKB} KB`;
+
+          if (fileName) fileName.textContent = file.name;
+          if (fileSize) fileSize.textContent = `(${fileSizeDisplay})`;
+
+          showToast(`✅ Image selected: ${file.name}`, "success");
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    uploadArea.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      uploadArea.classList.add("border-purple-500", "bg-purple-50");
+    });
+
+    uploadArea.addEventListener("dragleave", () => {
+      uploadArea.classList.remove("border-purple-500", "bg-purple-50");
+    });
+
+    uploadArea.addEventListener("drop", (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove("border-purple-500", "bg-purple-50");
+
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith("image/")) {
+        fileInput.files = e.dataTransfer.files;
+        const event = new Event("change", { bubbles: true });
+        fileInput.dispatchEvent(event);
+      } else {
+        showToast("Please drop an image file", "error");
+      }
+    });
+  }
+
+  // =====================================================
+  // FORM SUBMIT HANDLER
+  // =====================================================
   const form = document.getElementById("createOptionalTourForm");
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const formData = new FormData(form);
-    const result = await createOptionalTour({
-      destination_id: formData.get("destination_id"),
-      tour_name: formData.get("tour_name"),
-      duration_hours: formData.get("duration_hours"),
-      image_url: formData.get("image_url"),
-      // ❌ category_id REMOVED
-      itinerary: formData.get("itinerary"),
-      inclusions: formData.get("inclusions"),
-      exclusions: formData.get("exclusions"),
-      rate_solo: formData.get("rate_solo"),
-      rate_2pax: formData.get("rate_2pax"),
-      rate_3pax: formData.get("rate_3pax"),
-      rate_4pax: formData.get("rate_4pax"),
-      rate_5pax: formData.get("rate_5pax"),
-      rate_6pax: formData.get("rate_6pax"),
-      rate_7pax: formData.get("rate_7pax"),
-      rate_8pax: formData.get("rate_8pax"),
-      rate_9pax: formData.get("rate_9pax"),
-      rate_10pax: formData.get("rate_10pax"),
-      rate_11pax: formData.get("rate_11pax"),
-      rate_12pax: formData.get("rate_12pax"),
-      rate_child_4_9: formData.get("rate_child_4_9"),
-    });
+    showLoading(true, "Creating tour...");
 
-    if (result) {
-      modal.remove();
-      showToast("✅ Optional tour created successfully!", "success");
-      await refreshDestinationsPage();
+    try {
+      const formData = new FormData(form);
+
+      // Determine which image method is active
+      const useUrl = urlMethod && !urlMethod.classList.contains("hidden");
+      const imageFile = !useUrl && fileInput ? fileInput.files[0] : null;
+      const imageUrl = useUrl && urlInput ? urlInput.value.trim() : null;
+
+      // Validate that at least one image method is provided
+      if (!useUrl && !imageFile) {
+        showToast("Please select an image or provide an image URL", "warning");
+        showLoading(false);
+        return;
+      }
+
+      let finalImageUrl = null;
+
+      // Handle image upload if file is provided
+      if (imageFile) {
+        try {
+          // Create a temporary ID for the upload (will be replaced after creation)
+          const tempId = Date.now();
+          const fileName = `optional-tours/temp-${tempId}-${imageFile.name}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("tour-images")
+            .upload(fileName, imageFile, {
+              cacheControl: "3600",
+              upsert: false,
+            });
+
+          if (uploadError) throw uploadError;
+
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("tour-images").getPublicUrl(fileName);
+
+          finalImageUrl = publicUrl;
+        } catch (uploadError) {
+          console.error("Image upload failed:", uploadError);
+          showToast(
+            "⚠️ Image upload failed. Tour will be created without image.",
+            "warning",
+          );
+        }
+      } else if (useUrl && imageUrl) {
+        finalImageUrl = imageUrl;
+      }
+
+      const tourData = {
+        destination_id: formData.get("destination_id"),
+        tour_name: formData.get("tour_name"),
+        duration_hours: formData.get("duration_hours"),
+        image_url: finalImageUrl,
+        itinerary: formData.get("itinerary"),
+        inclusions: formData.get("inclusions"),
+        exclusions: formData.get("exclusions"),
+        rate_solo: formData.get("rate_solo"),
+        rate_2pax: formData.get("rate_2pax"),
+        rate_3pax: formData.get("rate_3pax"),
+        rate_4pax: formData.get("rate_4pax"),
+        rate_5pax: formData.get("rate_5pax"),
+        rate_6pax: formData.get("rate_6pax"),
+        rate_7pax: formData.get("rate_7pax"),
+        rate_8pax: formData.get("rate_8pax"),
+        rate_9pax: formData.get("rate_9pax"),
+        rate_10pax: formData.get("rate_10pax"),
+        rate_11pax: formData.get("rate_11pax"),
+        rate_12pax: formData.get("rate_12pax"),
+        rate_child_4_9: formData.get("rate_child_4_9"),
+      };
+
+      console.log("📤 Creating tour with data:", tourData);
+
+      const result = await createOptionalTour(tourData);
+
+      if (result) {
+        modal.remove();
+        showToast("✅ Optional tour created successfully!", "success");
+        await refreshDestinationsPage();
+      }
+    } catch (error) {
+      console.error("Error creating tour:", error);
+      showToast("❌ Failed to create tour: " + error.message, "error");
+    } finally {
+      showLoading(false);
     }
   });
 }
-
 // =====================================================
-// UPDATED EDIT OPTIONAL TOUR MODAL - NO CATEGORY
+// COMPLETELY REWRITTEN EDIT OPTIONAL TOUR MODAL
+// WITH MANUAL RATE FETCHING
 // =====================================================
 
 export async function openEditOptionalTourModal(tourId) {
   try {
     showLoading(true, "Loading tour data...");
 
-    const tour = await fetchOptionalTourById(tourId);
-    if (!tour) {
+    // Fetch tour basic info first
+    const { data: tour, error: tourError } = await supabase
+      .from("optional_tours")
+      .select("*")
+      .eq("id", tourId)
+      .single();
+
+    if (tourError || !tour) {
+      console.error("Error fetching tour:", tourError);
       showToast("Tour not found", "error");
       showLoading(false);
       return;
     }
 
-    console.log("📦 Tour data for editing:", tour);
-    console.log("💰 Rates for editing:", tour.rates?.[0]);
+    // Then fetch rates separately
+    const { data: rates, error: ratesError } = await supabase
+      .from("optional_tour_rates")
+      .select("*")
+      .eq("tour_id", tourId)
+      .maybeSingle();
+
+    if (ratesError) {
+      console.error("Error fetching rates:", ratesError);
+    }
+
+    console.log("📦 Tour data:", tour);
+    console.log("💰 Rates data:", rates);
 
     const destination = state.destinations.find(
       (d) => d.id === tour.destination_id,
@@ -9321,10 +9797,24 @@ export async function openEditOptionalTourModal(tourId) {
     modal.className =
       "fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto";
 
-    // Get rates object safely
-    const rates = tour.rates && tour.rates.length > 0 ? tour.rates[0] : {};
+    // Get rates object - THIS WILL NOW HAVE DATA
+    const rateData = rates || {};
 
-    console.log("📊 Rates object:", rates);
+    // Log each rate value to verify
+    console.log("📊 Solo rate:", rateData.rate_solo);
+    console.log("📊 2Pax rate:", rateData.rate_2pax);
+    console.log("📊 Child rate:", rateData.rate_child_4_9);
+
+    // Format itinerary, inclusions, exclusions properly
+    const itineraryText = Array.isArray(tour.itinerary)
+      ? tour.itinerary.join("\n")
+      : tour.itinerary || "";
+    const inclusionsText = Array.isArray(tour.inclusions)
+      ? tour.inclusions.join("\n")
+      : tour.inclusions || "";
+    const exclusionsText = Array.isArray(tour.exclusions)
+      ? tour.exclusions.join("\n")
+      : tour.exclusions || "";
 
     modal.innerHTML = `
       <div class="bg-white rounded-2xl max-w-4xl w-full my-8 shadow-2xl transform transition-all flex flex-col" style="max-height: 90vh;">
@@ -9340,7 +9830,7 @@ export async function openEditOptionalTourModal(tourId) {
                 <h3 class="text-2xl font-bold text-white tracking-tight">Edit Optional Tour</h3>
                 <p class="text-amber-100 text-sm mt-1">${tour.tour_name}</p>
               </div>
-              <button onclick="this.closest('.fixed').remove(); document.dispatchEvent(new CustomEvent('modalClosed'));" class="text-white/80 hover:text-white text-2xl">&times;</button>
+              <button onclick="this.closest('.fixed').remove()" class="text-white/80 hover:text-white text-2xl">&times;</button>
             </div>
           </div>
         </div>
@@ -9349,41 +9839,81 @@ export async function openEditOptionalTourModal(tourId) {
           <form id="editOptionalTourForm" class="space-y-6">
             <input type="hidden" name="tour_id" value="${tour.id}">
             
-            <!-- Basic Info with Image -->
+            <!-- ========================================= -->
+            <!-- IMAGE UPLOAD SECTION -->
+            <!-- ========================================= -->
+            <div class="bg-gradient-to-br from-purple-50 to-white p-5 rounded-xl border-2 border-purple-100">
+              <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <i class="fas fa-image text-purple-500"></i>
+                Tour Image
+              </h4>
+              
+              <!-- Image Source Tabs -->
+              <div class="flex border-b border-gray-200 mb-4">
+                <button type="button" id="editUploadTabBtn" class="px-4 py-2 text-sm font-medium text-purple-600 border-b-2 border-purple-600">Upload File</button>
+                <button type="button" id="editUrlTabBtn" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">Image URL</button>
+              </div>
+              
+              <!-- Upload Method -->
+              <div id="editUploadMethod" class="space-y-3">
+                <div id="editImageUploadArea" 
+                     class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-500 transition cursor-pointer relative">
+                  
+                  <input type="file" id="editImageFileInput" name="image_file" 
+                         accept="image/png,image/jpeg,image/jpg,image/webp" 
+                         class="hidden">
+                  
+                  <div id="editUploadPlaceholder" class="space-y-2 ${tour.image_url ? "hidden" : ""}">
+                    <i class="fas fa-cloud-upload-alt text-3xl text-gray-400"></i>
+                    <p class="text-sm text-gray-600">Click to select an image or drag and drop</p>
+                    <p class="text-xs text-gray-400">PNG, JPG, WEBP up to 5MB</p>
+                  </div>
+                  
+                  <div id="editImagePreview" class="space-y-3 ${tour.image_url ? "" : "hidden"}">
+                    <img id="editPreviewImg" src="${tour.image_url || "#"}" alt="Preview" class="max-h-40 mx-auto rounded-lg shadow-md">
+                    <div class="flex items-center justify-center gap-2 text-sm">
+                      <i class="fas fa-check-circle text-green-500"></i>
+                      <span id="editFileName" class="font-medium text-gray-700">${tour.image_url ? "Current image" : ""}</span>
+                    </div>
+                    <button type="button" onclick="clearEditSelectedImage(event)" 
+                            class="text-xs text-red-600 hover:text-red-800 bg-red-50 px-3 py-1 rounded-full">
+                      <i class="fas fa-times mr-1"></i> Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- URL Method -->
+              <div id="editUrlMethod" class="space-y-3 hidden">
+                <div class="border-2 border-gray-300 rounded-lg p-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Image URL</label>
+                  <input type="url" name="image_url" id="editImageUrlInput" value="${tour.image_url || ""}"
+                         class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all text-sm"
+                         placeholder="https://example.com/image.jpg">
+                  <p class="text-xs text-gray-500 mt-2">
+                    <i class="fas fa-info-circle"></i>
+                    Enter a publicly accessible image URL
+                  </p>
+                  
+                  <div id="editUrlPreviewContainer" class="mt-3 ${tour.image_url ? "" : "hidden"}">
+                    <img id="editUrlPreviewImg" src="${tour.image_url || "#"}" alt="URL Preview" class="max-h-40 mx-auto rounded-lg shadow-md">
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- ========================================= -->
+            <!-- BASIC INFO -->
+            <!-- ========================================= -->
             <div class="bg-gradient-to-br from-gray-50 to-white p-5 rounded-xl border-2 border-gray-100">
               <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <i class="fas fa-info-circle text-amber-500"></i>
                 Tour Information
               </h4>
               
-              <!-- Image Upload Section -->
-              <div class="mb-6 p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-semibold text-gray-600 mb-2">
-                      <i class="fas fa-image text-purple-500 mr-2"></i>
-                      Image URL
-                    </label>
-                    <input type="url" name="image_url" id="tourImageUrl" value="${tour.image_url || ""}"
-                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-sm"
-                           placeholder="https://example.com/tour-image.jpg"
-                           onchange="previewTourImage(this.value)">
-                    <p class="text-xs text-gray-500 mt-1">Enter a direct link to an image (optional)</p>
-                  </div>
-                  
-                  <!-- Image Preview -->
-                  <div id="tourImagePreview" class="${tour.image_url ? "" : "hidden"}">
-                    <label class="block text-sm font-semibold text-gray-600 mb-2">Preview</label>
-                    <img id="tourPreviewImg" src="${tour.image_url || "#"}" alt="Tour preview" class="max-h-40 rounded-lg border-2 border-gray-200 mx-auto">
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Tour Name and Duration -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="md:col-span-2">
                   <label class="block text-sm font-semibold text-gray-600 mb-2">
-                    <i class="fas fa-tag text-amber-500 mr-2"></i>
                     Tour Name <span class="text-red-500">*</span>
                   </label>
                   <input type="text" name="tour_name" value="${tour.tour_name.replace(/"/g, "&quot;")}" required
@@ -9392,7 +9922,6 @@ export async function openEditOptionalTourModal(tourId) {
                 
                 <div>
                   <label class="block text-sm font-semibold text-gray-600 mb-2">
-                    <i class="fas fa-clock text-amber-500 mr-2"></i>
                     Duration (hours)
                   </label>
                   <input type="number" name="duration_hours" value="${tour.duration_hours || ""}" step="0.5" min="0"
@@ -9401,40 +9930,48 @@ export async function openEditOptionalTourModal(tourId) {
               </div>
             </div>
             
-            <!-- Tour Itinerary -->
+            <!-- ========================================= -->
+            <!-- TOUR ITINERARY -->
+            <!-- ========================================= -->
             <div class="bg-gradient-to-br from-indigo-50 to-white p-5 rounded-xl border-2 border-indigo-100">
               <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
                 <i class="fas fa-map-signs text-indigo-500"></i>
                 Tour Itinerary (Schedule)
               </h4>
               <textarea name="itinerary" rows="6"
-                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-sm">${Array.isArray(tour.itinerary) ? tour.itinerary.join("\n") : tour.itinerary || ""}</textarea>
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-sm">${itineraryText}</textarea>
               <p class="text-xs text-gray-500 mt-1">One activity per line</p>
             </div>
             
-            <!-- Tour Inclusions -->
+            <!-- ========================================= -->
+            <!-- TOUR INCLUSIONS -->
+            <!-- ========================================= -->
             <div class="bg-gradient-to-br from-green-50 to-white p-5 rounded-xl border-2 border-green-100">
               <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
                 <i class="fas fa-check-circle text-green-500"></i>
                 Tour Inclusions (What's included)
               </h4>
               <textarea name="inclusions" rows="5"
-                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 text-sm">${Array.isArray(tour.inclusions) ? tour.inclusions.join("\n") : tour.inclusions || ""}</textarea>
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 text-sm">${inclusionsText}</textarea>
               <p class="text-xs text-gray-500 mt-1">One inclusion per line</p>
             </div>
             
-            <!-- Tour Exclusions -->
+            <!-- ========================================= -->
+            <!-- TOUR EXCLUSIONS -->
+            <!-- ========================================= -->
             <div class="bg-gradient-to-br from-red-50 to-white p-5 rounded-xl border-2 border-red-100">
               <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
                 <i class="fas fa-times-circle text-red-500"></i>
                 Tour Exclusions (What's NOT included)
               </h4>
               <textarea name="exclusions" rows="4"
-                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-red-500 focus:ring-2 focus:ring-red-200 text-sm">${Array.isArray(tour.exclusions) ? tour.exclusions.join("\n") : tour.exclusions || ""}</textarea>
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-red-500 focus:ring-2 focus:ring-red-200 text-sm">${exclusionsText}</textarea>
               <p class="text-xs text-gray-500 mt-1">One exclusion per line</p>
             </div>
             
-            <!-- Tour Rates -->
+            <!-- ========================================= -->
+            <!-- TOUR RATES - DIRECT VALUE INSERTION -->
+            <!-- ========================================= -->
             <div class="bg-gradient-to-br from-purple-50 to-white p-5 rounded-xl border-2 border-purple-100">
               <div class="flex items-center justify-between mb-4">
                 <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -9451,232 +9988,230 @@ export async function openEditOptionalTourModal(tourId) {
               <div class="mb-4 p-4 bg-purple-100 rounded-lg border-2 border-purple-300">
                 <p class="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
                   <i class="fas fa-info-circle"></i>
-                  Current Rates (for reference):
+                  Current Rates:
                 </p>
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   ${
-                    rates.rate_solo
+                    rateData.rate_solo
                       ? `
                     <div class="bg-white p-2 rounded-lg border border-purple-200">
                       <span class="text-xs text-gray-500 block">Solo</span>
-                      <span class="font-bold text-purple-700">₱${parseFloat(rates.rate_solo).toLocaleString()}</span>
+                      <span class="font-bold text-purple-700">₱${parseFloat(rateData.rate_solo).toLocaleString()}</span>
                     </div>
                   `
                       : ""
                   }
                   ${
-                    rates.rate_2pax
+                    rateData.rate_2pax
                       ? `
                     <div class="bg-white p-2 rounded-lg border border-purple-200">
                       <span class="text-xs text-gray-500 block">2 Pax</span>
-                      <span class="font-bold text-purple-700">₱${parseFloat(rates.rate_2pax).toLocaleString()}</span>
+                      <span class="font-bold text-purple-700">₱${parseFloat(rateData.rate_2pax).toLocaleString()}</span>
                     </div>
                   `
                       : ""
                   }
                   ${
-                    rates.rate_3pax
+                    rateData.rate_3pax
                       ? `
                     <div class="bg-white p-2 rounded-lg border border-purple-200">
                       <span class="text-xs text-gray-500 block">3 Pax</span>
-                      <span class="font-bold text-purple-700">₱${parseFloat(rates.rate_3pax).toLocaleString()}</span>
+                      <span class="font-bold text-purple-700">₱${parseFloat(rateData.rate_3pax).toLocaleString()}</span>
                     </div>
                   `
                       : ""
                   }
                   ${
-                    rates.rate_4pax
+                    rateData.rate_4pax
                       ? `
                     <div class="bg-white p-2 rounded-lg border border-purple-200">
                       <span class="text-xs text-gray-500 block">4 Pax</span>
-                      <span class="font-bold text-purple-700">₱${parseFloat(rates.rate_4pax).toLocaleString()}</span>
+                      <span class="font-bold text-purple-700">₱${parseFloat(rateData.rate_4pax).toLocaleString()}</span>
                     </div>
                   `
                       : ""
                   }
                   ${
-                    rates.rate_5pax
+                    rateData.rate_5pax
                       ? `
                     <div class="bg-white p-2 rounded-lg border border-purple-200">
                       <span class="text-xs text-gray-500 block">5 Pax</span>
-                      <span class="font-bold text-purple-700">₱${parseFloat(rates.rate_5pax).toLocaleString()}</span>
+                      <span class="font-bold text-purple-700">₱${parseFloat(rateData.rate_5pax).toLocaleString()}</span>
                     </div>
                   `
                       : ""
                   }
                   ${
-                    rates.rate_6pax
+                    rateData.rate_6pax
                       ? `
                     <div class="bg-white p-2 rounded-lg border border-purple-200">
                       <span class="text-xs text-gray-500 block">6 Pax</span>
-                      <span class="font-bold text-purple-700">₱${parseFloat(rates.rate_6pax).toLocaleString()}</span>
+                      <span class="font-bold text-purple-700">₱${parseFloat(rateData.rate_6pax).toLocaleString()}</span>
                     </div>
                   `
                       : ""
                   }
                   ${
-                    rates.rate_7pax
+                    rateData.rate_7pax
                       ? `
                     <div class="bg-white p-2 rounded-lg border border-purple-200">
                       <span class="text-xs text-gray-500 block">7 Pax</span>
-                      <span class="font-bold text-purple-700">₱${parseFloat(rates.rate_7pax).toLocaleString()}</span>
+                      <span class="font-bold text-purple-700">₱${parseFloat(rateData.rate_7pax).toLocaleString()}</span>
                     </div>
                   `
                       : ""
                   }
                   ${
-                    rates.rate_8pax
+                    rateData.rate_8pax
                       ? `
                     <div class="bg-white p-2 rounded-lg border border-purple-200">
                       <span class="text-xs text-gray-500 block">8 Pax</span>
-                      <span class="font-bold text-purple-700">₱${parseFloat(rates.rate_8pax).toLocaleString()}</span>
+                      <span class="font-bold text-purple-700">₱${parseFloat(rateData.rate_8pax).toLocaleString()}</span>
                     </div>
                   `
                       : ""
                   }
                   ${
-                    rates.rate_9pax
+                    rateData.rate_9pax
                       ? `
                     <div class="bg-white p-2 rounded-lg border border-purple-200">
                       <span class="text-xs text-gray-500 block">9 Pax</span>
-                      <span class="font-bold text-purple-700">₱${parseFloat(rates.rate_9pax).toLocaleString()}</span>
+                      <span class="font-bold text-purple-700">₱${parseFloat(rateData.rate_9pax).toLocaleString()}</span>
                     </div>
                   `
                       : ""
                   }
                   ${
-                    rates.rate_10pax
+                    rateData.rate_10pax
                       ? `
                     <div class="bg-white p-2 rounded-lg border border-purple-200">
                       <span class="text-xs text-gray-500 block">10 Pax</span>
-                      <span class="font-bold text-purple-700">₱${parseFloat(rates.rate_10pax).toLocaleString()}</span>
+                      <span class="font-bold text-purple-700">₱${parseFloat(rateData.rate_10pax).toLocaleString()}</span>
                     </div>
                   `
                       : ""
                   }
                   ${
-                    rates.rate_11pax
+                    rateData.rate_11pax
                       ? `
                     <div class="bg-white p-2 rounded-lg border border-purple-200">
                       <span class="text-xs text-gray-500 block">11 Pax</span>
-                      <span class="font-bold text-purple-700">₱${parseFloat(rates.rate_11pax).toLocaleString()}</span>
+                      <span class="font-bold text-purple-700">₱${parseFloat(rateData.rate_11pax).toLocaleString()}</span>
                     </div>
                   `
                       : ""
                   }
                   ${
-                    rates.rate_12pax
+                    rateData.rate_12pax
                       ? `
                     <div class="bg-white p-2 rounded-lg border border-purple-200">
                       <span class="text-xs text-gray-500 block">12 Pax</span>
-                      <span class="font-bold text-purple-700">₱${parseFloat(rates.rate_12pax).toLocaleString()}</span>
+                      <span class="font-bold text-purple-700">₱${parseFloat(rateData.rate_12pax).toLocaleString()}</span>
                     </div>
                   `
                       : ""
                   }
                   ${
-                    rates.rate_child_4_9
+                    rateData.rate_child_4_9
                       ? `
                     <div class="bg-white p-2 rounded-lg border border-purple-200">
                       <span class="text-xs text-gray-500 block">Child (4-9)</span>
-                      <span class="font-bold text-purple-700">₱${parseFloat(rates.rate_child_4_9).toLocaleString()}</span>
+                      <span class="font-bold text-purple-700">₱${parseFloat(rateData.rate_child_4_9).toLocaleString()}</span>
                     </div>
                   `
                       : ""
                   }
                 </div>
-                ${Object.values(rates).every((v) => !v) ? '<p class="text-gray-500 italic text-sm">No rates currently set</p>' : ""}
+                ${Object.values(rateData).every((v) => !v) ? '<p class="text-gray-500 italic text-sm">No rates currently set</p>' : ""}
               </div>
               
-              <p class="text-sm font-semibold text-gray-700 mb-3">Update Rates (leave blank to keep existing):</p>
+              <p class="text-sm font-semibold text-gray-700 mb-3">Update Rates:</p>
               
               <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <div>
                   <label class="block text-xs font-semibold text-gray-600 mb-1">Solo</label>
-                  <input type="number" name="rate_solo" value="${rates.rate_solo || ""}" step="0.01" min="0"
+                  <input type="number" name="rate_solo" value="${rateData.rate_solo || ""}" step="0.01" min="0"
                          class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                         placeholder="${rates.rate_solo ? "Current: ₱" + parseFloat(rates.rate_solo).toLocaleString() : "0.00"}">
+                         placeholder="0.00">
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-gray-600 mb-1">2 Pax</label>
-                  <input type="number" name="rate_2pax" value="${rates.rate_2pax || ""}" step="0.01" min="0"
+                  <input type="number" name="rate_2pax" value="${rateData.rate_2pax || ""}" step="0.01" min="0"
                          class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                         placeholder="${rates.rate_2pax ? "Current: ₱" + parseFloat(rates.rate_2pax).toLocaleString() : "0.00"}">
+                         placeholder="0.00">
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-gray-600 mb-1">3 Pax</label>
-                  <input type="number" name="rate_3pax" value="${rates.rate_3pax || ""}" step="0.01" min="0"
+                  <input type="number" name="rate_3pax" value="${rateData.rate_3pax || ""}" step="0.01" min="0"
                          class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                         placeholder="${rates.rate_3pax ? "Current: ₱" + parseFloat(rates.rate_3pax).toLocaleString() : "0.00"}">
+                         placeholder="0.00">
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-gray-600 mb-1">4 Pax</label>
-                  <input type="number" name="rate_4pax" value="${rates.rate_4pax || ""}" step="0.01" min="0"
+                  <input type="number" name="rate_4pax" value="${rateData.rate_4pax || ""}" step="0.01" min="0"
                          class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                         placeholder="${rates.rate_4pax ? "Current: ₱" + parseFloat(rates.rate_4pax).toLocaleString() : "0.00"}">
+                         placeholder="0.00">
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-gray-600 mb-1">5 Pax</label>
-                  <input type="number" name="rate_5pax" value="${rates.rate_5pax || ""}" step="0.01" min="0"
+                  <input type="number" name="rate_5pax" value="${rateData.rate_5pax || ""}" step="0.01" min="0"
                          class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                         placeholder="${rates.rate_5pax ? "Current: ₱" + parseFloat(rates.rate_5pax).toLocaleString() : "0.00"}">
+                         placeholder="0.00">
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-gray-600 mb-1">6 Pax</label>
-                  <input type="number" name="rate_6pax" value="${rates.rate_6pax || ""}" step="0.01" min="0"
+                  <input type="number" name="rate_6pax" value="${rateData.rate_6pax || ""}" step="0.01" min="0"
                          class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                         placeholder="${rates.rate_6pax ? "Current: ₱" + parseFloat(rates.rate_6pax).toLocaleString() : "0.00"}">
+                         placeholder="0.00">
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-gray-600 mb-1">7 Pax</label>
-                  <input type="number" name="rate_7pax" value="${rates.rate_7pax || ""}" step="0.01" min="0"
+                  <input type="number" name="rate_7pax" value="${rateData.rate_7pax || ""}" step="0.01" min="0"
                          class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                         placeholder="${rates.rate_7pax ? "Current: ₱" + parseFloat(rates.rate_7pax).toLocaleString() : "0.00"}">
+                         placeholder="0.00">
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-gray-600 mb-1">8 Pax</label>
-                  <input type="number" name="rate_8pax" value="${rates.rate_8pax || ""}" step="0.01" min="0"
+                  <input type="number" name="rate_8pax" value="${rateData.rate_8pax || ""}" step="0.01" min="0"
                          class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                         placeholder="${rates.rate_8pax ? "Current: ₱" + parseFloat(rates.rate_8pax).toLocaleString() : "0.00"}">
+                         placeholder="0.00">
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-gray-600 mb-1">9 Pax</label>
-                  <input type="number" name="rate_9pax" value="${rates.rate_9pax || ""}" step="0.01" min="0"
+                  <input type="number" name="rate_9pax" value="${rateData.rate_9pax || ""}" step="0.01" min="0"
                          class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                         placeholder="${rates.rate_9pax ? "Current: ₱" + parseFloat(rates.rate_9pax).toLocaleString() : "0.00"}">
+                         placeholder="0.00">
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-gray-600 mb-1">10 Pax</label>
-                  <input type="number" name="rate_10pax" value="${rates.rate_10pax || ""}" step="0.01" min="0"
+                  <input type="number" name="rate_10pax" value="${rateData.rate_10pax || ""}" step="0.01" min="0"
                          class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                         placeholder="${rates.rate_10pax ? "Current: ₱" + parseFloat(rates.rate_10pax).toLocaleString() : "0.00"}">
+                         placeholder="0.00">
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-gray-600 mb-1">11 Pax</label>
-                  <input type="number" name="rate_11pax" value="${rates.rate_11pax || ""}" step="0.01" min="0"
+                  <input type="number" name="rate_11pax" value="${rateData.rate_11pax || ""}" step="0.01" min="0"
                          class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                         placeholder="${rates.rate_11pax ? "Current: ₱" + parseFloat(rates.rate_11pax).toLocaleString() : "0.00"}">
+                         placeholder="0.00">
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-gray-600 mb-1">12 Pax</label>
-                  <input type="number" name="rate_12pax" value="${rates.rate_12pax || ""}" step="0.01" min="0"
+                  <input type="number" name="rate_12pax" value="${rateData.rate_12pax || ""}" step="0.01" min="0"
                          class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                         placeholder="${rates.rate_12pax ? "Current: ₱" + parseFloat(rates.rate_12pax).toLocaleString() : "0.00"}">
+                         placeholder="0.00">
                 </div>
                 <div class="col-span-2 md:col-span-3 lg:col-span-4">
                   <label class="block text-xs font-semibold text-gray-600 mb-1">Child Rate (4-9 years)</label>
-                  <input type="number" name="rate_child_4_9" value="${rates.rate_child_4_9 || ""}" step="0.01" min="0"
+                  <input type="number" name="rate_child_4_9" value="${rateData.rate_child_4_9 || ""}" step="0.01" min="0"
                          class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                         placeholder="${rates.rate_child_4_9 ? "Current: ₱" + parseFloat(rates.rate_child_4_9).toLocaleString() : "0.00"}">
+                         placeholder="0.00">
                 </div>
               </div>
-              <p class="text-xs text-gray-500 mt-2">
-                <i class="fas fa-info-circle mr-1"></i>
-                Leave fields blank to keep existing values. Enter new values to update.
-              </p>
             </div>
             
-            <!-- Status -->
+            <!-- ========================================= -->
+            <!-- STATUS -->
+            <!-- ========================================= -->
             <div class="bg-gradient-to-br from-gray-50 to-white p-5 rounded-xl border-2 border-gray-100">
               <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
                 <i class="fas fa-power-off text-gray-500"></i>
@@ -9694,9 +10229,11 @@ export async function openEditOptionalTourModal(tourId) {
               </div>
             </div>
             
-            <!-- Action Buttons -->
+            <!-- ========================================= -->
+            <!-- ACTION BUTTONS -->
+            <!-- ========================================= -->
             <div class="flex justify-end gap-3 pt-4 border-t-2 border-gray-100">
-              <button type="button" onclick="this.closest('.fixed').remove(); document.dispatchEvent(new CustomEvent('modalClosed'));"
+              <button type="button" onclick="this.closest('.fixed').remove()"
                       class="px-5 py-2.5 border-2 border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-all">
                 <i class="fas fa-times mr-2"></i> Cancel
               </button>
@@ -9713,84 +10250,375 @@ export async function openEditOptionalTourModal(tourId) {
 
     document.body.appendChild(modal);
 
-    // Dispatch modal opened event
-    document.dispatchEvent(
-      new CustomEvent("modalOpened", {
-        detail: { modalId: "edit-optional-tour", tourId: tour.id },
-      }),
+    // =====================================================
+    // IMAGE UPLOAD/URL TAB FUNCTIONALITY
+    // =====================================================
+    const uploadTabBtn = document.getElementById("editUploadTabBtn");
+    const urlTabBtn = document.getElementById("editUrlTabBtn");
+    const uploadMethod = document.getElementById("editUploadMethod");
+    const urlMethod = document.getElementById("editUrlMethod");
+    const urlInput = document.getElementById("editImageUrlInput");
+    const urlPreviewContainer = document.getElementById(
+      "editUrlPreviewContainer",
     );
+    const urlPreviewImg = document.getElementById("editUrlPreviewImg");
+    const fileInput = document.getElementById("editImageFileInput");
 
-    // Image preview function
-    window.previewTourImage = function (url) {
-      const preview = document.getElementById("tourImagePreview");
-      const previewImg = document.getElementById("tourPreviewImg");
+    if (uploadTabBtn && urlTabBtn) {
+      uploadTabBtn.addEventListener("click", () => {
+        uploadTabBtn.classList.add(
+          "text-purple-600",
+          "border-b-2",
+          "border-purple-600",
+        );
+        uploadTabBtn.classList.remove("text-gray-500");
+        urlTabBtn.classList.remove(
+          "text-purple-600",
+          "border-b-2",
+          "border-purple-600",
+        );
+        urlTabBtn.classList.add("text-gray-500");
 
-      if (url && url.trim()) {
-        previewImg.src = url;
-        preview.classList.remove("hidden");
-      } else {
-        preview.classList.add("hidden");
-        previewImg.src = "#";
-      }
-    };
+        if (uploadMethod) uploadMethod.classList.remove("hidden");
+        if (urlMethod) urlMethod.classList.add("hidden");
 
-    // Trigger preview on page load if there's an existing image
-    const existingImageUrl = document.getElementById("tourImageUrl")?.value;
-    if (existingImageUrl) {
-      window.previewTourImage(existingImageUrl);
+        if (urlInput) {
+          urlInput.disabled = true;
+          urlInput.required = false;
+        }
+        if (fileInput) fileInput.disabled = false;
+      });
+
+      urlTabBtn.addEventListener("click", () => {
+        urlTabBtn.classList.add(
+          "text-purple-600",
+          "border-b-2",
+          "border-purple-600",
+        );
+        urlTabBtn.classList.remove("text-gray-500");
+        uploadTabBtn.classList.remove(
+          "text-purple-600",
+          "border-b-2",
+          "border-purple-600",
+        );
+        uploadTabBtn.classList.add("text-gray-500");
+
+        if (urlMethod) urlMethod.classList.remove("hidden");
+        if (uploadMethod) uploadMethod.classList.add("hidden");
+
+        if (urlInput) {
+          urlInput.disabled = false;
+          urlInput.required = false;
+        }
+        if (fileInput) {
+          fileInput.disabled = true;
+        }
+      });
     }
 
+    // URL preview on input
+    if (urlInput) {
+      urlInput.addEventListener("input", function () {
+        const url = this.value.trim();
+        if (url && urlPreviewContainer && urlPreviewImg) {
+          urlPreviewImg.src = url;
+          urlPreviewContainer.classList.remove("hidden");
+
+          urlPreviewImg.onerror = function () {
+            urlPreviewContainer.classList.add("hidden");
+            showToast("Invalid image URL or image cannot be loaded", "warning");
+          };
+
+          urlPreviewImg.onload = function () {
+            urlPreviewContainer.classList.remove("hidden");
+          };
+        } else if (urlPreviewContainer) {
+          urlPreviewContainer.classList.add("hidden");
+        }
+      });
+    }
+
+    // =====================================================
+    // IMAGE PREVIEW FUNCTIONALITY
+    // =====================================================
+    const uploadArea = document.getElementById("editImageUploadArea");
+    const uploadPlaceholder = document.getElementById("editUploadPlaceholder");
+    const imagePreview = document.getElementById("editImagePreview");
+    const previewImg = document.getElementById("editPreviewImg");
+    const fileName = document.getElementById("editFileName");
+
+    window.clearEditSelectedImage = function (event) {
+      if (event) event.stopPropagation();
+
+      if (fileInput) fileInput.value = "";
+      if (uploadPlaceholder) uploadPlaceholder.classList.remove("hidden");
+      if (imagePreview) imagePreview.classList.add("hidden");
+      if (previewImg) previewImg.src = "#";
+      if (uploadArea)
+        uploadArea.classList.remove("border-purple-500", "bg-purple-50");
+
+      if (urlInput) urlInput.value = "";
+      if (urlPreviewContainer) urlPreviewContainer.classList.add("hidden");
+    };
+
+    if (uploadArea && fileInput) {
+      uploadArea.addEventListener("click", function (e) {
+        if (e.target.closest("button")) return;
+        fileInput.click();
+      });
+
+      fileInput.addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        if (file) {
+          const validTypes = [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/webp",
+          ];
+          if (!validTypes.includes(file.type)) {
+            showToast(
+              "Please select a valid image file (PNG, JPG, JPEG, WEBP)",
+              "error",
+            );
+            fileInput.value = "";
+            return;
+          }
+
+          if (file.size > 5 * 1024 * 1024) {
+            showToast("File size must be less than 5MB", "error");
+            fileInput.value = "";
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            if (previewImg) previewImg.src = e.target.result;
+            if (uploadPlaceholder) uploadPlaceholder.classList.add("hidden");
+            if (imagePreview) imagePreview.classList.remove("hidden");
+
+            const fileSizeKB = (file.size / 1024).toFixed(1);
+            const fileSizeDisplay =
+              fileSizeKB > 1024
+                ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+                : `${fileSizeKB} KB`;
+
+            if (fileName)
+              fileName.textContent = `${file.name} (${fileSizeDisplay})`;
+
+            showToast(`✅ Image selected: ${file.name}`, "success");
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+
+      uploadArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadArea.classList.add("border-purple-500", "bg-purple-50");
+      });
+
+      uploadArea.addEventListener("dragleave", () => {
+        uploadArea.classList.remove("border-purple-500", "bg-purple-50");
+      });
+
+      uploadArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove("border-purple-500", "bg-purple-50");
+
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith("image/")) {
+          fileInput.files = e.dataTransfer.files;
+          const event = new Event("change", { bubbles: true });
+          fileInput.dispatchEvent(event);
+        } else {
+          showToast("Please drop an image file", "error");
+        }
+      });
+    }
+
+    // =====================================================
+    // FORM SUBMIT HANDLER
+    // =====================================================
     const form = document.getElementById("editOptionalTourForm");
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const formData = new FormData(form);
+      showLoading(true, "Updating tour...");
 
-      // Only include rate fields that have values
-      const rateFields = [
-        "rate_solo",
-        "rate_2pax",
-        "rate_3pax",
-        "rate_4pax",
-        "rate_5pax",
-        "rate_6pax",
-        "rate_7pax",
-        "rate_8pax",
-        "rate_9pax",
-        "rate_10pax",
-        "rate_11pax",
-        "rate_12pax",
-        "rate_child_4_9",
-      ];
+      try {
+        const formData = new FormData(form);
 
-      const rateData = {};
-      rateFields.forEach((field) => {
-        const value = formData.get(field);
-        rateData[field] = value ? parseFloat(value) : null;
-      });
+        // Determine which image method is active
+        const useUrl = urlMethod && !urlMethod.classList.contains("hidden");
+        const imageFile = !useUrl && fileInput ? fileInput.files[0] : null;
+        const imageUrl = useUrl && urlInput ? urlInput.value.trim() : null;
 
-      const tourData = {
-        tour_name: formData.get("tour_name"),
-        duration_hours: formData.get("duration_hours")
-          ? parseFloat(formData.get("duration_hours"))
-          : null,
-        image_url: formData.get("image_url"),
-        itinerary: formData.get("itinerary"),
-        inclusions: formData.get("inclusions"),
-        exclusions: formData.get("exclusions"),
-        is_active: formData.get("is_active") === "true",
-        update_rates: formData.get("update_rates") === "true",
-        ...rateData,
-      };
+        let finalImageUrl = tour.image_url; // Keep existing by default
 
-      console.log("📤 Saving tour data:", tourData);
+        // Handle image upload if file is provided
+        if (imageFile) {
+          try {
+            const fileExt = imageFile.name.split(".").pop();
+            const fileName = `optional-tours/${tour.id}-${Date.now()}.${fileExt}`;
 
-      const result = await updateOptionalTour(tour.id, tourData);
-      if (result) {
-        modal.remove();
-        document.dispatchEvent(new CustomEvent("modalClosed"));
-        showToast("✅ Optional tour updated successfully!", "success");
-        await refreshDestinationsPage();
+            const { error: uploadError } = await supabase.storage
+              .from("destination-images")
+              .upload(fileName, imageFile, {
+                cacheControl: "3600",
+                upsert: false,
+              });
+
+            if (uploadError) {
+              console.error("Upload error:", uploadError);
+              showToast(
+                "⚠️ Image upload failed. Using existing image.",
+                "warning",
+              );
+            } else {
+              const {
+                data: { publicUrl },
+              } = supabase.storage
+                .from("destination-images")
+                .getPublicUrl(fileName);
+
+              finalImageUrl = publicUrl;
+              console.log("✅ Image uploaded:", publicUrl);
+            }
+          } catch (uploadError) {
+            console.error("Image upload failed:", uploadError);
+            showToast(
+              "⚠️ Image upload failed. Using existing image.",
+              "warning",
+            );
+          }
+        } else if (useUrl && imageUrl) {
+          finalImageUrl = imageUrl;
+        }
+
+        // Build rate data object with explicit field mapping
+        const rateData = {};
+
+        const soloValue = formData.get("rate_solo");
+        if (soloValue && soloValue.trim() !== "") {
+          rateData.rate_solo = parseFloat(soloValue);
+        }
+
+        const pax2Value = formData.get("rate_2pax");
+        if (pax2Value && pax2Value.trim() !== "") {
+          rateData.rate_2pax = parseFloat(pax2Value);
+        }
+
+        const pax3Value = formData.get("rate_3pax");
+        if (pax3Value && pax3Value.trim() !== "") {
+          rateData.rate_3pax = parseFloat(pax3Value);
+        }
+
+        const pax4Value = formData.get("rate_4pax");
+        if (pax4Value && pax4Value.trim() !== "") {
+          rateData.rate_4pax = parseFloat(pax4Value);
+        }
+
+        const pax5Value = formData.get("rate_5pax");
+        if (pax5Value && pax5Value.trim() !== "") {
+          rateData.rate_5pax = parseFloat(pax5Value);
+        }
+
+        const pax6Value = formData.get("rate_6pax");
+        if (pax6Value && pax6Value.trim() !== "") {
+          rateData.rate_6pax = parseFloat(pax6Value);
+        }
+
+        const pax7Value = formData.get("rate_7pax");
+        if (pax7Value && pax7Value.trim() !== "") {
+          rateData.rate_7pax = parseFloat(pax7Value);
+        }
+
+        const pax8Value = formData.get("rate_8pax");
+        if (pax8Value && pax8Value.trim() !== "") {
+          rateData.rate_8pax = parseFloat(pax8Value);
+        }
+
+        const pax9Value = formData.get("rate_9pax");
+        if (pax9Value && pax9Value.trim() !== "") {
+          rateData.rate_9pax = parseFloat(pax9Value);
+        }
+
+        const pax10Value = formData.get("rate_10pax");
+        if (pax10Value && pax10Value.trim() !== "") {
+          rateData.rate_10pax = parseFloat(pax10Value);
+        }
+
+        const pax11Value = formData.get("rate_11pax");
+        if (pax11Value && pax11Value.trim() !== "") {
+          rateData.rate_11pax = parseFloat(pax11Value);
+        }
+
+        const pax12Value = formData.get("rate_12pax");
+        if (pax12Value && pax12Value.trim() !== "") {
+          rateData.rate_12pax = parseFloat(pax12Value);
+        }
+
+        const childValue = formData.get("rate_child_4_9");
+        if (childValue && childValue.trim() !== "") {
+          rateData.rate_child_4_9 = parseFloat(childValue);
+        }
+
+        const hasRates = Object.keys(rateData).length > 0;
+
+        // Prepare tour data
+        const tourData = {
+          tour_name: formData.get("tour_name"),
+          duration_hours: formData.get("duration_hours")
+            ? parseFloat(formData.get("duration_hours"))
+            : null,
+          image_url: finalImageUrl,
+          itinerary: formData.get("itinerary"),
+          inclusions: formData.get("inclusions"),
+          exclusions: formData.get("exclusions"),
+          is_active: formData.get("is_active") === "true",
+          update_rates: formData.get("update_rates") === "true",
+        };
+
+        // Only add rate data if update_rates is checked
+        if (tourData.update_rates) {
+          if (hasRates) {
+            // If there are new rates, update with them
+            Object.assign(tourData, rateData);
+          } else {
+            // If update_rates is checked but no rates provided, set all to null (clear rates)
+            const clearRates = {
+              rate_solo: null,
+              rate_2pax: null,
+              rate_3pax: null,
+              rate_4pax: null,
+              rate_5pax: null,
+              rate_6pax: null,
+              rate_7pax: null,
+              rate_8pax: null,
+              rate_9pax: null,
+              rate_10pax: null,
+              rate_11pax: null,
+              rate_12pax: null,
+              rate_child_4_9: null,
+            };
+            Object.assign(tourData, clearRates);
+          }
+        }
+
+        console.log("📤 Saving tour data:", tourData);
+
+        const result = await updateOptionalTour(tour.id, tourData);
+
+        if (result) {
+          modal.remove();
+          showToast("✅ Optional tour updated successfully!", "success");
+          await refreshDestinationsPage();
+        }
+      } catch (error) {
+        console.error("Error updating tour:", error);
+        showToast("❌ Failed to update tour: " + error.message, "error");
+      } finally {
+        showLoading(false);
       }
     });
   } catch (error) {

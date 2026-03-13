@@ -862,6 +862,130 @@ export async function updatePackage(id, formData) {
       console.log("✅ Itineraries updated");
     }
 
+    // =====================================================
+    // HANDLE HOTEL RATES WITH SEASON, SNEAK AND DURATION
+    // =====================================================
+
+    // If hotel rates data is provided in the update
+    if (formData.hotel_rates_data) {
+      const hotelRatesData = JSON.parse(formData.hotel_rates_data);
+
+      // For each category's rates
+      for (const rateData of hotelRatesData) {
+        // Check if rate already exists for this package and category
+        const { data: existing } = await supabase
+          .from("package_hotel_rates")
+          .select("id")
+          .eq("package_id", id)
+          .eq("hotel_category_id", rateData.hotel_category_id)
+          .maybeSingle();
+
+        if (existing) {
+          // Update existing rate
+          const { error } = await supabase
+            .from("package_hotel_rates")
+            .update({
+              season: rateData.season || null,
+              sneak: rateData.sneak || null,
+              duration: rateData.duration || null,
+              rate_solo: rateData.rate_solo || null,
+              rate_2pax: rateData.rate_2pax || null,
+              rate_3pax: rateData.rate_3pax || null,
+              rate_4pax: rateData.rate_4pax || null,
+              rate_5pax: rateData.rate_5pax || null,
+              rate_6pax: rateData.rate_6pax || null,
+              rate_7pax: rateData.rate_7pax || null,
+              rate_8pax: rateData.rate_8pax || null,
+              rate_9pax: rateData.rate_9pax || null,
+              rate_10pax: rateData.rate_10pax || null,
+              rate_11pax: rateData.rate_11pax || null,
+              rate_12pax: rateData.rate_12pax || null,
+              rate_13pax: rateData.rate_13pax || null,
+              rate_14pax: rateData.rate_14pax || null,
+              rate_15pax: rateData.rate_15pax || null,
+              rate_child_no_breakfast: rateData.rate_child_no_breakfast || null,
+              extra_night_solo: rateData.extra_night_solo || null,
+              extra_night_2pax: rateData.extra_night_2pax || null,
+              extra_night_3pax: rateData.extra_night_3pax || null,
+              extra_night_4pax: rateData.extra_night_4pax || null,
+              extra_night_5pax: rateData.extra_night_5pax || null,
+              extra_night_6pax: rateData.extra_night_6pax || null,
+              extra_night_7pax: rateData.extra_night_7pax || null,
+              extra_night_8pax: rateData.extra_night_8pax || null,
+              extra_night_9pax: rateData.extra_night_9pax || null,
+              extra_night_10pax: rateData.extra_night_10pax || null,
+              extra_night_11pax: rateData.extra_night_11pax || null,
+              extra_night_12pax: rateData.extra_night_12pax || null,
+              extra_night_13pax: rateData.extra_night_13pax || null,
+              extra_night_14pax: rateData.extra_night_14pax || null,
+              extra_night_15pax: rateData.extra_night_15pax || null,
+              extra_night_child_no_breakfast:
+                rateData.extra_night_child_no_breakfast || null,
+              breakfast_included: rateData.breakfast_included === true,
+              breakfast_notes: rateData.breakfast_notes || null,
+              updated_at: new Date(),
+            })
+            .eq("id", existing.id);
+
+          if (error) throw error;
+          console.log(
+            `✅ Updated hotel rate for category ${rateData.hotel_category_id}`,
+          );
+        } else {
+          // Insert new rate
+          const { error } = await supabase.from("package_hotel_rates").insert([
+            {
+              package_id: id,
+              hotel_category_id: rateData.hotel_category_id,
+              season: rateData.season || null,
+              sneak: rateData.sneak || null,
+              duration: rateData.duration || null,
+              rate_solo: rateData.rate_solo || null,
+              rate_2pax: rateData.rate_2pax || null,
+              rate_3pax: rateData.rate_3pax || null,
+              rate_4pax: rateData.rate_4pax || null,
+              rate_5pax: rateData.rate_5pax || null,
+              rate_6pax: rateData.rate_6pax || null,
+              rate_7pax: rateData.rate_7pax || null,
+              rate_8pax: rateData.rate_8pax || null,
+              rate_9pax: rateData.rate_9pax || null,
+              rate_10pax: rateData.rate_10pax || null,
+              rate_11pax: rateData.rate_11pax || null,
+              rate_12pax: rateData.rate_12pax || null,
+              rate_13pax: rateData.rate_13pax || null,
+              rate_14pax: rateData.rate_14pax || null,
+              rate_15pax: rateData.rate_15pax || null,
+              rate_child_no_breakfast: rateData.rate_child_no_breakfast || null,
+              extra_night_solo: rateData.extra_night_solo || null,
+              extra_night_2pax: rateData.extra_night_2pax || null,
+              extra_night_3pax: rateData.extra_night_3pax || null,
+              extra_night_4pax: rateData.extra_night_4pax || null,
+              extra_night_5pax: rateData.extra_night_5pax || null,
+              extra_night_6pax: rateData.extra_night_6pax || null,
+              extra_night_7pax: rateData.extra_night_7pax || null,
+              extra_night_8pax: rateData.extra_night_8pax || null,
+              extra_night_9pax: rateData.extra_night_9pax || null,
+              extra_night_10pax: rateData.extra_night_10pax || null,
+              extra_night_11pax: rateData.extra_night_11pax || null,
+              extra_night_12pax: rateData.extra_night_12pax || null,
+              extra_night_13pax: rateData.extra_night_13pax || null,
+              extra_night_14pax: rateData.extra_night_14pax || null,
+              extra_night_15pax: rateData.extra_night_15pax || null,
+              extra_night_child_no_breakfast:
+                rateData.extra_night_child_no_breakfast || null,
+              breakfast_included: rateData.breakfast_included === true,
+              breakfast_notes: rateData.breakfast_notes || null,
+            },
+          ]);
+
+          if (error) throw error;
+          console.log(
+            `✅ Inserted new hotel rate for category ${rateData.hotel_category_id}`,
+          );
+        }
+      }
+    }
+
     await fetchDestinations();
     showToast("✅ Package updated successfully!", "success");
     return true;
@@ -2490,9 +2614,7 @@ export async function viewDestinationDetails(id) {
                   
                   <!-- Package Details Accordion -->
                   <div class="mt-3 space-y-3">
-                    
-                    <!-- Hotel Rates Display in viewDestinationDetails - UPDATED WITH SEASON AND SNEAK AND N/A -->
-<!-- Hotel Rates Display in viewDestinationDetails - UPDATED WITH SEASON AND SNEAK AND N/A FOR EMPTY VALUES -->
+        <!-- Hotel Rates Display - FIXED VERSION -->
 ${
   pkg.package_hotel_rates && pkg.package_hotel_rates.length > 0
     ? `
@@ -2501,219 +2623,142 @@ ${
       <i class="fas fa-hotel text-blue-500"></i> Hotel Rates
     </h5>
     
-    <!-- Group rates by category for better display -->
-    ${(() => {
-      // Group rates by category
-      const ratesByCategory = {};
-      pkg.package_hotel_rates.forEach((rate) => {
-        const categoryId = rate.hotel_category_id;
-        if (!ratesByCategory[categoryId]) {
-          ratesByCategory[categoryId] = [];
-        }
-        ratesByCategory[categoryId].push(rate);
-      });
+    ${pkg.package_hotel_rates
+      .map((rate) => {
+        const category = destination.hotel_categories?.find(
+          (c) => c.id === rate.hotel_category_id,
+        );
+        const categoryName = category?.category_name || "Unknown Category";
 
-      return Object.entries(ratesByCategory)
-        .map(([categoryId, rates]) => {
-          const category = destination.hotel_categories?.find(
-            (c) => c.id === parseInt(categoryId),
-          );
-          const categoryName = category?.category_name || "Unknown Category";
-
-          return `
-          <div class="mb-4 border-b border-gray-200 pb-3 last:border-0">
-            <h6 class="font-semibold text-sm text-indigo-700 mb-2">${categoryName}</h6>
-            
-           <!-- Regular Rates Table -->
-<div class="mb-3">
-  <p class="text-xs font-medium text-gray-600 mb-1">Regular Rates:</p>
-  <div class="overflow-x-auto">
-    <table class="min-w-full text-xs">
-      <thead>
-        <tr class="bg-gray-200">
-          <th class="px-2 py-1 text-left">Season</th>
-          <th class="px-2 py-1 text-left">Sneak</th>
-          <th class="px-2 py-1 text-left">Duration</th>
-          <th class="px-2 py-1 text-right">Solo</th>
-          <th class="px-2 py-1 text-right">2P</th>
-          <th class="px-2 py-1 text-right">3P</th>
-          <th class="px-2 py-1 text-right">4P</th>
-          <th class="px-2 py-1 text-right">5P</th>
-          <th class="px-2 py-1 text-right">6P</th>
-          <th class="px-2 py-1 text-right">7P</th>
-          <th class="px-2 py-1 text-right">8P</th>
-          <th class="px-2 py-1 text-right">9P</th>
-          <th class="px-2 py-1 text-right">10P</th>
-          <th class="px-2 py-1 text-right">11P</th>
-          <th class="px-2 py-1 text-right">12P</th>
-          <th class="px-2 py-1 text-right">13P</th>
-          <th class="px-2 py-1 text-right">14P</th>
-          <th class="px-2 py-1 text-right">15P</th>
-          <th class="px-2 py-1 text-right">Child</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rates
-          .map((rate) => {
-            // Only show rows that have regular rates
-            const hasRegularRates =
-              rate.rate_solo ||
-              rate.rate_2pax ||
-              rate.rate_3pax ||
-              rate.rate_4pax ||
-              rate.rate_5pax ||
-              rate.rate_6pax ||
-              rate.rate_7pax ||
-              rate.rate_8pax ||
-              rate.rate_9pax ||
-              rate.rate_10pax ||
-              rate.rate_11pax ||
-              rate.rate_12pax ||
-              rate.rate_13pax ||
-              rate.rate_14pax ||
-              rate.rate_15pax ||
-              rate.rate_child_no_breakfast;
-
-            if (!hasRegularRates) return "";
-
-            return `
-            <tr class="border-b">
-              <td class="px-2 py-1">${rate.season || "N/A"}</td>
-              <td class="px-2 py-1">${rate.sneak || "N/A"}</td>
-              <td class="px-2 py-1">${rate.duration || "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_solo ? "₱" + rate.rate_solo.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_2pax ? "₱" + rate.rate_2pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_3pax ? "₱" + rate.rate_3pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_4pax ? "₱" + rate.rate_4pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_5pax ? "₱" + rate.rate_5pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_6pax ? "₱" + rate.rate_6pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_7pax ? "₱" + rate.rate_7pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_8pax ? "₱" + rate.rate_8pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_9pax ? "₱" + rate.rate_9pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_10pax ? "₱" + rate.rate_10pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_11pax ? "₱" + rate.rate_11pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_12pax ? "₱" + rate.rate_12pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_13pax ? "₱" + rate.rate_13pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_14pax ? "₱" + rate.rate_14pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_15pax ? "₱" + rate.rate_15pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.rate_child_no_breakfast ? "₱" + rate.rate_child_no_breakfast.toLocaleString() : "N/A"}</td>
-            </tr>
-          `;
-          })
-          .filter(Boolean)
-          .join("")}
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<!-- Extra Night Rates Table -->
-<div>
-  <p class="text-xs font-medium text-gray-600 mb-1">Extra Night Rates:</p>
-  <div class="overflow-x-auto">
-    <table class="min-w-full text-xs">
-      <thead>
-        <tr class="bg-gray-200">
-          <th class="px-2 py-1 text-left">Season</th>
-          <th class="px-2 py-1 text-left">Sneak</th>
-          <th class="px-2 py-1 text-left">Duration</th>
-          <th class="px-2 py-1 text-right">Solo</th>
-          <th class="px-2 py-1 text-right">2P</th>
-          <th class="px-2 py-1 text-right">3P</th>
-          <th class="px-2 py-1 text-right">4P</th>
-          <th class="px-2 py-1 text-right">5P</th>
-          <th class="px-2 py-1 text-right">6P</th>
-          <th class="px-2 py-1 text-right">7P</th>
-          <th class="px-2 py-1 text-right">8P</th>
-          <th class="px-2 py-1 text-right">9P</th>
-          <th class="px-2 py-1 text-right">10P</th>
-          <th class="px-2 py-1 text-right">11P</th>
-          <th class="px-2 py-1 text-right">12P</th>
-          <th class="px-2 py-1 text-right">13P</th>
-          <th class="px-2 py-1 text-right">14P</th>
-          <th class="px-2 py-1 text-right">15P</th>
-          <th class="px-2 py-1 text-right">Child</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rates
-          .map((rate) => {
-            // Only show rows that have extra night rates
-            const hasExtraRates =
-              rate.extra_night_solo ||
-              rate.extra_night_2pax ||
-              rate.extra_night_3pax ||
-              rate.extra_night_4pax ||
-              rate.extra_night_5pax ||
-              rate.extra_night_6pax ||
-              rate.extra_night_7pax ||
-              rate.extra_night_8pax ||
-              rate.extra_night_9pax ||
-              rate.extra_night_10pax ||
-              rate.extra_night_11pax ||
-              rate.extra_night_12pax ||
-              rate.extra_night_13pax ||
-              rate.extra_night_14pax ||
-              rate.extra_night_15pax ||
-              rate.extra_night_child_no_breakfast;
-
-            if (!hasExtraRates) return "";
-
-            return `
-            <tr class="border-b">
-              <td class="px-2 py-1">${rate.season || "N/A"}</td>
-              <td class="px-2 py-1">${rate.sneak || "N/A"}</td>
-              <td class="px-2 py-1">${rate.duration || "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_solo ? "₱" + rate.extra_night_solo.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_2pax ? "₱" + rate.extra_night_2pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_3pax ? "₱" + rate.extra_night_3pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_4pax ? "₱" + rate.extra_night_4pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_5pax ? "₱" + rate.extra_night_5pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_6pax ? "₱" + rate.extra_night_6pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_7pax ? "₱" + rate.extra_night_7pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_8pax ? "₱" + rate.extra_night_8pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_9pax ? "₱" + rate.extra_night_9pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_10pax ? "₱" + rate.extra_night_10pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_11pax ? "₱" + rate.extra_night_11pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_12pax ? "₱" + rate.extra_night_12pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_13pax ? "₱" + rate.extra_night_13pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_14pax ? "₱" + rate.extra_night_14pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_15pax ? "₱" + rate.extra_night_15pax.toLocaleString() : "N/A"}</td>
-              <td class="px-2 py-1 text-right">${rate.extra_night_child_no_breakfast ? "₱" + rate.extra_night_child_no_breakfast.toLocaleString() : "N/A"}</td>
-            </tr>
-          `;
-          })
-          .filter(Boolean)
-          .join("")}
-      </tbody>
-    </table>
-  </div>
-</div>
-            
-            <!-- Breakfast Info -->
-            ${
-              rates.some((r) => r.breakfast_included || r.breakfast_notes)
-                ? `
-              <div class="mt-2 text-xs text-gray-600">
-                ${
-                  rates.filter((r) => r.breakfast_included).length > 0
-                    ? '<span class="text-green-600 mr-2">✓ Breakfast Included</span>'
-                    : ""
-                }
-                ${
-                  rates.find((r) => r.breakfast_notes)?.breakfast_notes
-                    ? `<span class="text-gray-500">Note: ${rates.find((r) => r.breakfast_notes).breakfast_notes}</span>`
-                    : ""
-                }
-              </div>
-            `
-                : ""
-            }
+        return `
+        <div class="mb-4 border-b border-gray-200 pb-3 last:border-0">
+          <h6 class="font-semibold text-sm text-indigo-700 mb-2">${categoryName}</h6>
+          
+          <!-- Regular Rates -->
+          <div class="mb-3">
+            <p class="text-xs font-medium text-gray-600 mb-1">Regular Rates:</p>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-xs">
+                <thead>
+                  <tr class="bg-gray-100">
+                    <th class="px-2 py-1 text-left">Season</th>
+                    <th class="px-2 py-1 text-left">Sneak</th>
+                    <th class="px-2 py-1 text-left">Duration</th>
+                    <th class="px-2 py-1 text-right">Solo</th>
+                    <th class="px-2 py-1 text-right">2P</th>
+                    <th class="px-2 py-1 text-right">3P</th>
+                    <th class="px-2 py-1 text-right">4P</th>
+                    <th class="px-2 py-1 text-right">5P</th>
+                    <th class="px-2 py-1 text-right">6P</th>
+                    <th class="px-2 py-1 text-right">7P</th>
+                    <th class="px-2 py-1 text-right">8P</th>
+                    <th class="px-2 py-1 text-right">9P</th>
+                    <th class="px-2 py-1 text-right">10P</th>
+                    <th class="px-2 py-1 text-right">11P</th>
+                    <th class="px-2 py-1 text-right">12P</th>
+                    <th class="px-2 py-1 text-right">13P</th>
+                    <th class="px-2 py-1 text-right">14P</th>
+                    <th class="px-2 py-1 text-right">15P</th>
+                    <th class="px-2 py-1 text-right">Child</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b">
+                    <td class="px-2 py-1">${rate.season || "N/A"}</td>
+                    <td class="px-2 py-1">${rate.sneak || "N/A"}</td>
+                    <td class="px-2 py-1">${rate.duration || "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_solo ? "₱" + Number(rate.rate_solo).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_2pax ? "₱" + Number(rate.rate_2pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_3pax ? "₱" + Number(rate.rate_3pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_4pax ? "₱" + Number(rate.rate_4pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_5pax ? "₱" + Number(rate.rate_5pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_6pax ? "₱" + Number(rate.rate_6pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_7pax ? "₱" + Number(rate.rate_7pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_8pax ? "₱" + Number(rate.rate_8pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_9pax ? "₱" + Number(rate.rate_9pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_10pax ? "₱" + Number(rate.rate_10pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_11pax ? "₱" + Number(rate.rate_11pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_12pax ? "₱" + Number(rate.rate_12pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_13pax ? "₱" + Number(rate.rate_13pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_14pax ? "₱" + Number(rate.rate_14pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_15pax ? "₱" + Number(rate.rate_15pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.rate_child_no_breakfast ? "₱" + Number(rate.rate_child_no_breakfast).toLocaleString() : "N/A"}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-        `;
-        })
-        .join("");
-    })()}
+          
+          <!-- Extra Night Rates -->
+          <div class="mt-3">
+            <p class="text-xs font-medium text-gray-600 mb-1">Extra Night Rates:</p>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-xs">
+                <thead>
+                  <tr class="bg-gray-100">
+                    <th class="px-2 py-1 text-left">Season</th>
+                    <th class="px-2 py-1 text-left">Sneak</th>
+                    <th class="px-2 py-1 text-left">Duration</th>
+                    <th class="px-2 py-1 text-right">Solo</th>
+                    <th class="px-2 py-1 text-right">2P</th>
+                    <th class="px-2 py-1 text-right">3P</th>
+                    <th class="px-2 py-1 text-right">4P</th>
+                    <th class="px-2 py-1 text-right">5P</th>
+                    <th class="px-2 py-1 text-right">6P</th>
+                    <th class="px-2 py-1 text-right">7P</th>
+                    <th class="px-2 py-1 text-right">8P</th>
+                    <th class="px-2 py-1 text-right">9P</th>
+                    <th class="px-2 py-1 text-right">10P</th>
+                    <th class="px-2 py-1 text-right">11P</th>
+                    <th class="px-2 py-1 text-right">12P</th>
+                    <th class="px-2 py-1 text-right">13P</th>
+                    <th class="px-2 py-1 text-right">14P</th>
+                    <th class="px-2 py-1 text-right">15P</th>
+                    <th class="px-2 py-1 text-right">Child</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b">
+                    <td class="px-2 py-1">${rate.season || "N/A"}</td>
+                    <td class="px-2 py-1">${rate.sneak || "N/A"}</td>
+                    <td class="px-2 py-1">${rate.duration || "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_solo ? "₱" + Number(rate.extra_night_solo).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_2pax ? "₱" + Number(rate.extra_night_2pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_3pax ? "₱" + Number(rate.extra_night_3pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_4pax ? "₱" + Number(rate.extra_night_4pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_5pax ? "₱" + Number(rate.extra_night_5pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_6pax ? "₱" + Number(rate.extra_night_6pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_7pax ? "₱" + Number(rate.extra_night_7pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_8pax ? "₱" + Number(rate.extra_night_8pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_9pax ? "₱" + Number(rate.extra_night_9pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_10pax ? "₱" + Number(rate.extra_night_10pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_11pax ? "₱" + Number(rate.extra_night_11pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_12pax ? "₱" + Number(rate.extra_night_12pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_13pax ? "₱" + Number(rate.extra_night_13pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_14pax ? "₱" + Number(rate.extra_night_14pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_15pax ? "₱" + Number(rate.extra_night_15pax).toLocaleString() : "N/A"}</td>
+                    <td class="px-2 py-1 text-right">${rate.extra_night_child_no_breakfast ? "₱" + Number(rate.extra_night_child_no_breakfast).toLocaleString() : "N/A"}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <!-- Breakfast Info -->
+          ${
+            rate.breakfast_included || rate.breakfast_notes
+              ? `
+            <div class="mt-2 text-xs text-gray-600">
+              ${rate.breakfast_included ? '<span class="text-green-600 mr-2">✓ Breakfast Included</span>' : ""}
+              ${rate.breakfast_notes ? `<span class="text-gray-500">Note: ${rate.breakfast_notes}</span>` : ""}
+            </div>
+          `
+              : ""
+          }
+        </div>
+      `;
+      })
+      .join("")}
   </div>
 `
     : `
@@ -2906,7 +2951,7 @@ ${
                         
                         <!-- Add Tours Button -->
                         <div class="mt-3 pt-2 border-t-2 border-dashed border-gray-200">
-                          <button onclick="window.openAddMultipleToursToPackageModal(${pkg.id}, ${destination.id})" 
+                         <button onclick="openAddMultipleToursToPackageModal(${pkg.id}, ${destination.id})" 
                                   class="w-full px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition flex items-center justify-center gap-2">
                             <i class="fas fa-plus-circle"></i>
                             <span class="font-medium">Add Optional Tours to this Package</span>
@@ -2920,7 +2965,7 @@ ${
                           <i class="fas fa-compass text-2xl text-gray-400 mb-1"></i>
                           <h5 class="font-semibold text-sm text-gray-500 mb-1">Optional Tours</h5>
                           <p class="text-xs text-gray-400 italic">N/A - No optional tours in this package</p>
-                          <button onclick="window.openAddMultipleToursToPackageModal(${pkg.id}, ${destination.id})" 
+                         <button onclick="openAddMultipleToursToPackageModal(${pkg.id}, ${destination.id})" 
                                   class="mt-2 px-3 py-1 bg-purple-500 text-white rounded-lg text-xs hover:bg-purple-600">
                             <i class="fas fa-plus-circle mr-1"></i> Add Optional Tours
                           </button>
@@ -2961,253 +3006,7 @@ ${
     showLoading(false);
   }
 }
-// =====================================================
-// ADD MULTIPLE OPTIONAL TOURS TO PACKAGE MODAL
-// =====================================================
 
-export async function openAddMultipleToursToPackageModal(
-  packageId,
-  destinationId,
-) {
-  try {
-    showLoading(true, "Loading available tours...");
-
-    // Get the package and destination
-    let pkg = null;
-    let destination = null;
-    for (const dest of state.destinations) {
-      if (dest.id === destinationId) {
-        destination = dest;
-        const found = dest.packages?.find((p) => p.id === packageId);
-        if (found) {
-          pkg = found;
-        }
-        break;
-      }
-    }
-
-    if (!pkg || !destination) {
-      showToast("Package or destination not found", "error");
-      showLoading(false);
-      return;
-    }
-
-    // Get available tours (not yet linked to this package)
-    const availableTours = await getAvailableToursForPackage(
-      packageId,
-      destinationId,
-    );
-
-    showLoading(false);
-
-    const modal = document.createElement("div");
-    modal.className =
-      "fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto";
-
-    modal.innerHTML = `
-      <div class="bg-white rounded-2xl max-w-3xl w-full my-8 shadow-2xl transform transition-all">
-        <!-- Fixed Header -->
-        <div class="relative overflow-hidden rounded-t-2xl bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500">
-          <div class="absolute inset-0 bg-black/10"></div>
-          <div class="relative px-6 py-5">
-            <div class="flex items-center gap-4">
-              <div class="h-14 w-14 bg-white/20 backdrop-blur-lg rounded-2xl flex items-center justify-center shadow-xl ring-2 ring-white/30">
-                <i class="fas fa-compass text-2xl text-white"></i>
-              </div>
-              <div class="flex-1">
-                <h3 class="text-2xl font-bold text-white tracking-tight">Add Optional Tours</h3>
-                <p class="text-purple-100 text-sm mt-1">${pkg.package_name}</p>
-              </div>
-              <button onclick="this.closest('.fixed').remove()" class="text-white/80 hover:text-white text-2xl">&times;</button>
-            </div>
-          </div>
-        </div>
-        
-        <div class="p-6 max-h-[calc(90vh-120px)] overflow-y-auto">
-          ${
-            availableTours.length === 0
-              ? `
-            <div class="text-center py-8">
-              <i class="fas fa-compass text-5xl text-gray-300 mb-3"></i>
-              <p class="text-gray-500 mb-4">No optional tours available to add</p>
-              <button onclick="window.openCreateOptionalTourModal(${destinationId}); this.closest('.fixed').remove()" 
-                      class="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600">
-                <i class="fas fa-plus-circle mr-1"></i> Create New Tour
-              </button>
-            </div>
-          `
-              : `
-            <div class="mb-4 flex items-center justify-between">
-              <div>
-                <p class="text-sm text-gray-600">Select tours to add to this package:</p>
-                <p class="text-xs text-gray-500 mt-1">
-                  <span id="selectedCount">0</span> tour(s) selected
-                </p>
-              </div>
-              <div class="flex gap-2">
-                <button onclick="selectAllTours()" 
-                        class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs hover:bg-gray-200">
-                  <i class="fas fa-check-double mr-1"></i> Select All
-                </button>
-                <button onclick="deselectAllTours()" 
-                        class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs hover:bg-gray-200">
-                  <i class="fas fa-times mr-1"></i> Clear All
-                </button>
-              </div>
-            </div>
-            
-            <div id="toursList" class="space-y-3 max-h-96 overflow-y-auto p-2 border border-gray-200 rounded-lg">
-              ${availableTours
-                .map(
-                  (tour) => `
-                <div class="tour-item flex items-center gap-3 bg-gray-50 p-3 rounded-lg border-2 border-gray-200 hover:border-purple-300 transition" data-tour-id="${tour.id}">
-                  <input type="checkbox" class="tour-checkbox h-5 w-5 text-purple-600 rounded flex-shrink-0" value="${tour.id}">
-                  <div class="flex items-center gap-3 flex-1">
-                    ${
-                      tour.image_url
-                        ? `
-                      <img src="${tour.image_url}" alt="${tour.tour_name}" class="w-12 h-12 rounded-lg object-cover">
-                    `
-                        : `
-                      <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-compass text-purple-400"></i>
-                      </div>
-                    `
-                    }
-                    <div class="flex-1">
-                      <h4 class="font-medium">${tour.tour_name}</h4>
-                      <div class="flex items-center gap-2 text-xs text-gray-500">
-                        ${tour.duration_hours ? `<span><i class="far fa-clock mr-1"></i>${tour.duration_hours}h</span>` : ""}
-                        ${
-                          tour.rates && tour.rates[0]
-                            ? `
-                          <span>• From ₱${tour.rates[0].rate_solo || tour.rates[0].rate_2pax || "0"}</span>
-                        `
-                            : ""
-                        }
-                      </div>
-                    </div>
-                  </div>
-                  <button onclick="viewTourDetails(${tour.id})" 
-                          class="text-purple-600 hover:text-purple-800 p-2" title="View Details">
-                    <i class="fas fa-eye"></i>
-                  </button>
-                </div>
-              `,
-                )
-                .join("")}
-            </div>
-            
-            <div class="flex justify-end gap-3 mt-6 pt-4 border-t-2 border-gray-100">
-              <button type="button" onclick="this.closest('.fixed').remove()"
-                      class="px-5 py-2.5 border-2 border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
-                Cancel
-              </button>
-              <button onclick="addSelectedToursToPackage(${packageId}, ${destinationId})" 
-                      class="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg text-sm hover:from-purple-700 hover:to-pink-700 flex items-center gap-2">
-                <i class="fas fa-plus-circle"></i>
-                Add Selected Tours
-              </button>
-            </div>
-          `
-          }
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    if (availableTours.length > 0) {
-      // Update selected count when checkboxes change
-      const checkboxes = document.querySelectorAll(".tour-checkbox");
-      const selectedCountSpan = document.getElementById("selectedCount");
-
-      checkboxes.forEach((cb) => {
-        cb.addEventListener("change", updateSelectedCount);
-      });
-
-      function updateSelectedCount() {
-        const checked = document.querySelectorAll(
-          ".tour-checkbox:checked",
-        ).length;
-        selectedCountSpan.textContent = checked;
-      }
-
-      // Select All function
-      window.selectAllTours = function () {
-        checkboxes.forEach((cb) => (cb.checked = true));
-        updateSelectedCount();
-      };
-
-      // Deselect All function
-      window.deselectAllTours = function () {
-        checkboxes.forEach((cb) => (cb.checked = false));
-        updateSelectedCount();
-      };
-
-      // View tour details
-      window.viewTourDetails = function (tourId) {
-        viewOptionalTourDetails(tourId);
-      };
-
-      // Add selected tours to package
-      window.addSelectedToursToPackage = async function (pkgId, destId) {
-        const selectedTours = Array.from(
-          document.querySelectorAll(".tour-checkbox:checked"),
-        ).map((cb) => parseInt(cb.value));
-
-        if (selectedTours.length === 0) {
-          showToast("Please select at least one tour", "warning");
-          return;
-        }
-
-        try {
-          showLoading(true, `Adding ${selectedTours.length} tour(s)...`);
-
-          let successCount = 0;
-          let errorCount = 0;
-
-          for (const tourId of selectedTours) {
-            try {
-              const result = await linkTourToPackage(pkgId, tourId);
-              if (result) {
-                successCount++;
-              } else {
-                errorCount++;
-              }
-            } catch (err) {
-              console.error(`Error adding tour ${tourId}:`, err);
-              errorCount++;
-            }
-          }
-
-          modal.remove();
-
-          if (successCount > 0) {
-            showToast(
-              `✅ ${successCount} tour(s) added successfully!${errorCount > 0 ? ` (${errorCount} failed)` : ""}`,
-              "success",
-            );
-          } else {
-            showToast("❌ Failed to add tours", "error");
-          }
-
-          // Refresh the view
-          await viewDestinationDetails(destId);
-        } catch (error) {
-          console.error("Error adding tours to package:", error);
-          showToast("❌ Failed to add tours: " + error.message, "error");
-        } finally {
-          showLoading(false);
-        }
-      };
-    }
-  } catch (error) {
-    console.error("Error opening add tours modal:", error);
-    showToast("Failed to load available tours", "error");
-    showLoading(false);
-  }
-}
 export async function renderDestinations() {
   await fetchDestinations();
 
@@ -3545,25 +3344,7 @@ export function openCreateDestinationModal() {
             </div>
           </div>
 
-          <!-- ========================================= -->
-          <!-- SECTION 5: TARIFF VALIDITY (Global) -->
-          <!-- ========================================= -->
-          <div class="bg-gradient-to-br from-indigo-50 to-white p-5 rounded-xl border-2 border-indigo-100">
-            <div class="flex items-center justify-between mb-4">
-              <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <i class="fas fa-file-invoice text-indigo-500"></i>
-                Tariff Validity
-              </h4>
-              <button type="button" onclick="addTariffRow()" 
-                      class="px-3 py-1.5 bg-indigo-500 text-white rounded-lg text-sm hover:bg-indigo-600">
-                <i class="fas fa-plus-circle mr-1"></i> Add Tariff
-              </button>
-            </div>
-            
-            <div id="tariffContainer" class="space-y-3">
-              <!-- Tariff rows will be added here -->
-            </div>
-          </div>
+        
 
           <!-- ========================================= -->
           <!-- ACTION BUTTONS -->
@@ -4154,7 +3935,7 @@ export function openCreateDestinationModal() {
                 <thead>
                   <tr class="bg-gray-100">
                     <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[180px]">Season</th>
-                    <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Sneak</th>
+                    <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Sneak In</th>
                     <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Duration</th>
                     <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">Solo</th>
                     <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">2P</th>
@@ -4196,7 +3977,7 @@ export function openCreateDestinationModal() {
                 <thead>
                   <tr class="bg-gray-50">
                     <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[180px]">Season</th>
-                    <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Sneak</th>
+                    <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Sneak In</th>
                     <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Duration</th>
                     <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">Solo</th>
                     <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">2P</th>
@@ -4266,116 +4047,127 @@ export function openCreateDestinationModal() {
     const rowCount = tbody.children.length;
     const rateType = type === "regular" ? "rates" : "extra";
 
+    // Get the category ID from the category row
+    const categoryRow = document.querySelectorAll(".hotel-category-row")[
+      catIndex
+    ];
+    const catNameInput = categoryRow?.querySelector('input[name*="[name]"]');
+    const catName = catNameInput?.value || `Category ${catIndex + 1}`;
+
+    // We need the actual category ID from the database, but for now use the index
+    // In a real scenario, you'd need to map this to the actual ID when saving
+    const tempCategoryId = catIndex; // This is temporary, will be mapped later
+
     const rowHtml = `
-      <tr class="hover:bg-gray-50">
-        <td class="border border-gray-300 px-3 py-2 min-w-[180px]">
-          <input type="text" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][season]" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
-                 placeholder="e.g., Peak Season 2024">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[150px]">
-          <input type="text" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][sneak]" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
-                 placeholder="e.g., SNK001">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[120px]">
-          <input type="text" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][duration]" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
-                 placeholder="e.g., 3D2N">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_solo]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_2pax]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_3pax]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_4pax]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_5pax]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_6pax]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_7pax]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_8pax]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_9pax]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_10pax]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_11pax]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_12pax]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_13pax]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_14pax]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_15pax]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_child]" step="0.01" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-                 placeholder="0.00">
-        </td>
-        <td class="border border-gray-300 px-3 py-2 text-center min-w-[80px]">
-          <button type="button" onclick="this.closest('tr').remove()" 
-                  class="text-red-500 hover:text-red-700 p-2 bg-red-50 hover:bg-red-100 rounded-lg transition" 
-                  title="Delete Row">
-            <i class="fas fa-trash"></i>
-          </button>
-        </td>
-      </tr>
-    `;
+    <tr class="hover:bg-gray-50">
+      <td class="border border-gray-300 px-3 py-2 min-w-[180px]">
+        <input type="text" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][season]" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+               placeholder="e.g., Peak Season 2024">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[150px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][sneak]" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+               step="0.01"
+               placeholder="e.g., 1000.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[120px]">
+        <input type="text" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][duration]" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+               placeholder="e.g., 3D2N">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_solo]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_2pax]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_3pax]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_4pax]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_5pax]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_6pax]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_7pax]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_8pax]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_9pax]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_10pax]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_11pax]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_12pax]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_13pax]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_14pax]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_15pax]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+        <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][rate_child]" step="0.01" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+               placeholder="0.00">
+      </td>
+      <td class="border border-gray-300 px-3 py-2 text-center min-w-[80px]">
+        <button type="button" onclick="this.closest('tr').remove()" 
+                class="text-red-500 hover:text-red-700 p-2 bg-red-50 hover:bg-red-100 rounded-lg transition" 
+                title="Delete Row">
+          <i class="fas fa-trash"></i>
+        </button>
+      </td>
+    </tr>
+  `;
 
     tbody.insertAdjacentHTML("beforeend", rowHtml);
   };
-
   // Watch for changes in hotel categories to update rates in all packages
   function updateAllPackagesHotelRates() {
     const packageSections = document.querySelectorAll(".package-section");
@@ -4383,50 +4175,6 @@ export function openCreateDestinationModal() {
       updatePackageHotelRates(index);
     });
   }
-
-  // =====================================================
-  // TARIFF FUNCTIONS
-  // =====================================================
-  window.addTariffRow = function () {
-    const container = document.getElementById("tariffContainer");
-    const rowCount = container.children.length;
-    const rowHtml = `
-      <div class="tariff-row bg-indigo-50 p-3 rounded-lg border-2 border-indigo-200">
-        <div class="flex justify-between items-start mb-2">
-          <h6 class="text-xs font-semibold text-indigo-700">Tariff #${rowCount + 1}</h6>
-          <button type="button" onclick="this.closest('.tariff-row').remove()" 
-                  class="px-2 py-0.5 bg-red-500 text-white rounded text-xs hover:bg-red-600">
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block text-xs text-gray-600 mb-1">Filename</label>
-            <input type="text" name="tariff[${rowCount}][filename]" class="w-full px-2 py-1 border border-gray-300 rounded text-xs">
-          </div>
-          <div>
-            <label class="block text-xs text-gray-600 mb-1">Valid From</label>
-            <input type="date" name="tariff[${rowCount}][valid_from]" class="w-full px-2 py-1 border border-gray-300 rounded text-xs">
-          </div>
-          <div>
-            <label class="block text-xs text-gray-600 mb-1">Valid To</label>
-            <input type="date" name="tariff[${rowCount}][valid_to]" class="w-full px-2 py-1 border border-gray-300 rounded text-xs">
-          </div>
-          <div class="flex items-center gap-2">
-            <label class="flex items-center gap-1">
-              <input type="checkbox" name="tariff[${rowCount}][is_current]" value="true" class="h-3 w-3">
-              <span class="text-xs">Current</span>
-            </label>
-            <label class="flex items-center gap-1">
-              <input type="checkbox" name="tariff[${rowCount}][is_promo]" value="true" class="h-3 w-3">
-              <span class="text-xs">Promo</span>
-            </label>
-          </div>
-        </div>
-      </div>
-    `;
-    container.insertAdjacentHTML("beforeend", rowHtml);
-  };
 
   // Initialize with first package
   addPackageSectionWithIndex(0);
@@ -4671,8 +4419,10 @@ export function openCreateDestinationModal() {
               const rateData = {
                 package_id: newPackage.id,
                 hotel_category_id: categoryId,
-                season: season || null,
-                sneak: sneak || null,
+                sneak: formData.sneak
+                  ? parseFloat(formData.sneak).toString()
+                  : null,
+                sneak: sneak ? parseFloat(sneak) : null,
                 duration: duration || null,
                 rate_solo: formData.get(
                   `packages[${p}][hotel_rates][${c}][rates][${regularRowIndex}][rate_solo]`,
@@ -4867,7 +4617,7 @@ export function openCreateDestinationModal() {
                 package_id: newPackage.id,
                 hotel_category_id: categoryId,
                 season: season || null,
-                sneak: sneak || null,
+                sneak: sneak ? parseFloat(sneak) : null,
                 duration: duration || null,
                 extra_night_solo: formData.get(
                   `packages[${p}][hotel_rates][${c}][extra][${extraRowIndex}][rate_solo]`,
@@ -5061,23 +4811,6 @@ export function openCreateDestinationModal() {
         }
       }
 
-      // 6. Create Tariffs
-      const tariffRows = document.querySelectorAll(".tariff-row");
-      for (let i = 0; i < tariffRows.length; i++) {
-        const filename = formData.get(`tariff[${i}][filename]`);
-        if (filename) {
-          await createTariffValidity({
-            destination_id: destination.id,
-            filename: filename,
-            valid_from: formData.get(`tariff[${i}][valid_from]`),
-            valid_to: formData.get(`tariff[${i}][valid_to]`),
-            is_current: formData.get(`tariff[${i}][is_current]`),
-            is_promo: formData.get(`tariff[${i}][is_promo]`),
-            uploaded_by: "Admin",
-          });
-        }
-      }
-
       modal.remove();
       showToast(
         `✅ Destination created successfully with ${packageSections.length} package(s)!`,
@@ -5092,6 +4825,7 @@ export function openCreateDestinationModal() {
     }
   });
 }
+
 export async function openEditDestinationModal(id) {
   console.log("🔄 Opening edit destination modal for ID:", id);
 
@@ -5505,6 +5239,7 @@ export function openCreatePackageModal(destinationId) {
                           <tr class="bg-gray-100">
                             <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Season (Text)</th>
                             <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Sneak (Text)</th>
+                             <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Duration</th>
                             <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">Solo</th>
                             <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">2P</th>
                             <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">3P</th>
@@ -5546,6 +5281,7 @@ export function openCreatePackageModal(destinationId) {
                           <tr class="bg-gray-50">
                             <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Season (Text)</th>
                             <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Sneak (Text)</th>
+                            <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Duration</th>
                             <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">Solo</th>
                             <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">2P</th>
                             <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">3P</th>
@@ -6320,7 +6056,7 @@ export async function openEditPackageModal(packageId) {
     for (const dest of state.destinations) {
       const found = dest.packages?.find((p) => p.id === packageId);
       if (found) {
-        pkg = found;
+        pkg = JSON.parse(JSON.stringify(found)); // Deep clone to avoid reference issues
         destination = dest;
         break;
       }
@@ -6332,7 +6068,7 @@ export async function openEditPackageModal(packageId) {
       return;
     }
 
-    // Prepare data
+    // Prepare data with defaults
     const inclusions = pkg.inclusions || [];
     const exclusions = pkg.exclusions || [];
     const itineraries = pkg.itineraries || [];
@@ -6607,9 +6343,6 @@ export async function openEditPackageModal(packageId) {
                               (r) => r.hotel_category_id === cat.id,
                             ) || [];
 
-                          // Group rates by type (regular vs extra) - in this structure, each rate record can have both
-                          // We'll create separate rows for regular and extra based on which fields have values
-
                           return `
                           <div class="bg-white p-4 rounded-lg border-2 border-indigo-200" data-category-id="${cat.id}" data-category-index="${catIndex}">
                             <h5 class="font-semibold text-md mb-3 text-indigo-700">${cat.category_name}</h5>
@@ -6625,31 +6358,30 @@ export async function openEditPackageModal(packageId) {
                               </div>
                               <div class="overflow-x-auto">
                                 <table class="w-full border-collapse text-xs min-w-[1200px]">
-                                 <!-- Regular Rates Table Headers -->
-<thead>
-  <tr class="bg-gray-100">
-    <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[180px]">Season</th>
-    <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Sneak</th>
-    <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Duration</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">Solo</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">2P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">3P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">4P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">5P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">6P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">7P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">8P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">9P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">10P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">11P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">12P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">13P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">14P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">15P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">Child</th>
-    <th class="border border-gray-300 px-3 py-2 text-center font-semibold text-gray-700 min-w-[80px]">Actions</th>
-  </tr>
-</thead>
+                                  <thead>
+                                    <tr class="bg-gray-100">
+                                      <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[180px]">Season</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Sneak</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Duration</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">Solo</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">2P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">3P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">4P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">5P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">6P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">7P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">8P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">9P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">10P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">11P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">12P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">13P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">14P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">15P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">Child</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-center font-semibold text-gray-700 min-w-[80px]">Actions</th>
+                                    </tr>
+                                  </thead>
                                   <tbody id="category-${catIndex}-regular-rates">
                                     <!-- Regular rate rows will be populated from existing data -->
                                   </tbody>
@@ -6668,31 +6400,30 @@ export async function openEditPackageModal(packageId) {
                               </div>
                               <div class="overflow-x-auto">
                                 <table class="w-full border-collapse text-xs min-w-[1200px]">
-                                  <!-- Extra Night Rates Table Headers -->
-<thead>
-  <tr class="bg-gray-50">
-    <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[180px]">Season</th>
-    <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Sneak</th>
-    <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Duration</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">Solo</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">2P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">3P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">4P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">5P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">6P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">7P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">8P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">9P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">10P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">11P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">12P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">13P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">14P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">15P</th>
-    <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">Child</th>
-    <th class="border border-gray-300 px-3 py-2 text-center font-semibold text-gray-700 min-w-[80px]">Actions</th>
-  </tr>
-</thead>
+                                  <thead>
+                                    <tr class="bg-gray-50">
+                                      <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[180px]">Season</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Sneak</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Duration</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">Solo</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">2P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">3P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">4P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">5P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">6P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">7P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">8P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">9P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">10P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">11P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">12P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">13P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">14P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">15P</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">Child</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-center font-semibold text-gray-700 min-w-[80px]">Actions</th>
+                                    </tr>
+                                  </thead>
                                   <tbody id="category-${catIndex}-extra-rates">
                                     <!-- Extra night rate rows will be populated from existing data -->
                                   </tbody>
@@ -6901,7 +6632,8 @@ export async function openEditPackageModal(packageId) {
               <div id="itineraryContainer" class="space-y-3 max-h-80 overflow-y-auto p-2">
                 ${
                   itineraries.length > 0
-                    ? itineraries
+                    ? Object.values(itineraries)
+                        .sort((a, b) => a.day_number - b.day_number)
                         .map((iti) => {
                           let fullText = iti.day_title || "";
                           if (
@@ -6977,7 +6709,7 @@ export async function openEditPackageModal(packageId) {
                     ? inclusions
                         .map(
                           (inc) => `
-                      <div class="flex items-start gap-2 p-3 hover:bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-green-300 transition-colors">
+                      <div class="flex items-start gap-2 p-3 hover:bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-green-300 transition-colors" data-inclusion-id="${inc.id}">
                         <input type="checkbox" name="inclusions_selected[]" value="${inc.id}" 
                                class="inclusion-checkbox mt-1.5 h-4 w-4 text-green-500 rounded flex-shrink-0">
                         <div class="flex-1">
@@ -7046,7 +6778,7 @@ export async function openEditPackageModal(packageId) {
                     ? exclusions
                         .map(
                           (exc) => `
-                      <div class="flex items-start gap-2 p-3 hover:bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-red-300 transition-colors">
+                      <div class="flex items-start gap-2 p-3 hover:bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-red-300 transition-colors" data-exclusion-id="${exc.id}">
                         <input type="checkbox" name="exclusions_selected[]" value="${exc.id}" 
                                class="exclusion-checkbox mt-1.5 h-4 w-4 text-red-500 rounded flex-shrink-0">
                         <div class="flex-1">
@@ -7101,41 +6833,105 @@ export async function openEditPackageModal(packageId) {
     document.body.appendChild(modal);
 
     // =====================================================
-    // POPULATE EXISTING RATE ROWS
+    // POPULATE EXISTING RATE ROWS - FIXED VERSION
     // =====================================================
 
-    // Populate regular and extra rate rows from existing data
-    if (destination?.hotel_categories && pkg.package_hotel_rates) {
+    // Add debug logging right after finding the package
+    console.log(
+      "🔍 Package hotel rates details:",
+      pkg.package_hotel_rates?.map((rate) => ({
+        id: rate.id,
+        category_id: rate.hotel_category_id,
+        season: rate.season,
+        sneak: rate.sneak,
+        duration: rate.duration,
+        rate_solo: rate.rate_solo,
+        extra_night_solo: rate.extra_night_solo,
+      })),
+    );
+
+    // Use setTimeout to ensure DOM is ready
+    setTimeout(() => {
+      console.log("🔄 Starting to populate rate rows...");
+
+      if (
+        !destination?.hotel_categories ||
+        destination.hotel_categories.length === 0
+      ) {
+        console.log("❌ No hotel categories found");
+        return;
+      }
+
       destination.hotel_categories.forEach((cat, catIndex) => {
-        const categoryRates = pkg.package_hotel_rates.filter(
-          (r) => r.hotel_category_id === cat.id,
+        console.log(
+          `Processing category ${catIndex}: ${cat.category_name} (ID: ${cat.id})`,
         );
 
-        categoryRates.forEach((rate, rateIndex) => {
-          // Check if this rate record has regular rates
-          const hasRegularRates =
-            rate.rate_solo ||
-            rate.rate_2pax ||
-            rate.rate_3pax ||
-            rate.rate_4pax ||
-            rate.rate_5pax ||
-            rate.rate_6pax ||
-            rate.rate_7pax ||
-            rate.rate_8pax ||
-            rate.rate_9pax ||
-            rate.rate_10pax ||
-            rate.rate_11pax ||
-            rate.rate_12pax ||
-            rate.rate_13pax ||
-            rate.rate_14pax ||
-            rate.rate_15pax ||
-            rate.rate_child_no_breakfast;
+        const categoryRates =
+          pkg.package_hotel_rates?.filter((r) => {
+            const match = r.hotel_category_id === cat.id;
+            if (match) {
+              console.log(`  Found rate for category ${cat.id}:`, {
+                id: r.id,
+                season: r.season,
+                sneak: r.sneak,
+                duration: r.duration,
+              });
+            }
+            return match;
+          }) || [];
 
-          if (hasRegularRates) {
-            const regularTbody = document.getElementById(
-              `category-${catIndex}-regular-rates`,
-            );
-            if (regularTbody) {
+        console.log(`  Found ${categoryRates.length} rates for this category`);
+
+        // Clear existing rows first
+        const regularTbody = document.getElementById(
+          `category-${catIndex}-regular-rates`,
+        );
+        const extraTbody = document.getElementById(
+          `category-${catIndex}-extra-rates`,
+        );
+
+        if (regularTbody) {
+          regularTbody.innerHTML = "";
+          console.log(`  Cleared regular tbody for category ${catIndex}`);
+        } else {
+          console.log(`  ❌ Regular tbody not found for category ${catIndex}`);
+        }
+
+        if (extraTbody) {
+          extraTbody.innerHTML = "";
+          console.log(`  Cleared extra tbody for category ${catIndex}`);
+        } else {
+          console.log(`  ❌ Extra tbody not found for category ${catIndex}`);
+        }
+
+        // Populate rates
+        if (categoryRates.length > 0) {
+          categoryRates.forEach((rate, rateIndex) => {
+            // Check for regular rates
+            const hasRegularRates =
+              rate.rate_solo ||
+              rate.rate_2pax ||
+              rate.rate_3pax ||
+              rate.rate_4pax ||
+              rate.rate_5pax ||
+              rate.rate_6pax ||
+              rate.rate_7pax ||
+              rate.rate_8pax ||
+              rate.rate_9pax ||
+              rate.rate_10pax ||
+              rate.rate_11pax ||
+              rate.rate_12pax ||
+              rate.rate_13pax ||
+              rate.rate_14pax ||
+              rate.rate_15pax ||
+              rate.rate_child_no_breakfast;
+
+            if (hasRegularRates && regularTbody) {
+              console.log(
+                `  Adding regular rate row ${rateIndex} with season:`,
+                rate.season,
+              );
               const regularRowHtml = createRateRowHtml(
                 cat.id,
                 catIndex,
@@ -7145,32 +6941,31 @@ export async function openEditPackageModal(packageId) {
               );
               regularTbody.insertAdjacentHTML("beforeend", regularRowHtml);
             }
-          }
 
-          // Check if this rate record has extra night rates
-          const hasExtraRates =
-            rate.extra_night_solo ||
-            rate.extra_night_2pax ||
-            rate.extra_night_3pax ||
-            rate.extra_night_4pax ||
-            rate.extra_night_5pax ||
-            rate.extra_night_6pax ||
-            rate.extra_night_7pax ||
-            rate.extra_night_8pax ||
-            rate.extra_night_9pax ||
-            rate.extra_night_10pax ||
-            rate.extra_night_11pax ||
-            rate.extra_night_12pax ||
-            rate.extra_night_13pax ||
-            rate.extra_night_14pax ||
-            rate.extra_night_15pax ||
-            rate.extra_night_child_no_breakfast;
+            // Check for extra rates
+            const hasExtraRates =
+              rate.extra_night_solo ||
+              rate.extra_night_2pax ||
+              rate.extra_night_3pax ||
+              rate.extra_night_4pax ||
+              rate.extra_night_5pax ||
+              rate.extra_night_6pax ||
+              rate.extra_night_7pax ||
+              rate.extra_night_8pax ||
+              rate.extra_night_9pax ||
+              rate.extra_night_10pax ||
+              rate.extra_night_11pax ||
+              rate.extra_night_12pax ||
+              rate.extra_night_13pax ||
+              rate.extra_night_14pax ||
+              rate.extra_night_15pax ||
+              rate.extra_night_child_no_breakfast;
 
-          if (hasExtraRates) {
-            const extraTbody = document.getElementById(
-              `category-${catIndex}-extra-rates`,
-            );
-            if (extraTbody) {
+            if (hasExtraRates && extraTbody) {
+              console.log(
+                `  Adding extra rate row ${rateIndex} with season:`,
+                rate.season,
+              );
               const extraRowHtml = createRateRowHtml(
                 cat.id,
                 catIndex,
@@ -7180,122 +6975,164 @@ export async function openEditPackageModal(packageId) {
               );
               extraTbody.insertAdjacentHTML("beforeend", extraRowHtml);
             }
-          }
-        });
+          });
+        }
 
-        // Add at least one empty row if no rates exist
-        if (categoryRates.length === 0) {
-          setTimeout(() => {
-            addRateRow(catIndex, "regular");
-            addRateRow(catIndex, "extra");
-          }, 100);
+        // Add empty rows if no rates were added
+        if (regularTbody && regularTbody.children.length === 0) {
+          console.log(`  No regular rates, adding empty row`);
+          addRateRow(catIndex, "regular");
+        }
+
+        if (extraTbody && extraTbody.children.length === 0) {
+          console.log(`  No extra rates, adding empty row`);
+          addRateRow(catIndex, "extra");
         }
       });
+
+      console.log("✅ Rate population complete");
+    }, 500); // 500ms delay to ensure DOM is ready
+    if (!pkg) {
+      showToast("Package not found", "error");
+      showLoading(false);
+      return;
     }
 
-    // Helper function to create rate row HTML - UPDATED WITH DURATION FOR BOTH TYPES
+    // ADD THIS DEBUG CODE
+    console.log("🔍 Full package data:", JSON.stringify(pkg, null, 2));
+    console.log(
+      "🔍 Package hotel rates details:",
+      pkg.package_hotel_rates?.map((rate) => ({
+        id: rate.id,
+        category_id: rate.hotel_category_id,
+        season: rate.season,
+        sneak: rate.sneak,
+        duration: rate.duration,
+        rate_solo: rate.rate_solo,
+        extra_night_solo: rate.extra_night_solo,
+      })),
+    );
+    // Helper function to create rate row HTML - FIXED for season, sneak, duration
     function createRateRowHtml(categoryId, catIndex, rowIndex, type, rate) {
-      const rateType = type === "regular" ? "rates" : "extra";
-      const seasonValue = rate.season || "";
-      const sneakValue = rate.sneak || "";
-      const durationValue = rate.duration || "";
+      // Ensure rate is an object
+      rate = rate || {};
 
-      // For regular rates
+      // Log what we're receiving
+      console.log(`Creating ${type} row for category ${catIndex}:`, {
+        season: rate.season,
+        sneak: rate.sneak,
+        duration: rate.duration,
+        id: rate.id,
+      });
+
+      // Get values with proper defaults - use explicit checking
+      const seasonValue =
+        rate.season !== null && rate.season !== undefined ? rate.season : "";
+      const sneakValue =
+        rate.sneak !== null && rate.sneak !== undefined ? rate.sneak : "";
+      const durationValue =
+        rate.duration !== null && rate.duration !== undefined
+          ? rate.duration
+          : "";
+
       if (type === "regular") {
         return `
-      <tr class="hover:bg-gray-50">
+      <tr class="hover:bg-gray-50" data-rate-id="${rate.id || ""}">
         <td class="border border-gray-300 px-3 py-2 min-w-[180px]">
-          <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][season]" 
-                 value="${seasonValue}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+          <input type="text" name="hotel_rates[${categoryId}][rates][${rowIndex}][season]" 
+                 value="${seasonValue}" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
                  placeholder="e.g., Peak Season 2024">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[150px]">
-          <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][sneak]" 
-                 value="${sneakValue}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+          <input type="text" name="hotel_rates[${categoryId}][rates][${rowIndex}][sneak]" 
+                 value="${sneakValue}" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
                  placeholder="e.g., SNK001">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[120px]">
-          <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][duration]" 
-                 value="${durationValue}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+          <input type="text" name="hotel_rates[${categoryId}][rates][${rowIndex}][duration]" 
+                 value="${durationValue}" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
                  placeholder="e.g., 3D2N">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_solo]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_solo]" step="0.01" 
                  value="${rate.rate_solo || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_2pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_2pax]" step="0.01" 
                  value="${rate.rate_2pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_3pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_3pax]" step="0.01" 
                  value="${rate.rate_3pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_4pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_4pax]" step="0.01" 
                  value="${rate.rate_4pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_5pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_5pax]" step="0.01" 
                  value="${rate.rate_5pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_6pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_6pax]" step="0.01" 
                  value="${rate.rate_6pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_7pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_7pax]" step="0.01" 
                  value="${rate.rate_7pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_8pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_8pax]" step="0.01" 
                  value="${rate.rate_8pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_9pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_9pax]" step="0.01" 
                  value="${rate.rate_9pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_10pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_10pax]" step="0.01" 
                  value="${rate.rate_10pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_11pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_11pax]" step="0.01" 
                  value="${rate.rate_11pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_12pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_12pax]" step="0.01" 
                  value="${rate.rate_12pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_13pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_13pax]" step="0.01" 
                  value="${rate.rate_13pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_14pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_14pax]" step="0.01" 
                  value="${rate.rate_14pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_15pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_15pax]" step="0.01" 
                  value="${rate.rate_15pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_child]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][rates][${rowIndex}][rate_child]" step="0.01" 
                  value="${rate.rate_child_no_breakfast || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
@@ -7308,103 +7145,105 @@ export async function openEditPackageModal(packageId) {
         </td>
       </tr>
     `;
-      }
-      // For extra night rates
-      else {
+      } else {
+        // For extra night rates
         return `
-      <tr class="hover:bg-gray-50">
+      <tr class="hover:bg-gray-50" data-rate-id="${rate.id || ""}">
         <td class="border border-gray-300 px-3 py-2 min-w-[180px]">
-          <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][season]" 
-                 value="${seasonValue}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+          <input type="text" name="hotel_rates[${categoryId}][extra][${rowIndex}][season]" 
+                 value="${seasonValue}" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
                  placeholder="e.g., Peak Season 2024">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[150px]">
-          <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][sneak]" 
-                 value="${sneakValue}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+          <input type="text" name="hotel_rates[${categoryId}][extra][${rowIndex}][sneak]" 
+                 value="${sneakValue}" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
                  placeholder="e.g., SNK001">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[120px]">
-          <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][duration]" 
-                 value="${durationValue}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+          <input type="text" name="hotel_rates[${categoryId}][extra][${rowIndex}][duration]" 
+                 value="${durationValue}" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
                  placeholder="e.g., 3D2N">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_solo]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_solo]" step="0.01" 
                  value="${rate.extra_night_solo || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_2pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_2pax]" step="0.01" 
                  value="${rate.extra_night_2pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_3pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_3pax]" step="0.01" 
                  value="${rate.extra_night_3pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_4pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_4pax]" step="0.01" 
                  value="${rate.extra_night_4pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_5pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_5pax]" step="0.01" 
                  value="${rate.extra_night_5pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_6pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_6pax]" step="0.01" 
                  value="${rate.extra_night_6pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_7pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_7pax]" step="0.01" 
                  value="${rate.extra_night_7pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_8pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_8pax]" step="0.01" 
                  value="${rate.extra_night_8pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_9pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_9pax]" step="0.01" 
                  value="${rate.extra_night_9pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_10pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_10pax]" step="0.01" 
                  value="${rate.extra_night_10pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_11pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_11pax]" step="0.01" 
                  value="${rate.extra_night_11pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_12pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_12pax]" step="0.01" 
                  value="${rate.extra_night_12pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_13pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_13pax]" step="0.01" 
                  value="${rate.extra_night_13pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_14pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_14pax]" step="0.01" 
                  value="${rate.extra_night_14pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_15pax]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_15pax]" step="0.01" 
                  value="${rate.extra_night_15pax || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-          <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowIndex}][rate_child]" step="0.01" 
+          <input type="number" name="hotel_rates[${categoryId}][extra][${rowIndex}][rate_child]" step="0.01" 
                  value="${rate.extra_night_child_no_breakfast || ""}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
                  placeholder="0.00">
         </td>
@@ -7419,11 +7258,12 @@ export async function openEditPackageModal(packageId) {
     `;
       }
     }
+
     // =====================================================
     // DEFINE ALL HELPER FUNCTIONS
     // =====================================================
 
-    // Add rate row function - UPDATED WITH DURATION
+    // Add rate row function
     window.addRateRow = function (categoryIndex, type) {
       const tbodyId =
         type === "regular"
@@ -7438,112 +7278,220 @@ export async function openEditPackageModal(packageId) {
       const categoryId = category.id;
       const rateType = type === "regular" ? "rates" : "extra";
 
-      const rowHtml = `
-    <tr class="hover:bg-gray-50">
-      <td class="border border-gray-300 px-3 py-2 min-w-[180px]">
-        <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][season]" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
-               placeholder="e.g., Peak Season 2024">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[150px]">
-        <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][sneak]" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
-               placeholder="e.g., SNK001">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[120px]">
-        <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][duration]" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
-               placeholder="e.g., 3D2N">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_solo]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_2pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_3pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_4pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_5pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_6pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_7pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_8pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_9pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_10pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_11pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_12pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_13pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_14pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_15pax]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
-        <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_child]" step="0.01" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
-               placeholder="0.00">
-      </td>
-      <td class="border border-gray-300 px-3 py-2 text-center min-w-[80px]">
-        <button type="button" onclick="this.closest('tr').remove()" 
-                class="text-red-500 hover:text-red-700 p-2 bg-red-50 hover:bg-red-100 rounded-lg transition" 
-                title="Delete Row">
-          <i class="fas fa-trash"></i>
-        </button>
-      </td>
-    </tr>
-  `;
+      const rowHtml =
+        type === "regular"
+          ? `
+          <tr class="hover:bg-gray-50">
+            <td class="border border-gray-300 px-3 py-2 min-w-[180px]">
+              <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][season]" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+                     placeholder="e.g., Peak Season 2024">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[150px]">
+              <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][sneak]" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+                     placeholder="e.g., SNK001">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[120px]">
+              <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][duration]" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+                     placeholder="e.g., 3D2N">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_solo]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_2pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_3pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_4pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_5pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_6pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_7pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_8pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_9pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_10pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_11pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_12pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_13pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_14pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_15pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_child]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 text-center min-w-[80px]">
+              <button type="button" onclick="this.closest('tr').remove()" 
+                      class="text-red-500 hover:text-red-700 p-2 bg-red-50 hover:bg-red-100 rounded-lg transition" 
+                      title="Delete Row">
+                <i class="fas fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `
+          : `
+          <tr class="hover:bg-gray-50">
+            <td class="border border-gray-300 px-3 py-2 min-w-[180px]">
+              <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][season]" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+                     placeholder="e.g., Peak Season 2024">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[150px]">
+              <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][sneak]" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+                     placeholder="e.g., SNK001">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[120px]">
+              <input type="text" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][duration]" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+                     placeholder="e.g., 3D2N">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_solo]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_2pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_3pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_4pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_5pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_6pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_7pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_8pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_9pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_10pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_11pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_12pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_13pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_14pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_15pax]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 min-w-[100px]">
+              <input type="number" name="hotel_rates[${categoryId}][${rateType}][${rowCount}][rate_child]" step="0.01" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-right" 
+                     placeholder="0.00">
+            </td>
+            <td class="border border-gray-300 px-3 py-2 text-center min-w-[80px]">
+              <button type="button" onclick="this.closest('tr').remove()" 
+                      class="text-red-500 hover:text-red-700 p-2 bg-red-50 hover:bg-red-100 rounded-lg transition" 
+                      title="Delete Row">
+                <i class="fas fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
 
       tbody.insertAdjacentHTML("beforeend", rowHtml);
     };
@@ -7697,9 +7645,9 @@ export async function openEditPackageModal(packageId) {
           .delete()
           .eq("id", inclusionId);
         showToast("Inclusion deleted successfully", "success");
-        const element = document
-          .querySelector(`input[value="${inclusionId}"]`)
-          ?.closest(".flex");
+        const element = document.querySelector(
+          `[data-inclusion-id="${inclusionId}"]`,
+        );
         if (element) element.remove();
       } catch (error) {
         console.error("Error deleting inclusion:", error);
@@ -7715,9 +7663,9 @@ export async function openEditPackageModal(packageId) {
           .delete()
           .eq("id", exclusionId);
         showToast("Exclusion deleted successfully", "success");
-        const element = document
-          .querySelector(`input[value="${exclusionId}"]`)
-          ?.closest(".flex");
+        const element = document.querySelector(
+          `[data-exclusion-id="${exclusionId}"]`,
+        );
         if (element) element.remove();
       } catch (error) {
         console.error("Error deleting exclusion:", error);
@@ -7767,7 +7715,7 @@ export async function openEditPackageModal(packageId) {
         showToast("Inclusion added successfully", "success");
         const list = document.getElementById("inclusions-list");
         const newHtml = `
-          <div class="flex items-start gap-2 p-3 hover:bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-green-300 transition-colors">
+          <div class="flex items-start gap-2 p-3 hover:bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-green-300 transition-colors" data-inclusion-id="${data.id}">
             <input type="checkbox" name="inclusions_selected[]" value="${data.id}" 
                    class="inclusion-checkbox mt-1.5 h-4 w-4 text-green-500 rounded flex-shrink-0">
             <div class="flex-1">
@@ -7816,7 +7764,7 @@ export async function openEditPackageModal(packageId) {
         showToast("Exclusion added successfully", "success");
         const list = document.getElementById("exclusions-list");
         const newHtml = `
-          <div class="flex items-start gap-2 p-3 hover:bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-red-300 transition-colors">
+          <div class="flex items-start gap-2 p-3 hover:bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-red-300 transition-colors" data-exclusion-id="${data.id}">
             <input type="checkbox" name="exclusions_selected[]" value="${data.id}" 
                    class="exclusion-checkbox mt-1.5 h-4 w-4 text-red-500 rounded flex-shrink-0">
             <div class="flex-1">
@@ -7840,275 +7788,623 @@ export async function openEditPackageModal(packageId) {
     };
 
     // =====================================================
-    // HOTEL RATE DELETE FUNCTIONS
+    // FORM SUBMIT HANDLER - FIXED TO PRESERVE ALL DATA
     // =====================================================
+    const form = document.getElementById("editPackageForm");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      showLoading(true, "Saving changes...");
 
-    // Delete individual rate field (keeping for backward compatibility)
-    window.deleteSingleRate = async function (
-      rateId,
-      fieldName,
-      buttonElement,
-    ) {
-      if (!rateId) {
-        showToast("Rate not found in database", "error");
-        return;
-      }
+      try {
+        const formData = new FormData(form);
 
-      showConfirmDialog(
-        `Delete this rate? This will set it to empty.`,
-        async () => {
-          try {
-            showLoading(true, "Deleting rate...");
+        // ========== 1. BASIC PACKAGE DATA ==========
+        // Always use form data if provided, otherwise fall back to original data
+        const updateData = {
+          package_code:
+            formData.get("package_code") || pkg.package_code || null,
+          package_name:
+            formData.get("package_name") || pkg.package_name || null,
+          tour_category:
+            formData.get("tour_category") || pkg.tour_category || null,
+          has_extra_night:
+            formData.get("has_extra_night") === "true"
+              ? true
+              : pkg.has_extra_night || false,
+          is_active:
+            formData.get("is_active") === "true"
+              ? true
+              : pkg.is_active !== false,
+          base_price: formData.get("base_price")
+            ? parseFloat(formData.get("base_price"))
+            : pkg.base_price || null,
+          markup_percent: formData.get("markup_percent")
+            ? parseFloat(formData.get("markup_percent"))
+            : pkg.markup_percent || 0,
+          tax_included:
+            formData.get("tax_included") === "true"
+              ? true
+              : pkg.tax_included || false,
+        };
 
-            const updateData = {
-              [fieldName]: null,
-            };
+        // ========== 2. ITINERARIES ==========
+        const itineraries = {};
+        const existingItineraries = pkg.itineraries || {};
 
-            const { error } = await supabase
-              .from("package_hotel_rates")
-              .update(updateData)
-              .eq("id", rateId);
+        // Get all itinerary textareas
+        document
+          .querySelectorAll('[name^="itineraries["]')
+          .forEach((textarea) => {
+            const match = textarea.name.match(/\[(\d+)\]/);
+            if (match) {
+              const dayNum = parseInt(match[1]);
+              if (textarea.value?.trim()) {
+                // Parse the combined text back into title and description
+                const lines = textarea.value.split("\n");
+                const dayTitle = lines[0] || `Day ${dayNum}`;
+                const dayDescription = lines
+                  .slice(1)
+                  .filter((line) => line.trim());
 
-            if (error) throw error;
-
-            const input = buttonElement
-              .closest(".relative")
-              .querySelector("input");
-            if (input) {
-              input.value = "";
-              buttonElement.remove();
+                itineraries[dayNum] = {
+                  day_number: dayNum,
+                  day_title: dayTitle,
+                  day_description:
+                    dayDescription.length > 0 ? dayDescription : null,
+                };
+              } else if (existingItineraries[dayNum]) {
+                // Preserve existing itinerary if field is empty
+                itineraries[dayNum] = existingItineraries[dayNum];
+              }
             }
+          });
 
-            showToast("Rate deleted successfully", "success");
-            await fetchDestinations();
-          } catch (error) {
-            console.error("Error deleting rate:", error);
-            showToast("Failed to delete rate: " + error.message, "error");
-          } finally {
-            showLoading(false);
-          }
-        },
-      );
-    };
-
-    // Delete entire rate row (keeping for backward compatibility)
-    window.deleteIndividualRate = async function (rateId, categoryName) {
-      if (!rateId) {
-        showToast("Rate not found in database", "error");
-        return;
-      }
-
-      showConfirmDialog(
-        `Delete all rates for ${categoryName}? This action cannot be undone.`,
-        async () => {
-          try {
-            showLoading(true, "Deleting rates...");
-
-            const { error } = await supabase
-              .from("package_hotel_rates")
-              .delete()
-              .eq("id", rateId);
-
-            if (error) throw error;
-
-            const rateRow = document.querySelector(
-              `[data-rate-id="${rateId}"]`,
-            );
-            if (rateRow) {
-              rateRow.remove();
-            }
-
-            showToast("Rates deleted successfully", "success");
-            await fetchDestinations();
-          } catch (error) {
-            console.error("Error deleting rates:", error);
-            showToast("Failed to delete rates: " + error.message, "error");
-          } finally {
-            showLoading(false);
-          }
-        },
-      );
-    };
-
-    // Add new rate row (keeping for backward compatibility)
-    window.addNewRateRow = async function (packageId) {
-      if (!destination || !destination.hotel_categories) {
-        showToast("No hotel categories available", "error");
-        return;
-      }
-
-      const categoriesWithRates = new Set(
-        (pkg.package_hotel_rates || []).map((r) => r.hotel_category_id),
-      );
-      const categoriesWithoutRates = destination.hotel_categories.filter(
-        (cat) => !categoriesWithRates.has(cat.id),
-      );
-
-      if (categoriesWithoutRates.length === 0) {
-        showToast("All categories already have rates", "warning");
-        return;
-      }
-
-      const categoryModal = document.createElement("div");
-      categoryModal.className =
-        "fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm";
-      categoryModal.innerHTML = `
-        <div class="bg-white rounded-2xl max-w-md w-full p-6">
-          <h3 class="text-xl font-bold mb-4">Select Category</h3>
-          <p class="text-sm text-gray-600 mb-4">Choose a category to add rates for:</p>
-          <div class="space-y-2 max-h-60 overflow-y-auto">
-            ${categoriesWithoutRates
-              .map(
-                (cat) => `
-              <button type="button" onclick="selectCategoryForRate(${cat.id})" 
-                      class="w-full text-left p-3 bg-gray-50 hover:bg-indigo-50 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition">
-                ${cat.category_name}
-              </button>
-            `,
-              )
-              .join("")}
-          </div>
-          <div class="flex justify-end mt-4">
-            <button type="button" onclick="this.closest('.fixed').remove()" 
-                    class="px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">Cancel</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(categoryModal);
-
-      window.selectCategoryForRate = function (categoryId) {
-        categoryModal.remove();
-
-        const category = destination.hotel_categories.find(
-          (c) => c.id === categoryId,
-        );
-        const catIndex = destination.hotel_categories.findIndex(
-          (c) => c.id === categoryId,
-        );
-        const container = document.getElementById("hotelRatesContainer");
-
-        // Find or create the category section
-        let categorySection = document.querySelector(
-          `[data-category-id="${categoryId}"]`,
-        );
-
-        if (!categorySection) {
-          // Create new category section if it doesn't exist
-          const newSectionHtml = `
-            <div class="bg-white p-4 rounded-lg border-2 border-indigo-200" data-category-id="${categoryId}" data-category-index="${catIndex}">
-              <h5 class="font-semibold text-md mb-3 text-indigo-700">${category.category_name}</h5>
-              
-              <!-- Regular Rates Table -->
-              <div class="mb-6">
-                <div class="flex items-center justify-between mb-2">
-                  <h6 class="text-sm font-semibold text-gray-600">Regular Rates</h6>
-                  <button type="button" onclick="addRateRow(${catIndex}, 'regular')" 
-                          class="px-3 py-1 bg-indigo-500 text-white rounded-lg text-xs hover:bg-indigo-600 transition flex items-center gap-1">
-                    <i class="fas fa-plus-circle"></i> Add Regular Rate Row
-                  </button>
-                </div>
-                <div class="overflow-x-auto">
-                  <table class="w-full border-collapse text-xs min-w-[1200px]">
-                    <thead>
-                      <tr class="bg-gray-100">
-                        <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Season</th>
-                        <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Sneak</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">Solo</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">2P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">3P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">4P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">5P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">6P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">7P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">8P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">9P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">10P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">11P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">12P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">13P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">14P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">15P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">Child</th>
-                        <th class="border border-gray-300 px-2 py-2 text-center font-semibold text-gray-700 w-16">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody id="category-${catIndex}-regular-rates">
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              <!-- Extra Night Rates Table -->
-              <div class="mt-4">
-                <div class="flex items-center justify-between mb-2">
-                  <h6 class="text-sm font-semibold text-gray-600">Extra Night Rates</h6>
-                  <button type="button" onclick="addRateRow(${catIndex}, 'extra')" 
-                          class="px-3 py-1 bg-indigo-500 text-white rounded-lg text-xs hover:bg-indigo-600 transition flex items-center gap-1">
-                    <i class="fas fa-plus-circle"></i> Add Extra Night Rate Row
-                  </button>
-                </div>
-                <div class="overflow-x-auto">
-                  <table class="w-full border-collapse text-xs min-w-[1200px]">
-                    <thead>
-                      <tr class="bg-gray-50">
-                        <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Season</th>
-                        <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Sneak</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">Solo</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">2P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">3P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">4P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">5P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">6P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">7P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">8P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">9P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">10P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">11P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">12P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">13P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">14P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">15P</th>
-                        <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">Child</th>
-                        <th class="border border-gray-300 px-2 py-2 text-center font-semibold text-gray-700 w-16">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody id="category-${catIndex}-extra-rates">
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              <!-- Breakfast Options -->
-              <div class="mt-4 pt-3 border-t border-gray-200 grid grid-cols-2 gap-4">
-                <div>
-                  <label class="flex items-center gap-2">
-                    <input type="checkbox" name="hotel_rates[${categoryId}][breakfast_included]" value="true" checked class="h-4 w-4 text-indigo-600 rounded">
-                    <span class="text-sm text-gray-700">Breakfast Included</span>
-                  </label>
-                </div>
-                <div>
-                  <input type="text" name="hotel_rates[${categoryId}][breakfast_notes]" 
-                         placeholder="Breakfast notes (optional)" 
-                         class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
-                </div>
-              </div>
-            </div>
-          `;
-          container.insertAdjacentHTML("beforeend", newSectionHtml);
+        // If no itineraries found but we have existing ones, preserve them all
+        if (
+          Object.keys(itineraries).length === 0 &&
+          Object.keys(existingItineraries).length > 0
+        ) {
+          updateData.itineraries = existingItineraries;
+        } else {
+          updateData.itineraries = itineraries;
         }
 
-        // Add default rows
-        setTimeout(() => {
-          addRateRow(catIndex, "regular");
-          addRateRow(catIndex, "extra");
-        }, 100);
+        // ========== 3. INCLUSIONS ==========
+        // Get selected inclusions to delete
+        const selectedInclusions = Array.from(
+          document.querySelectorAll(
+            'input[name="inclusions_selected[]"]:checked',
+          ),
+        ).map((cb) => parseInt(cb.value));
 
-        showToast(
-          "New category rate section added. Fill in the values and save.",
-          "success",
-        );
-      };
-    };
+        if (selectedInclusions.length > 0) {
+          updateData.delete_inclusions = selectedInclusions;
+        }
+
+        // Get updated inclusion texts
+        const inclusionUpdates = [];
+        document
+          .querySelectorAll("#inclusions-list textarea[data-inclusion-id]")
+          .forEach((textarea) => {
+            const inclusionId = parseInt(textarea.dataset.inclusionId);
+            const newText = textarea.value.trim();
+            const existingInclusion = pkg.inclusions?.find(
+              (i) => i.id === inclusionId,
+            );
+
+            // Only update if text changed
+            if (
+              newText &&
+              (!existingInclusion ||
+                existingInclusion.inclusion_text !== newText)
+            ) {
+              inclusionUpdates.push({
+                id: inclusionId,
+                text: newText,
+              });
+            }
+          });
+
+        if (inclusionUpdates.length > 0) {
+          updateData.update_inclusions = inclusionUpdates;
+        }
+
+        // ========== 4. EXCLUSIONS ==========
+        const selectedExclusions = Array.from(
+          document.querySelectorAll(
+            'input[name="exclusions_selected[]"]:checked',
+          ),
+        ).map((cb) => parseInt(cb.value));
+
+        if (selectedExclusions.length > 0) {
+          updateData.delete_exclusions = selectedExclusions;
+        }
+
+        const exclusionUpdates = [];
+        document
+          .querySelectorAll("#exclusions-list textarea[data-exclusion-id]")
+          .forEach((textarea) => {
+            const exclusionId = parseInt(textarea.dataset.exclusionId);
+            const newText = textarea.value.trim();
+            const existingExclusion = pkg.exclusions?.find(
+              (e) => e.id === exclusionId,
+            );
+
+            if (
+              newText &&
+              (!existingExclusion ||
+                existingExclusion.exclusion_text !== newText)
+            ) {
+              exclusionUpdates.push({
+                id: exclusionId,
+                text: newText,
+              });
+            }
+          });
+
+        if (exclusionUpdates.length > 0) {
+          updateData.update_exclusions = exclusionUpdates;
+        }
+
+        // ========== 5. NEW INCLUSIONS/EXCLUSIONS ==========
+        const newInclusionText =
+          document.getElementById("new-inclusion-text")?.value;
+        if (newInclusionText?.trim()) {
+          updateData.new_inclusions = [newInclusionText.trim()];
+        }
+
+        const newExclusionText =
+          document.getElementById("new-exclusion-text")?.value;
+        if (newExclusionText?.trim()) {
+          updateData.new_exclusions = [newExclusionText.trim()];
+        }
+
+        // ========== 6. TRANSPORTATION ==========
+        const transportationData = [];
+        transportCategories?.forEach((cat) => {
+          let index = 0;
+          while (true) {
+            const modeId = formData.get(
+              `transportation[${cat.id}][${index}][mode_id]`,
+            );
+            if (!modeId) break;
+
+            transportationData.push({
+              mode_id: parseInt(modeId),
+              description:
+                formData.get(
+                  `transportation[${cat.id}][${index}][description]`,
+                ) || null,
+              included:
+                formData.get(
+                  `transportation[${cat.id}][${index}][included]`,
+                ) === "true"
+                  ? "true"
+                  : "false",
+              display_order: index,
+            });
+            index++;
+          }
+        });
+
+        if (transportationData.length > 0) {
+          updateData.transportation = JSON.stringify(transportationData);
+        }
+
+        // ========== 7. HOTEL RATES - FIXED TO HANDLE DELETED VALUES ==========
+        const hotelRatesToSave = [];
+
+        destination?.hotel_categories?.forEach((cat, catIndex) => {
+          const categoryId = cat.id;
+
+          // Get breakfast settings from the category section
+          const breakfastIncluded =
+            formData.get(`hotel_rates[${categoryId}][breakfast_included]`) ===
+            "true";
+          const breakfastNotes =
+            formData.get(`hotel_rates[${categoryId}][breakfast_notes]`) || null;
+
+          // Process regular rate rows
+          const regularTbody = document.getElementById(
+            `category-${catIndex}-regular-rates`,
+          );
+          if (regularTbody) {
+            const rows = regularTbody.querySelectorAll("tr");
+            rows.forEach((row, rowIndex) => {
+              // Get ALL field values, including empty ones
+              const season = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][season]"]`,
+              )?.value;
+              const sneak = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][sneak]"]`,
+              )?.value;
+              const duration = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][duration]"]`,
+              )?.value;
+
+              const rateSolo = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_solo]"]`,
+              )?.value;
+              const rate2pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_2pax]"]`,
+              )?.value;
+              const rate3pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_3pax]"]`,
+              )?.value;
+              const rate4pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_4pax]"]`,
+              )?.value;
+              const rate5pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_5pax]"]`,
+              )?.value;
+              const rate6pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_6pax]"]`,
+              )?.value;
+              const rate7pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_7pax]"]`,
+              )?.value;
+              const rate8pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_8pax]"]`,
+              )?.value;
+              const rate9pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_9pax]"]`,
+              )?.value;
+              const rate10pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_10pax]"]`,
+              )?.value;
+              const rate11pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_11pax]"]`,
+              )?.value;
+              const rate12pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_12pax]"]`,
+              )?.value;
+              const rate13pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_13pax]"]`,
+              )?.value;
+              const rate14pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_14pax]"]`,
+              )?.value;
+              const rate15pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_15pax]"]`,
+              )?.value;
+              const rateChild = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_child]"]`,
+              )?.value;
+
+              // Check if ANY field has a value (including empty strings for text fields)
+              const hasAnyValue =
+                season !== undefined ||
+                sneak !== undefined ||
+                duration !== undefined ||
+                rateSolo ||
+                rate2pax ||
+                rate3pax ||
+                rate4pax ||
+                rate5pax ||
+                rate6pax ||
+                rate7pax ||
+                rate8pax ||
+                rate9pax ||
+                rate10pax ||
+                rate11pax ||
+                rate12pax ||
+                rate13pax ||
+                rate14pax ||
+                rate15pax ||
+                rateChild;
+
+              // Always create a rate record for this row, even if all fields are empty
+              // This ensures that if a user deleted all values, they become NULL in the database
+              const rateData = {
+                package_id: pkg.id,
+                hotel_category_id: categoryId,
+                // Text fields: if undefined or empty string, set to null
+                season:
+                  season !== undefined && season.trim() !== ""
+                    ? season.trim()
+                    : null,
+                sneak:
+                  sneak !== undefined && sneak.trim() !== ""
+                    ? sneak.trim()
+                    : null,
+                duration:
+                  duration !== undefined && duration.trim() !== ""
+                    ? duration.trim()
+                    : null,
+                // Numeric fields: if empty string or undefined, set to null, otherwise parse as float
+                rate_solo:
+                  rateSolo && rateSolo.trim() !== ""
+                    ? parseFloat(rateSolo)
+                    : null,
+                rate_2pax:
+                  rate2pax && rate2pax.trim() !== ""
+                    ? parseFloat(rate2pax)
+                    : null,
+                rate_3pax:
+                  rate3pax && rate3pax.trim() !== ""
+                    ? parseFloat(rate3pax)
+                    : null,
+                rate_4pax:
+                  rate4pax && rate4pax.trim() !== ""
+                    ? parseFloat(rate4pax)
+                    : null,
+                rate_5pax:
+                  rate5pax && rate5pax.trim() !== ""
+                    ? parseFloat(rate5pax)
+                    : null,
+                rate_6pax:
+                  rate6pax && rate6pax.trim() !== ""
+                    ? parseFloat(rate6pax)
+                    : null,
+                rate_7pax:
+                  rate7pax && rate7pax.trim() !== ""
+                    ? parseFloat(rate7pax)
+                    : null,
+                rate_8pax:
+                  rate8pax && rate8pax.trim() !== ""
+                    ? parseFloat(rate8pax)
+                    : null,
+                rate_9pax:
+                  rate9pax && rate9pax.trim() !== ""
+                    ? parseFloat(rate9pax)
+                    : null,
+                rate_10pax:
+                  rate10pax && rate10pax.trim() !== ""
+                    ? parseFloat(rate10pax)
+                    : null,
+                rate_11pax:
+                  rate11pax && rate11pax.trim() !== ""
+                    ? parseFloat(rate11pax)
+                    : null,
+                rate_12pax:
+                  rate12pax && rate12pax.trim() !== ""
+                    ? parseFloat(rate12pax)
+                    : null,
+                rate_13pax:
+                  rate13pax && rate13pax.trim() !== ""
+                    ? parseFloat(rate13pax)
+                    : null,
+                rate_14pax:
+                  rate14pax && rate14pax.trim() !== ""
+                    ? parseFloat(rate14pax)
+                    : null,
+                rate_15pax:
+                  rate15pax && rate15pax.trim() !== ""
+                    ? parseFloat(rate15pax)
+                    : null,
+                rate_child_no_breakfast:
+                  rateChild && rateChild.trim() !== ""
+                    ? parseFloat(rateChild)
+                    : null,
+                // Clear extra night fields
+                extra_night_solo: null,
+                extra_night_2pax: null,
+                extra_night_3pax: null,
+                extra_night_4pax: null,
+                extra_night_5pax: null,
+                extra_night_6pax: null,
+                extra_night_7pax: null,
+                extra_night_8pax: null,
+                extra_night_9pax: null,
+                extra_night_10pax: null,
+                extra_night_11pax: null,
+                extra_night_12pax: null,
+                extra_night_13pax: null,
+                extra_night_14pax: null,
+                extra_night_15pax: null,
+                extra_night_child_no_breakfast: null,
+                breakfast_included: breakfastIncluded,
+                breakfast_notes: breakfastNotes,
+              };
+
+              hotelRatesToSave.push(rateData);
+            });
+          }
+
+          // Process extra night rate rows (similar changes)
+          const extraTbody = document.getElementById(
+            `category-${catIndex}-extra-rates`,
+          );
+          if (extraTbody) {
+            const rows = extraTbody.querySelectorAll("tr");
+            rows.forEach((row, rowIndex) => {
+              // Get ALL field values
+              const season = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][season]"]`,
+              )?.value;
+              const sneak = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][sneak]"]`,
+              )?.value;
+              const duration = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][duration]"]`,
+              )?.value;
+
+              const rateSolo = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_solo]"]`,
+              )?.value;
+              const rate2pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_2pax]"]`,
+              )?.value;
+              const rate3pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_3pax]"]`,
+              )?.value;
+              const rate4pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_4pax]"]`,
+              )?.value;
+              const rate5pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_5pax]"]`,
+              )?.value;
+              const rate6pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_6pax]"]`,
+              )?.value;
+              const rate7pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_7pax]"]`,
+              )?.value;
+              const rate8pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_8pax]"]`,
+              )?.value;
+              const rate9pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_9pax]"]`,
+              )?.value;
+              const rate10pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_10pax]"]`,
+              )?.value;
+              const rate11pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_11pax]"]`,
+              )?.value;
+              const rate12pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_12pax]"]`,
+              )?.value;
+              const rate13pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_13pax]"]`,
+              )?.value;
+              const rate14pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_14pax]"]`,
+              )?.value;
+              const rate15pax = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_15pax]"]`,
+              )?.value;
+              const rateChild = row.querySelector(
+                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_child]"]`,
+              )?.value;
+
+              const rateData = {
+                package_id: pkg.id,
+                hotel_category_id: categoryId,
+                // Text fields: if empty, set to null
+                season:
+                  season !== undefined && season.trim() !== ""
+                    ? season.trim()
+                    : null,
+                sneak:
+                  sneak !== undefined && sneak.trim() !== ""
+                    ? sneak.trim()
+                    : null,
+                duration:
+                  duration !== undefined && duration.trim() !== ""
+                    ? duration.trim()
+                    : null,
+                // Extra night fields
+                extra_night_solo:
+                  rateSolo && rateSolo.trim() !== ""
+                    ? parseFloat(rateSolo)
+                    : null,
+                extra_night_2pax:
+                  rate2pax && rate2pax.trim() !== ""
+                    ? parseFloat(rate2pax)
+                    : null,
+                extra_night_3pax:
+                  rate3pax && rate3pax.trim() !== ""
+                    ? parseFloat(rate3pax)
+                    : null,
+                extra_night_4pax:
+                  rate4pax && rate4pax.trim() !== ""
+                    ? parseFloat(rate4pax)
+                    : null,
+                extra_night_5pax:
+                  rate5pax && rate5pax.trim() !== ""
+                    ? parseFloat(rate5pax)
+                    : null,
+                extra_night_6pax:
+                  rate6pax && rate6pax.trim() !== ""
+                    ? parseFloat(rate6pax)
+                    : null,
+                extra_night_7pax:
+                  rate7pax && rate7pax.trim() !== ""
+                    ? parseFloat(rate7pax)
+                    : null,
+                extra_night_8pax:
+                  rate8pax && rate8pax.trim() !== ""
+                    ? parseFloat(rate8pax)
+                    : null,
+                extra_night_9pax:
+                  rate9pax && rate9pax.trim() !== ""
+                    ? parseFloat(rate9pax)
+                    : null,
+                extra_night_10pax:
+                  rate10pax && rate10pax.trim() !== ""
+                    ? parseFloat(rate10pax)
+                    : null,
+                extra_night_11pax:
+                  rate11pax && rate11pax.trim() !== ""
+                    ? parseFloat(rate11pax)
+                    : null,
+                extra_night_12pax:
+                  rate12pax && rate12pax.trim() !== ""
+                    ? parseFloat(rate12pax)
+                    : null,
+                extra_night_13pax:
+                  rate13pax && rate13pax.trim() !== ""
+                    ? parseFloat(rate13pax)
+                    : null,
+                extra_night_14pax:
+                  rate14pax && rate14pax.trim() !== ""
+                    ? parseFloat(rate14pax)
+                    : null,
+                extra_night_15pax:
+                  rate15pax && rate15pax.trim() !== ""
+                    ? parseFloat(rate15pax)
+                    : null,
+                extra_night_child_no_breakfast:
+                  rateChild && rateChild.trim() !== ""
+                    ? parseFloat(rateChild)
+                    : null,
+                // Clear regular rate fields
+                rate_solo: null,
+                rate_2pax: null,
+                rate_3pax: null,
+                rate_4pax: null,
+                rate_5pax: null,
+                rate_6pax: null,
+                rate_7pax: null,
+                rate_8pax: null,
+                rate_9pax: null,
+                rate_10pax: null,
+                rate_11pax: null,
+                rate_12pax: null,
+                rate_13pax: null,
+                rate_14pax: null,
+                rate_15pax: null,
+                rate_child_no_breakfast: null,
+                breakfast_included: breakfastIncluded,
+                breakfast_notes: breakfastNotes,
+              };
+
+              hotelRatesToSave.push(rateData);
+            });
+          }
+        });
+
+        // Add hotel rates to update data if any
+        if (hotelRatesToSave.length > 0) {
+          updateData.hotel_rates_data = JSON.stringify(hotelRatesToSave);
+        }
+
+        // ========== 8. OPTIONAL TOURS ==========
+        const newToursToAdd = formData
+          .getAll("new_tours_to_add[]")
+          .map((id) => parseInt(id));
+        if (newToursToAdd.length > 0) {
+          updateData.add_tours = newToursToAdd;
+        }
+
+        console.log("📦 Sending update data:", updateData);
+
+        // Call your updatePackage function
+        const result = await updatePackage(pkg.id, updateData);
+
+        if (result) {
+          modal.remove();
+          showToast("✅ Package updated successfully!", "success");
+          if (destination) await viewDestinationDetails(destination.id);
+        }
+      } catch (error) {
+        console.error("Error updating package:", error);
+        showToast("Failed to update package: " + error.message, "error");
+      } finally {
+        showLoading(false);
+      }
+    });
 
     // Load available tours
     async function loadAvailableTours() {
@@ -8164,825 +8460,13 @@ export async function openEditPackageModal(packageId) {
     // Call loadAvailableTours
     loadAvailableTours();
     window.updateDayCount = updateDayCount;
-
-    // =====================================================
-    // FORM SUBMIT HANDLER - UPDATED WITH TABLE DATA PROCESSING
-    // =====================================================
-    const form = document.getElementById("editPackageForm");
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      showLoading(true, "Saving changes...");
-
-      try {
-        const formData = new FormData(form);
-
-        // Collect selected IDs for deletion
-        const selectedInclusions = Array.from(
-          document.querySelectorAll(
-            'input[name="inclusions_selected[]"]:checked',
-          ),
-        ).map((cb) => cb.value);
-        const selectedExclusions = Array.from(
-          document.querySelectorAll(
-            'input[name="exclusions_selected[]"]:checked',
-          ),
-        ).map((cb) => cb.value);
-
-        // Collect itineraries
-        const itineraries = {};
-        document
-          .querySelectorAll('[name^="itineraries["]')
-          .forEach((textarea) => {
-            if (textarea.value?.trim()) {
-              const match = textarea.name.match(/\[(\d+)\]/);
-              if (match) itineraries[parseInt(match[1])] = textarea.value;
-            }
-          });
-
-        // Collect updated inclusion/exclusion texts
-        const inclusionUpdates = Array.from(
-          document.querySelectorAll(
-            "#inclusions-list textarea[data-inclusion-id]",
-          ),
-        )
-          .map((textarea) => ({
-            id: parseInt(textarea.dataset.inclusionId),
-            text: textarea.value,
-          }))
-          .filter((u) => u.text?.trim());
-
-        const exclusionUpdates = Array.from(
-          document.querySelectorAll(
-            "#exclusions-list textarea[data-exclusion-id]",
-          ),
-        )
-          .map((textarea) => ({
-            id: parseInt(textarea.dataset.exclusionId),
-            text: textarea.value,
-          }))
-          .filter((u) => u.text?.trim());
-
-        // Collect hotel rates from table rows
-        const hotelRatesToSave = [];
-
-        destination?.hotel_categories?.forEach((cat, catIndex) => {
-          const categoryId = cat.id;
-
-          // Process regular rate rows
-          const regularTbody = document.getElementById(
-            `category-${catIndex}-regular-rates`,
-          );
-          if (regularTbody) {
-            const rows = regularTbody.querySelectorAll("tr");
-            rows.forEach((row, rowIndex) => {
-              const seasonInput = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][season]"]`,
-              );
-              const sneakInput = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][sneak]"]`,
-              );
-              const soloInput = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_solo]"]`,
-              );
-              const pax2Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_2pax]"]`,
-              );
-              const pax3Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_3pax]"]`,
-              );
-              const pax4Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_4pax]"]`,
-              );
-              const pax5Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_5pax]"]`,
-              );
-              const pax6Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_6pax]"]`,
-              );
-              const pax7Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_7pax]"]`,
-              );
-              const pax8Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_8pax]"]`,
-              );
-              const pax9Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_9pax]"]`,
-              );
-              const pax10Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_10pax]"]`,
-              );
-              const pax11Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_11pax]"]`,
-              );
-              const pax12Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_12pax]"]`,
-              );
-              const pax13Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_13pax]"]`,
-              );
-              const pax14Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_14pax]"]`,
-              );
-              const pax15Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_15pax]"]`,
-              );
-              const childInput = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_child]"]`,
-              );
-
-              const season = seasonInput?.value;
-              const sneak = sneakInput?.value;
-              const duration = durationInput?.value;
-              // Only create rate if at least one field has value
-              if (season || sneak || soloInput?.value || pax2Input?.value) {
-                hotelRatesToSave.push({
-                  package_id: pkg.id,
-                  hotel_category_id: categoryId,
-                  season: season || null,
-                  sneak: sneak || null,
-                  duration: duration || null,
-                  rate_solo: soloInput?.value
-                    ? parseFloat(soloInput.value)
-                    : null,
-                  rate_2pax: pax2Input?.value
-                    ? parseFloat(pax2Input.value)
-                    : null,
-                  rate_3pax: pax3Input?.value
-                    ? parseFloat(pax3Input.value)
-                    : null,
-                  rate_4pax: pax4Input?.value
-                    ? parseFloat(pax4Input.value)
-                    : null,
-                  rate_5pax: pax5Input?.value
-                    ? parseFloat(pax5Input.value)
-                    : null,
-                  rate_6pax: pax6Input?.value
-                    ? parseFloat(pax6Input.value)
-                    : null,
-                  rate_7pax: pax7Input?.value
-                    ? parseFloat(pax7Input.value)
-                    : null,
-                  rate_8pax: pax8Input?.value
-                    ? parseFloat(pax8Input.value)
-                    : null,
-                  rate_9pax: pax9Input?.value
-                    ? parseFloat(pax9Input.value)
-                    : null,
-                  rate_10pax: pax10Input?.value
-                    ? parseFloat(pax10Input.value)
-                    : null,
-                  rate_11pax: pax11Input?.value
-                    ? parseFloat(pax11Input.value)
-                    : null,
-                  rate_12pax: pax12Input?.value
-                    ? parseFloat(pax12Input.value)
-                    : null,
-                  rate_13pax: pax13Input?.value
-                    ? parseFloat(pax13Input.value)
-                    : null,
-                  rate_14pax: pax14Input?.value
-                    ? parseFloat(pax14Input.value)
-                    : null,
-                  rate_15pax: pax15Input?.value
-                    ? parseFloat(pax15Input.value)
-                    : null,
-                  rate_child_no_breakfast: childInput?.value
-                    ? parseFloat(childInput.value)
-                    : null,
-                  breakfast_included:
-                    formData.get(
-                      `hotel_rates[${categoryId}][breakfast_included]`,
-                    ) === "true",
-                  breakfast_notes:
-                    formData.get(
-                      `hotel_rates[${categoryId}][breakfast_notes]`,
-                    ) || null,
-                });
-              }
-            });
-          }
-
-          // Process extra night rate rows
-          const extraTbody = document.getElementById(
-            `category-${catIndex}-extra-rates`,
-          );
-          if (extraTbody) {
-            const rows = extraTbody.querySelectorAll("tr");
-            rows.forEach((row, rowIndex) => {
-              const seasonInput = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][season]"]`,
-              );
-              const sneakInput = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][sneak]"]`,
-              );
-              const durationInput = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][duration]"]`,
-              );
-              const soloInput = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_solo]"]`,
-              );
-              const pax2Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_2pax]"]`,
-              );
-              const pax3Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_3pax]"]`,
-              );
-              const pax4Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_4pax]"]`,
-              );
-              const pax5Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_5pax]"]`,
-              );
-              const pax6Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_6pax]"]`,
-              );
-              const pax7Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_7pax]"]`,
-              );
-              const pax8Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_8pax]"]`,
-              );
-              const pax9Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_9pax]"]`,
-              );
-              const pax10Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_10pax]"]`,
-              );
-              const pax11Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_11pax]"]`,
-              );
-              const pax12Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_12pax]"]`,
-              );
-              const pax13Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_13pax]"]`,
-              );
-              const pax14Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_14pax]"]`,
-              );
-              const pax15Input = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_15pax]"]`,
-              );
-              const childInput = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_child]"]`,
-              );
-
-              const season = seasonInput?.value;
-              const sneak = sneakInput?.value;
-
-              // I-debug muna natin
-              console.log("durationInput exists?", durationInput); // Tingnan kung undefined
-
-              // Safe version
-              let duration = null;
-              if (durationInput) {
-                duration = durationInput.value;
-                console.log("Duration value:", duration);
-              } else {
-                console.warn("durationInput is undefined at row", rowIndex);
-              }
-              // Only create rate if at least one field has value
-              if (season || sneak || soloInput?.value || pax2Input?.value) {
-                hotelRatesToSave.push({
-                  package_id: pkg.id,
-                  hotel_category_id: categoryId,
-                  season: season || null,
-                  sneak: sneak || null,
-                  duration: duration || null,
-                  extra_night_solo: soloInput?.value
-                    ? parseFloat(soloInput.value)
-                    : null,
-                  extra_night_2pax: pax2Input?.value
-                    ? parseFloat(pax2Input.value)
-                    : null,
-                  extra_night_3pax: pax3Input?.value
-                    ? parseFloat(pax3Input.value)
-                    : null,
-                  extra_night_4pax: pax4Input?.value
-                    ? parseFloat(pax4Input.value)
-                    : null,
-                  extra_night_5pax: pax5Input?.value
-                    ? parseFloat(pax5Input.value)
-                    : null,
-                  extra_night_6pax: pax6Input?.value
-                    ? parseFloat(pax6Input.value)
-                    : null,
-                  extra_night_7pax: pax7Input?.value
-                    ? parseFloat(pax7Input.value)
-                    : null,
-                  extra_night_8pax: pax8Input?.value
-                    ? parseFloat(pax8Input.value)
-                    : null,
-                  extra_night_9pax: pax9Input?.value
-                    ? parseFloat(pax9Input.value)
-                    : null,
-                  extra_night_10pax: pax10Input?.value
-                    ? parseFloat(pax10Input.value)
-                    : null,
-                  extra_night_11pax: pax11Input?.value
-                    ? parseFloat(pax11Input.value)
-                    : null,
-                  extra_night_12pax: pax12Input?.value
-                    ? parseFloat(pax12Input.value)
-                    : null,
-                  extra_night_13pax: pax13Input?.value
-                    ? parseFloat(pax13Input.value)
-                    : null,
-                  extra_night_14pax: pax14Input?.value
-                    ? parseFloat(pax14Input.value)
-                    : null,
-                  extra_night_15pax: pax15Input?.value
-                    ? parseFloat(pax15Input.value)
-                    : null,
-                  extra_night_child_no_breakfast: childInput?.value
-                    ? parseFloat(childInput.value)
-                    : null,
-                  breakfast_included:
-                    formData.get(
-                      `hotel_rates[${categoryId}][breakfast_included]`,
-                    ) === "true",
-                  breakfast_notes:
-                    formData.get(
-                      `hotel_rates[${categoryId}][breakfast_notes]`,
-                    ) || null,
-                });
-              }
-            });
-          }
-        });
-
-        // Delete all existing rates for this package and category combination?
-        // This is tricky - we need to handle updates properly
-        // For simplicity, we'll delete all existing rates and insert new ones
-        if (hotelRatesToSave.length > 0) {
-          // Get all category IDs that have rates
-          const categoryIds = [
-            ...new Set(hotelRatesToSave.map((r) => r.hotel_category_id)),
-          ];
-
-          // Delete existing rates for these categories
-          for (const catId of categoryIds) {
-            await supabase
-              .from("package_hotel_rates")
-              .delete()
-              .eq("package_id", pkg.id)
-              .eq("hotel_category_id", catId);
-          }
-
-          // Insert new rates
-          for (const rateData of hotelRatesToSave) {
-            await savePackageHotelRate(rateData);
-          }
-        }
-
-        // Add new tours to package
-        const newToursToAdd = formData.getAll("new_tours_to_add[]");
-        for (const tourId of newToursToAdd) {
-          await linkTourToPackage(pkg.id, parseInt(tourId));
-        }
-
-        // Collect transportation data
-        const transportationData = [];
-        transportCategories?.forEach((cat) => {
-          let index = 0;
-          while (formData.get(`transportation[${cat.id}][${index}][mode_id]`)) {
-            const modeId = formData.get(
-              `transportation[${cat.id}][${index}][mode_id]`,
-            );
-            if (modeId) {
-              transportationData.push({
-                mode_id: parseInt(modeId),
-                description: formData.get(
-                  `transportation[${cat.id}][${index}][description]`,
-                ),
-                included:
-                  formData.get(
-                    `transportation[${cat.id}][${index}][included]`,
-                  ) === "on"
-                    ? "true"
-                    : "false",
-                display_order: index,
-              });
-            }
-            index++;
-          }
-        });
-
-        // Create update data object
-        const updateData = {
-          package_code: formData.get("package_code"),
-          package_name: formData.get("package_name"),
-          tour_category: formData.get("tour_category"),
-          has_extra_night:
-            formData.get("has_extra_night") === "true" ? "true" : "false",
-          is_active: formData.get("is_active") === "true" ? "true" : "false",
-          base_price: formData.get("base_price"),
-          markup_percent: formData.get("markup_percent"),
-          tax_included:
-            formData.get("tax_included") === "true" ? "true" : "false",
-          itineraries: itineraries,
-          update_itineraries: "true",
-        };
-
-        if (selectedInclusions.length)
-          updateData.delete_inclusions = JSON.stringify(selectedInclusions);
-        if (selectedExclusions.length)
-          updateData.delete_exclusions = JSON.stringify(selectedExclusions);
-        if (inclusionUpdates.length)
-          updateData.update_inclusions = JSON.stringify(inclusionUpdates);
-        if (exclusionUpdates.length)
-          updateData.update_exclusions = JSON.stringify(exclusionUpdates);
-        if (transportationData.length)
-          updateData.transportation = JSON.stringify(transportationData);
-
-        console.log("📦 Sending update data:", updateData);
-
-        const result = await updatePackage(pkg.id, updateData);
-        if (result) {
-          modal.remove();
-          showToast("✅ Package updated successfully!", "success");
-          if (destination) await viewDestinationDetails(destination.id);
-        }
-      } catch (error) {
-        console.error("Error updating package:", error);
-        showToast("Failed to update package: " + error.message, "error");
-      } finally {
-        showLoading(false);
-      }
-    });
   } catch (error) {
-    console.error("Error opening edit package modal:", error);
-    showToast("Failed to load package data", "error");
+    console.error("Error in openEditPackageModal:", error);
     showLoading(false);
+    showToast("Failed to open edit modal: " + error.message, "error");
   }
 }
 
-export function openEditPackageRateModal(rateId) {
-  // Find the rate
-  let rate = null;
-  let pkg = null;
-  let destination = null;
-  for (const dest of state.destinations) {
-    for (const p of dest.packages || []) {
-      const found = p.package_hotel_rates?.find((r) => r.id === rateId);
-      if (found) {
-        rate = found;
-        pkg = p;
-        destination = dest;
-        break;
-      }
-    }
-  }
-
-  if (!rate) {
-    showToast("Rate not found", "error");
-    return;
-  }
-
-  const modal = document.createElement("div");
-  modal.className =
-    "fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm";
-
-  modal.innerHTML = `
-    <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl transform transition-all">
-      <!-- Fixed Header -->
-      <div class="relative overflow-hidden rounded-t-2xl bg-gradient-to-r from-amber-600 via-orange-500 to-red-500">
-        <div class="absolute inset-0 bg-black/10"></div>
-        <div class="relative px-6 py-5">
-          <div class="flex items-center gap-4">
-            <div class="h-14 w-14 bg-white/20 backdrop-blur-lg rounded-2xl flex items-center justify-center shadow-xl ring-2 ring-white/30">
-              <i class="fas fa-tag text-2xl text-white"></i>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-2xl font-bold text-white tracking-tight">Edit Hotel Rate</h3>
-              <p class="text-amber-100 text-sm mt-1">${pkg?.package_name}</p>
-            </div>
-            <button onclick="this.closest('.fixed').remove()" class="text-white/80 hover:text-white text-2xl">&times;</button>
-          </div>
-        </div>
-      </div>
-      
-      <form id="editPackageRateForm" class="p-6 space-y-5 max-h-[calc(90vh-120px)] overflow-y-auto">
-        <input type="hidden" name="id" value="${rate.id}">
-        <input type="hidden" name="package_id" value="${rate.package_id}">
-        <input type="hidden" name="hotel_category_id" value="${rate.hotel_category_id}">
-        
-        <!-- Season and Sneak Fields -->
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-semibold text-gray-600 mb-2">Season</label>
-            <input type="text" name="season" value="${rate.season || ""}" 
-                   class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm"
-                   placeholder="e.g., Peak Season 2024">
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-gray-600 mb-2">Sneak</label>
-            <input type="text" name="sneak" value="${rate.sneak || ""}" 
-                   class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm"
-                   placeholder="e.g., SNK001">
-          </div>
-        </div>
-        
-        <!-- Regular Rates 1-15 Pax -->
-        <div>
-          <h4 class="text-md font-bold text-gray-800 mb-3">Regular Rates (per person)</h4>
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">Solo</label>
-              <input type="number" name="rate_solo" value="${rate.rate_solo || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">2 Pax</label>
-              <input type="number" name="rate_2pax" value="${rate.rate_2pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">3 Pax</label>
-              <input type="number" name="rate_3pax" value="${rate.rate_3pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">4 Pax</label>
-              <input type="number" name="rate_4pax" value="${rate.rate_4pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">5 Pax</label>
-              <input type="number" name="rate_5pax" value="${rate.rate_5pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">6 Pax</label>
-              <input type="number" name="rate_6pax" value="${rate.rate_6pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">7 Pax</label>
-              <input type="number" name="rate_7pax" value="${rate.rate_7pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">8 Pax</label>
-              <input type="number" name="rate_8pax" value="${rate.rate_8pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">9 Pax</label>
-              <input type="number" name="rate_9pax" value="${rate.rate_9pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">10 Pax</label>
-              <input type="number" name="rate_10pax" value="${rate.rate_10pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">11 Pax</label>
-              <input type="number" name="rate_11pax" value="${rate.rate_11pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">12 Pax</label>
-              <input type="number" name="rate_12pax" value="${rate.rate_12pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">13 Pax</label>
-              <input type="number" name="rate_13pax" value="${rate.rate_13pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">14 Pax</label>
-              <input type="number" name="rate_14pax" value="${rate.rate_14pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">15 Pax</label>
-              <input type="number" name="rate_15pax" value="${rate.rate_15pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">Child (No BF)</label>
-              <input type="number" name="rate_child_no_breakfast" value="${rate.rate_child_no_breakfast || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-          </div>
-        </div>
-        
-        <!-- Extra Night Rates 1-15 Pax -->
-        <div class="border-t border-gray-200 pt-4">
-          <h4 class="text-md font-bold text-gray-800 mb-3">Extra Night Rates</h4>
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">Solo Extra</label>
-              <input type="number" name="extra_night_solo" value="${rate.extra_night_solo || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">2P Extra</label>
-              <input type="number" name="extra_night_2pax" value="${rate.extra_night_2pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">3P Extra</label>
-              <input type="number" name="extra_night_3pax" value="${rate.extra_night_3pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">4P Extra</label>
-              <input type="number" name="extra_night_4pax" value="${rate.extra_night_4pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">5P Extra</label>
-              <input type="number" name="extra_night_5pax" value="${rate.extra_night_5pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">6P Extra</label>
-              <input type="number" name="extra_night_6pax" value="${rate.extra_night_6pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">7P Extra</label>
-              <input type="number" name="extra_night_7pax" value="${rate.extra_night_7pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">8P Extra</label>
-              <input type="number" name="extra_night_8pax" value="${rate.extra_night_8pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">9P Extra</label>
-              <input type="number" name="extra_night_9pax" value="${rate.extra_night_9pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">10P Extra</label>
-              <input type="number" name="extra_night_10pax" value="${rate.extra_night_10pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">11P Extra</label>
-              <input type="number" name="extra_night_11pax" value="${rate.extra_night_11pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">12P Extra</label>
-              <input type="number" name="extra_night_12pax" value="${rate.extra_night_12pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">13P Extra</label>
-              <input type="number" name="extra_night_13pax" value="${rate.extra_night_13pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">14P Extra</label>
-              <input type="number" name="extra_night_14pax" value="${rate.extra_night_14pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">15P Extra</label>
-              <input type="number" name="extra_night_15pax" value="${rate.extra_night_15pax || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-            <div><label class="block text-xs font-semibold text-gray-600 mb-1">Child Extra</label>
-              <input type="number" name="extra_night_child_no_breakfast" value="${rate.extra_night_child_no_breakfast || ""}" step="0.01"
-                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
-          </div>
-        </div>
-        
-        <div class="mt-4">
-          <label class="flex items-center gap-2">
-            <input type="checkbox" name="breakfast_included" value="true" ${rate.breakfast_included ? "checked" : ""}
-                   class="h-4 w-4 text-amber-600 rounded">
-            <span class="text-sm text-gray-700">Breakfast Included</span>
-          </label>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-2">Breakfast Notes</label>
-          <input type="text" name="breakfast_notes" value="${rate.breakfast_notes || ""}"
-                 class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm">
-        </div>
-        
-        <div class="mt-4">
-          <label class="flex items-center gap-2">
-            <input type="checkbox" name="is_promo" value="true" ${rate.is_promo ? "checked" : ""}
-                   class="h-4 w-4 text-amber-600 rounded">
-            <span class="text-sm text-gray-700">Is Promo Rate</span>
-          </label>
-        </div>
-        
-        <div id="promo-fields" class="${rate.is_promo ? "" : "hidden"} space-y-4">
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Promo Name</label>
-            <input type="text" name="promo_name" value="${rate.promo_name || ""}"
-                   class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm">
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Validity Date</label>
-            <input type="date" name="validity_date" value="${rate.validity_date || ""}"
-                   class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm">
-          </div>
-        </div>
-        
-        <!-- Action Buttons -->
-        <div class="flex justify-end gap-3 pt-6 border-t border-gray-100">
-          <button type="button" onclick="this.closest('.fixed').remove()"
-                  class="px-5 py-2.5 border-2 border-gray-200 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">
-            Cancel
-          </button>
-          <button type="submit"
-                  class="px-6 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg text-sm font-semibold hover:from-amber-700 hover:to-orange-700">
-            Save Changes
-          </button>
-        </div>
-      </form>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  // Toggle promo fields
-  const isPromoCheckbox = modal.querySelector('input[name="is_promo"]');
-  const promoFields = modal.querySelector("#promo-fields");
-  if (isPromoCheckbox) {
-    isPromoCheckbox.addEventListener("change", function () {
-      if (this.checked) {
-        promoFields.classList.remove("hidden");
-      } else {
-        promoFields.classList.add("hidden");
-      }
-    });
-  }
-
-  const form = document.getElementById("editPackageRateForm");
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const formData = new FormData(form);
-
-    const rateData = {
-      package_id: parseInt(formData.get("package_id")),
-      hotel_category_id: parseInt(formData.get("hotel_category_id")),
-      season: formData.get("season") || null,
-      sneak: formData.get("sneak") || null,
-      // Regular rates
-      rate_solo: formData.get("rate_solo")
-        ? parseFloat(formData.get("rate_solo"))
-        : null,
-      rate_2pax: formData.get("rate_2pax")
-        ? parseFloat(formData.get("rate_2pax"))
-        : null,
-      rate_3pax: formData.get("rate_3pax")
-        ? parseFloat(formData.get("rate_3pax"))
-        : null,
-      rate_4pax: formData.get("rate_4pax")
-        ? parseFloat(formData.get("rate_4pax"))
-        : null,
-      rate_5pax: formData.get("rate_5pax")
-        ? parseFloat(formData.get("rate_5pax"))
-        : null,
-      rate_6pax: formData.get("rate_6pax")
-        ? parseFloat(formData.get("rate_6pax"))
-        : null,
-      rate_7pax: formData.get("rate_7pax")
-        ? parseFloat(formData.get("rate_7pax"))
-        : null,
-      rate_8pax: formData.get("rate_8pax")
-        ? parseFloat(formData.get("rate_8pax"))
-        : null,
-      rate_9pax: formData.get("rate_9pax")
-        ? parseFloat(formData.get("rate_9pax"))
-        : null,
-      rate_10pax: formData.get("rate_10pax")
-        ? parseFloat(formData.get("rate_10pax"))
-        : null,
-      rate_11pax: formData.get("rate_11pax")
-        ? parseFloat(formData.get("rate_11pax"))
-        : null,
-      rate_12pax: formData.get("rate_12pax")
-        ? parseFloat(formData.get("rate_12pax"))
-        : null,
-      rate_13pax: formData.get("rate_13pax")
-        ? parseFloat(formData.get("rate_13pax"))
-        : null,
-      rate_14pax: formData.get("rate_14pax")
-        ? parseFloat(formData.get("rate_14pax"))
-        : null,
-      rate_15pax: formData.get("rate_15pax")
-        ? parseFloat(formData.get("rate_15pax"))
-        : null,
-      rate_child_no_breakfast: formData.get("rate_child_no_breakfast")
-        ? parseFloat(formData.get("rate_child_no_breakfast"))
-        : null,
-      // Extra night rates
-      extra_night_solo: formData.get("extra_night_solo")
-        ? parseFloat(formData.get("extra_night_solo"))
-        : null,
-      extra_night_2pax: formData.get("extra_night_2pax")
-        ? parseFloat(formData.get("extra_night_2pax"))
-        : null,
-      extra_night_3pax: formData.get("extra_night_3pax")
-        ? parseFloat(formData.get("extra_night_3pax"))
-        : null,
-      extra_night_4pax: formData.get("extra_night_4pax")
-        ? parseFloat(formData.get("extra_night_4pax"))
-        : null,
-      extra_night_5pax: formData.get("extra_night_5pax")
-        ? parseFloat(formData.get("extra_night_5pax"))
-        : null,
-      extra_night_6pax: formData.get("extra_night_6pax")
-        ? parseFloat(formData.get("extra_night_6pax"))
-        : null,
-      extra_night_7pax: formData.get("extra_night_7pax")
-        ? parseFloat(formData.get("extra_night_7pax"))
-        : null,
-      extra_night_8pax: formData.get("extra_night_8pax")
-        ? parseFloat(formData.get("extra_night_8pax"))
-        : null,
-      extra_night_9pax: formData.get("extra_night_9pax")
-        ? parseFloat(formData.get("extra_night_9pax"))
-        : null,
-      extra_night_10pax: formData.get("extra_night_10pax")
-        ? parseFloat(formData.get("extra_night_10pax"))
-        : null,
-      extra_night_11pax: formData.get("extra_night_11pax")
-        ? parseFloat(formData.get("extra_night_11pax"))
-        : null,
-      extra_night_12pax: formData.get("extra_night_12pax")
-        ? parseFloat(formData.get("extra_night_12pax"))
-        : null,
-      extra_night_13pax: formData.get("extra_night_13pax")
-        ? parseFloat(formData.get("extra_night_13pax"))
-        : null,
-      extra_night_14pax: formData.get("extra_night_14pax")
-        ? parseFloat(formData.get("extra_night_14pax"))
-        : null,
-      extra_night_15pax: formData.get("extra_night_15pax")
-        ? parseFloat(formData.get("extra_night_15pax"))
-        : null,
-      extra_night_child_no_breakfast: formData.get(
-        "extra_night_child_no_breakfast",
-      )
-        ? parseFloat(formData.get("extra_night_child_no_breakfast"))
-        : null,
-      breakfast_included: formData.get("breakfast_included") === "true",
-      breakfast_notes: formData.get("breakfast_notes") || null,
-      is_promo: formData.get("is_promo") === "true",
-      promo_name: formData.get("promo_name") || null,
-      validity_date: formData.get("validity_date") || null,
-    };
-
-    const result = await savePackageHotelRate(rateData);
-    if (result) {
-      modal.remove();
-      showToast("✅ Rate updated successfully!", "success");
-    }
-  });
-}
 // =====================================================
 // HOTEL CATEGORY MODALS
 // =====================================================
@@ -11655,6 +11139,619 @@ export function addItineraryDayEdit() {
     window.updateDayCount();
   }
 }
+// =====================================================
+// ADD MULTIPLE OPTIONAL TOURS TO PACKAGE MODAL
+// =====================================================
+
+export async function openAddMultipleToursToPackageModal(
+  packageId,
+  destinationId,
+) {
+  try {
+    showLoading(true, "Loading available tours...");
+
+    // Get the package and destination
+    let pkg = null;
+    let destination = null;
+    for (const dest of state.destinations) {
+      if (dest.id === destinationId) {
+        destination = dest;
+        const found = dest.packages?.find((p) => p.id === packageId);
+        if (found) {
+          pkg = found;
+        }
+        break;
+      }
+    }
+
+    if (!pkg || !destination) {
+      showToast("Package or destination not found", "error");
+      showLoading(false);
+      return;
+    }
+
+    // Get available tours (not yet linked to this package)
+    const availableTours = await getAvailableToursForPackage(
+      packageId,
+      destinationId,
+    );
+
+    showLoading(false);
+
+    const modal = document.createElement("div");
+    modal.className =
+      "fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto";
+
+    modal.innerHTML = `
+      <div class="bg-white rounded-2xl max-w-3xl w-full my-8 shadow-2xl transform transition-all">
+        <!-- Fixed Header -->
+        <div class="relative overflow-hidden rounded-t-2xl bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500">
+          <div class="absolute inset-0 bg-black/10"></div>
+          <div class="relative px-6 py-5">
+            <div class="flex items-center gap-4">
+              <div class="h-14 w-14 bg-white/20 backdrop-blur-lg rounded-2xl flex items-center justify-center shadow-xl ring-2 ring-white/30">
+                <i class="fas fa-compass text-2xl text-white"></i>
+              </div>
+              <div class="flex-1">
+                <h3 class="text-2xl font-bold text-white tracking-tight">Add Optional Tours</h3>
+                <p class="text-purple-100 text-sm mt-1">${pkg.package_name}</p>
+              </div>
+              <button onclick="this.closest('.fixed').remove()" class="text-white/80 hover:text-white text-2xl">&times;</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="p-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+          ${
+            availableTours.length === 0
+              ? `
+            <div class="text-center py-8">
+              <i class="fas fa-compass text-5xl text-gray-300 mb-3"></i>
+              <p class="text-gray-500 mb-4">No optional tours available to add</p>
+              <button onclick="window.openCreateOptionalTourModal(${destinationId}); this.closest('.fixed').remove()" 
+                      class="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600">
+                <i class="fas fa-plus-circle mr-1"></i> Create New Tour
+              </button>
+            </div>
+          `
+              : `
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-600">Select tours to add to this package:</p>
+                <p class="text-xs text-gray-500 mt-1">
+                  <span id="selectedCount">0</span> tour(s) selected
+                </p>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="selectAllTours()" 
+                        class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs hover:bg-gray-200">
+                  <i class="fas fa-check-double mr-1"></i> Select All
+                </button>
+                <button onclick="deselectAllTours()" 
+                        class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs hover:bg-gray-200">
+                  <i class="fas fa-times mr-1"></i> Clear All
+                </button>
+              </div>
+            </div>
+            
+            <div id="toursList" class="space-y-3 max-h-96 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+              ${availableTours
+                .map(
+                  (tour) => `
+                <div class="tour-item flex items-center gap-3 bg-gray-50 p-3 rounded-lg border-2 border-gray-200 hover:border-purple-300 transition" data-tour-id="${tour.id}">
+                  <input type="checkbox" class="tour-checkbox h-5 w-5 text-purple-600 rounded flex-shrink-0" value="${tour.id}">
+                  <div class="flex items-center gap-3 flex-1">
+                    ${
+                      tour.image_url
+                        ? `
+                      <img src="${tour.image_url}" alt="${tour.tour_name}" class="w-12 h-12 rounded-lg object-cover">
+                    `
+                        : `
+                      <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-compass text-purple-400"></i>
+                      </div>
+                    `
+                    }
+                    <div class="flex-1">
+                      <h4 class="font-medium">${tour.tour_name}</h4>
+                      <div class="flex items-center gap-2 text-xs text-gray-500">
+                        ${tour.duration_hours ? `<span><i class="far fa-clock mr-1"></i>${tour.duration_hours}h</span>` : ""}
+                        ${
+                          tour.rates && tour.rates[0]
+                            ? `
+                          <span>• From ₱${tour.rates[0].rate_solo || tour.rates[0].rate_2pax || "0"}</span>
+                        `
+                            : ""
+                        }
+                      </div>
+                    </div>
+                  </div>
+                  <button onclick="viewTourDetails(${tour.id})" 
+                          class="text-purple-600 hover:text-purple-800 p-2" title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              `,
+                )
+                .join("")}
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t-2 border-gray-100">
+              <button type="button" onclick="this.closest('.fixed').remove()"
+                      class="px-5 py-2.5 border-2 border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+                Cancel
+              </button>
+              <button onclick="addSelectedToursToPackage(${packageId}, ${destinationId})" 
+                      class="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg text-sm hover:from-purple-700 hover:to-pink-700 flex items-center gap-2">
+                <i class="fas fa-plus-circle"></i>
+                Add Selected Tours
+              </button>
+            </div>
+          `
+          }
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    if (availableTours.length > 0) {
+      // Update selected count when checkboxes change
+      const checkboxes = document.querySelectorAll(".tour-checkbox");
+      const selectedCountSpan = document.getElementById("selectedCount");
+
+      checkboxes.forEach((cb) => {
+        cb.addEventListener("change", updateSelectedCount);
+      });
+
+      function updateSelectedCount() {
+        const checked = document.querySelectorAll(
+          ".tour-checkbox:checked",
+        ).length;
+        selectedCountSpan.textContent = checked;
+      }
+
+      // Select All function
+      window.selectAllTours = function () {
+        checkboxes.forEach((cb) => (cb.checked = true));
+        updateSelectedCount();
+      };
+
+      // Deselect All function
+      window.deselectAllTours = function () {
+        checkboxes.forEach((cb) => (cb.checked = false));
+        updateSelectedCount();
+      };
+
+      // View tour details
+      window.viewTourDetails = function (tourId) {
+        viewOptionalTourDetails(tourId);
+      };
+
+      // Add selected tours to package
+      window.addSelectedToursToPackage = async function (pkgId, destId) {
+        const selectedTours = Array.from(
+          document.querySelectorAll(".tour-checkbox:checked"),
+        ).map((cb) => parseInt(cb.value));
+
+        if (selectedTours.length === 0) {
+          showToast("Please select at least one tour", "warning");
+          return;
+        }
+
+        try {
+          showLoading(true, `Adding ${selectedTours.length} tour(s)...`);
+
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const tourId of selectedTours) {
+            try {
+              const result = await linkTourToPackage(pkgId, tourId);
+              if (result) {
+                successCount++;
+              } else {
+                errorCount++;
+              }
+            } catch (err) {
+              console.error(`Error adding tour ${tourId}:`, err);
+              errorCount++;
+            }
+          }
+
+          modal.remove();
+
+          if (successCount > 0) {
+            showToast(
+              `✅ ${successCount} tour(s) added successfully!${errorCount > 0 ? ` (${errorCount} failed)` : ""}`,
+              "success",
+            );
+          } else {
+            showToast("❌ Failed to add tours", "error");
+          }
+
+          // Refresh the view
+          await viewDestinationDetails(destId);
+        } catch (error) {
+          console.error("Error adding tours to package:", error);
+          showToast("❌ Failed to add tours: " + error.message, "error");
+        } finally {
+          showLoading(false);
+        }
+      };
+    }
+  } catch (error) {
+    console.error("Error opening add tours modal:", error);
+    showToast("Failed to load available tours", "error");
+    showLoading(false);
+  }
+}
+export function openEditPackageRateModal(rateId) {
+  // Find the rate
+  let rate = null;
+  let pkg = null;
+  let destination = null;
+  for (const dest of state.destinations) {
+    for (const p of dest.packages || []) {
+      const found = p.package_hotel_rates?.find((r) => r.id === rateId);
+      if (found) {
+        rate = found;
+        pkg = p;
+        destination = dest;
+        break;
+      }
+    }
+  }
+
+  if (!rate) {
+    showToast("Rate not found", "error");
+    return;
+  }
+
+  const modal = document.createElement("div");
+  modal.className =
+    "fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm";
+
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl transform transition-all">
+      <!-- Fixed Header -->
+      <div class="relative overflow-hidden rounded-t-2xl bg-gradient-to-r from-amber-600 via-orange-500 to-red-500">
+        <div class="absolute inset-0 bg-black/10"></div>
+        <div class="relative px-6 py-5">
+          <div class="flex items-center gap-4">
+            <div class="h-14 w-14 bg-white/20 backdrop-blur-lg rounded-2xl flex items-center justify-center shadow-xl ring-2 ring-white/30">
+              <i class="fas fa-tag text-2xl text-white"></i>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-2xl font-bold text-white tracking-tight">Edit Hotel Rate</h3>
+              <p class="text-amber-100 text-sm mt-1">${pkg?.package_name}</p>
+            </div>
+            <button onclick="this.closest('.fixed').remove()" class="text-white/80 hover:text-white text-2xl">&times;</button>
+          </div>
+        </div>
+      </div>
+      
+      <form id="editPackageRateForm" class="p-6 space-y-5 max-h-[calc(90vh-120px)] overflow-y-auto">
+        <input type="hidden" name="id" value="${rate.id}">
+        <input type="hidden" name="package_id" value="${rate.package_id}">
+        <input type="hidden" name="hotel_category_id" value="${rate.hotel_category_id}">
+        
+        <!-- Season and Sneak Fields -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-600 mb-2">Season</label>
+            <input type="text" name="season" value="${rate.season || ""}" 
+                   class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="e.g., Peak Season 2024">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-600 mb-2">Sneak</label>
+            <input type="text" name="sneak" value="${rate.sneak || ""}" 
+                   class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm"
+                   placeholder="e.g., SNK001">
+          </div>
+        </div>
+        
+        <!-- Regular Rates 1-15 Pax -->
+        <div>
+          <h4 class="text-md font-bold text-gray-800 mb-3">Regular Rates (per person)</h4>
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">Solo</label>
+              <input type="number" name="rate_solo" value="${rate.rate_solo || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">2 Pax</label>
+              <input type="number" name="rate_2pax" value="${rate.rate_2pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">3 Pax</label>
+              <input type="number" name="rate_3pax" value="${rate.rate_3pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">4 Pax</label>
+              <input type="number" name="rate_4pax" value="${rate.rate_4pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">5 Pax</label>
+              <input type="number" name="rate_5pax" value="${rate.rate_5pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">6 Pax</label>
+              <input type="number" name="rate_6pax" value="${rate.rate_6pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">7 Pax</label>
+              <input type="number" name="rate_7pax" value="${rate.rate_7pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">8 Pax</label>
+              <input type="number" name="rate_8pax" value="${rate.rate_8pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">9 Pax</label>
+              <input type="number" name="rate_9pax" value="${rate.rate_9pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">10 Pax</label>
+              <input type="number" name="rate_10pax" value="${rate.rate_10pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">11 Pax</label>
+              <input type="number" name="rate_11pax" value="${rate.rate_11pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">12 Pax</label>
+              <input type="number" name="rate_12pax" value="${rate.rate_12pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">13 Pax</label>
+              <input type="number" name="rate_13pax" value="${rate.rate_13pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">14 Pax</label>
+              <input type="number" name="rate_14pax" value="${rate.rate_14pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">15 Pax</label>
+              <input type="number" name="rate_15pax" value="${rate.rate_15pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">Child (No BF)</label>
+              <input type="number" name="rate_child_no_breakfast" value="${rate.rate_child_no_breakfast || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+          </div>
+        </div>
+        
+        <!-- Extra Night Rates 1-15 Pax -->
+        <div class="border-t border-gray-200 pt-4">
+          <h4 class="text-md font-bold text-gray-800 mb-3">Extra Night Rates</h4>
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">Solo Extra</label>
+              <input type="number" name="extra_night_solo" value="${rate.extra_night_solo || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">2P Extra</label>
+              <input type="number" name="extra_night_2pax" value="${rate.extra_night_2pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">3P Extra</label>
+              <input type="number" name="extra_night_3pax" value="${rate.extra_night_3pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">4P Extra</label>
+              <input type="number" name="extra_night_4pax" value="${rate.extra_night_4pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">5P Extra</label>
+              <input type="number" name="extra_night_5pax" value="${rate.extra_night_5pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">6P Extra</label>
+              <input type="number" name="extra_night_6pax" value="${rate.extra_night_6pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">7P Extra</label>
+              <input type="number" name="extra_night_7pax" value="${rate.extra_night_7pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">8P Extra</label>
+              <input type="number" name="extra_night_8pax" value="${rate.extra_night_8pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">9P Extra</label>
+              <input type="number" name="extra_night_9pax" value="${rate.extra_night_9pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">10P Extra</label>
+              <input type="number" name="extra_night_10pax" value="${rate.extra_night_10pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">11P Extra</label>
+              <input type="number" name="extra_night_11pax" value="${rate.extra_night_11pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">12P Extra</label>
+              <input type="number" name="extra_night_12pax" value="${rate.extra_night_12pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">13P Extra</label>
+              <input type="number" name="extra_night_13pax" value="${rate.extra_night_13pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">14P Extra</label>
+              <input type="number" name="extra_night_14pax" value="${rate.extra_night_14pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">15P Extra</label>
+              <input type="number" name="extra_night_15pax" value="${rate.extra_night_15pax || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">Child Extra</label>
+              <input type="number" name="extra_night_child_no_breakfast" value="${rate.extra_night_child_no_breakfast || ""}" step="0.01"
+                     class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"></div>
+          </div>
+        </div>
+        
+        <div class="mt-4">
+          <label class="flex items-center gap-2">
+            <input type="checkbox" name="breakfast_included" value="true" ${rate.breakfast_included ? "checked" : ""}
+                   class="h-4 w-4 text-amber-600 rounded">
+            <span class="text-sm text-gray-700">Breakfast Included</span>
+          </label>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Breakfast Notes</label>
+          <input type="text" name="breakfast_notes" value="${rate.breakfast_notes || ""}"
+                 class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm">
+        </div>
+        
+        <div class="mt-4">
+          <label class="flex items-center gap-2">
+            <input type="checkbox" name="is_promo" value="true" ${rate.is_promo ? "checked" : ""}
+                   class="h-4 w-4 text-amber-600 rounded">
+            <span class="text-sm text-gray-700">Is Promo Rate</span>
+          </label>
+        </div>
+        
+        <div id="promo-fields" class="${rate.is_promo ? "" : "hidden"} space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Promo Name</label>
+            <input type="text" name="promo_name" value="${rate.promo_name || ""}"
+                   class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Validity Date</label>
+            <input type="date" name="validity_date" value="${rate.validity_date || ""}"
+                   class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm">
+          </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex justify-end gap-3 pt-6 border-t border-gray-100">
+          <button type="button" onclick="this.closest('.fixed').remove()"
+                  class="px-5 py-2.5 border-2 border-gray-200 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">
+            Cancel
+          </button>
+          <button type="submit"
+                  class="px-6 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg text-sm font-semibold hover:from-amber-700 hover:to-orange-700">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Toggle promo fields
+  const isPromoCheckbox = modal.querySelector('input[name="is_promo"]');
+  const promoFields = modal.querySelector("#promo-fields");
+  if (isPromoCheckbox) {
+    isPromoCheckbox.addEventListener("change", function () {
+      if (this.checked) {
+        promoFields.classList.remove("hidden");
+      } else {
+        promoFields.classList.add("hidden");
+      }
+    });
+  }
+
+  const form = document.getElementById("editPackageRateForm");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(form);
+
+    const rateData = {
+      package_id: parseInt(formData.get("package_id")),
+      hotel_category_id: parseInt(formData.get("hotel_category_id")),
+      season: formData.get("season") || null,
+      sneak: formData.get("sneak") || null,
+      // Regular rates
+      rate_solo: formData.get("rate_solo")
+        ? parseFloat(formData.get("rate_solo"))
+        : null,
+      rate_2pax: formData.get("rate_2pax")
+        ? parseFloat(formData.get("rate_2pax"))
+        : null,
+      rate_3pax: formData.get("rate_3pax")
+        ? parseFloat(formData.get("rate_3pax"))
+        : null,
+      rate_4pax: formData.get("rate_4pax")
+        ? parseFloat(formData.get("rate_4pax"))
+        : null,
+      rate_5pax: formData.get("rate_5pax")
+        ? parseFloat(formData.get("rate_5pax"))
+        : null,
+      rate_6pax: formData.get("rate_6pax")
+        ? parseFloat(formData.get("rate_6pax"))
+        : null,
+      rate_7pax: formData.get("rate_7pax")
+        ? parseFloat(formData.get("rate_7pax"))
+        : null,
+      rate_8pax: formData.get("rate_8pax")
+        ? parseFloat(formData.get("rate_8pax"))
+        : null,
+      rate_9pax: formData.get("rate_9pax")
+        ? parseFloat(formData.get("rate_9pax"))
+        : null,
+      rate_10pax: formData.get("rate_10pax")
+        ? parseFloat(formData.get("rate_10pax"))
+        : null,
+      rate_11pax: formData.get("rate_11pax")
+        ? parseFloat(formData.get("rate_11pax"))
+        : null,
+      rate_12pax: formData.get("rate_12pax")
+        ? parseFloat(formData.get("rate_12pax"))
+        : null,
+      rate_13pax: formData.get("rate_13pax")
+        ? parseFloat(formData.get("rate_13pax"))
+        : null,
+      rate_14pax: formData.get("rate_14pax")
+        ? parseFloat(formData.get("rate_14pax"))
+        : null,
+      rate_15pax: formData.get("rate_15pax")
+        ? parseFloat(formData.get("rate_15pax"))
+        : null,
+      rate_child_no_breakfast: formData.get("rate_child_no_breakfast")
+        ? parseFloat(formData.get("rate_child_no_breakfast"))
+        : null,
+      // Extra night rates
+      extra_night_solo: formData.get("extra_night_solo")
+        ? parseFloat(formData.get("extra_night_solo"))
+        : null,
+      extra_night_2pax: formData.get("extra_night_2pax")
+        ? parseFloat(formData.get("extra_night_2pax"))
+        : null,
+      extra_night_3pax: formData.get("extra_night_3pax")
+        ? parseFloat(formData.get("extra_night_3pax"))
+        : null,
+      extra_night_4pax: formData.get("extra_night_4pax")
+        ? parseFloat(formData.get("extra_night_4pax"))
+        : null,
+      extra_night_5pax: formData.get("extra_night_5pax")
+        ? parseFloat(formData.get("extra_night_5pax"))
+        : null,
+      extra_night_6pax: formData.get("extra_night_6pax")
+        ? parseFloat(formData.get("extra_night_6pax"))
+        : null,
+      extra_night_7pax: formData.get("extra_night_7pax")
+        ? parseFloat(formData.get("extra_night_7pax"))
+        : null,
+      extra_night_8pax: formData.get("extra_night_8pax")
+        ? parseFloat(formData.get("extra_night_8pax"))
+        : null,
+      extra_night_9pax: formData.get("extra_night_9pax")
+        ? parseFloat(formData.get("extra_night_9pax"))
+        : null,
+      extra_night_10pax: formData.get("extra_night_10pax")
+        ? parseFloat(formData.get("extra_night_10pax"))
+        : null,
+      extra_night_11pax: formData.get("extra_night_11pax")
+        ? parseFloat(formData.get("extra_night_11pax"))
+        : null,
+      extra_night_12pax: formData.get("extra_night_12pax")
+        ? parseFloat(formData.get("extra_night_12pax"))
+        : null,
+      extra_night_13pax: formData.get("extra_night_13pax")
+        ? parseFloat(formData.get("extra_night_13pax"))
+        : null,
+      extra_night_14pax: formData.get("extra_night_14pax")
+        ? parseFloat(formData.get("extra_night_14pax"))
+        : null,
+      extra_night_15pax: formData.get("extra_night_15pax")
+        ? parseFloat(formData.get("extra_night_15pax"))
+        : null,
+      extra_night_child_no_breakfast: formData.get(
+        "extra_night_child_no_breakfast",
+      )
+        ? parseFloat(formData.get("extra_night_child_no_breakfast"))
+        : null,
+      breakfast_included: formData.get("breakfast_included") === "true",
+      breakfast_notes: formData.get("breakfast_notes") || null,
+      is_promo: formData.get("is_promo") === "true",
+      promo_name: formData.get("promo_name") || null,
+      validity_date: formData.get("validity_date") || null,
+    };
+
+    const result = await savePackageHotelRate(rateData);
+    if (result) {
+      modal.remove();
+      showToast("✅ Rate updated successfully!", "success");
+    }
+  });
+}
 
 // =====================================================
 // CONFIRMATION WRAPPERS
@@ -11720,13 +11817,11 @@ window.addNewExclusion = addNewExclusion;
 window.cancelNewExclusion = cancelNewExclusion;
 window.saveNewExclusion = saveNewExclusion;
 window.editExclusion = editExclusion;
-
 window.addItineraryDayEdit = addItineraryDayEdit;
 window.getAvailableToursForPackage = getAvailableToursForPackage;
 window.confirmDeleteHotelCategory = confirmDeleteHotelCategory;
 window.confirmDeleteHotel = confirmDeleteHotel;
 window.confirmDeleteOptionalTour = confirmDeleteOptionalTour;
-
 window.deletePackageInclusion = deletePackageInclusion;
 window.deletePackageExclusion = deletePackageExclusion;
 window.deletePackageItinerary = deletePackageItinerary;

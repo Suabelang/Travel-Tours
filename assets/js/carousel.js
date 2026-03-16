@@ -1,5 +1,5 @@
 // ============================================
-// HOME PAGE CAROUSEL - FIXED IMAGES (GAYA SA DESTINATIONS MANAGER)
+// HOME PAGE CAROUSEL - PRODUCTION (ERRORS ONLY)
 // ============================================
 
 class CarouselManager {
@@ -7,13 +7,10 @@ class CarouselManager {
     this.currentSlide = 0;
     this.totalSlides = 0;
     this.cards = [];
-    this.videoFiles = [];
     this.autoPlayInterval = null;
     this.destinations = [];
     this.initAttempts = 0;
     this.maxInitAttempts = 20;
-    this.videoCheckDone = false;
-    this.currentVideoUrl = null;
     this.isPlaying = false;
     this.initDone = false;
 
@@ -28,35 +25,24 @@ class CarouselManager {
   }
 
   async init(destinations) {
-    if (this.initDone) {
-      console.log("⚠️ Carousel already initialized, skipping...");
-      return;
-    }
+    if (this.initDone) return;
 
     if (!this.container) {
-      console.error("❌ Carousel container not found!");
+      console.error("Carousel container not found");
       return;
     }
 
     if (!destinations || !destinations.length) {
-      console.error("❌ No destinations provided to carousel!");
+      console.error("No destinations provided to carousel");
       return;
     }
 
-    console.log(
-      "🎬 Initializing carousel with destinations:",
-      destinations.length,
-    );
-
-    // IMPORTANT: I-load ang destinations WITH IMAGES para sigurado
     await this.loadDestinationsWithImages();
 
-    // Kung walang naload, gamitin ang binigay na destinations
     if (this.destinations.length === 0) {
       this.destinations = destinations;
     }
 
-    await this.loadVideos();
     this.render(this.destinations);
     this.setupControls();
     this.startAutoPlay();
@@ -64,18 +50,13 @@ class CarouselManager {
     this.initDone = true;
   }
 
-  // ===== BAGONG METHOD: I-load ang destinations with images (gaya sa destinationsManager) =====
   async loadDestinationsWithImages() {
     try {
-      console.log("🖼️ Loading destinations with images...");
-
       const { data, error } = await window.sns_supabase_client
         .from("destinations")
         .select(
-          `
-          *,
-          destination_images (*)
-        `,
+          `*,
+          destination_images (*)`,
         )
         .eq("is_active", true)
         .order("name");
@@ -83,49 +64,10 @@ class CarouselManager {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        console.log(`✅ Loaded ${data.length} destinations with images`);
         this.destinations = data;
-      } else {
-        console.warn("⚠️ No destinations found in database");
       }
     } catch (error) {
-      console.error("❌ Error loading destinations:", error);
-    }
-  }
-
-  async loadVideos() {
-    if (this.videoFiles.length > 0) {
-      console.log("⚠️ Videos already loaded, skipping...");
-      return;
-    }
-
-    try {
-      console.log("📁 Listing videos from storage...");
-
-      if (!window.sns_supabase_client) {
-        console.error("❌ Supabase client not found!");
-        this.videoFiles = [];
-        return;
-      }
-
-      const { data, error } = await window.sns_supabase_client.storage
-        .from("videos")
-        .list();
-
-      if (error) {
-        console.error("❌ Error listing videos:", error.message);
-        this.videoFiles = [];
-        return;
-      }
-
-      this.videoFiles = (data || []).filter((file) =>
-        file.name.match(/\.(mp4|mov|avi|mkv|webm)$/i),
-      );
-
-      console.log(`✅ Found ${this.videoFiles.length} videos`);
-    } catch (error) {
-      console.error("❌ Exception in loadVideos:", error);
-      this.videoFiles = [];
+      console.error("Error loading destinations:", error);
     }
   }
 
@@ -138,27 +80,36 @@ class CarouselManager {
       .slice(0, maxItems)
       .map((dest, index) => {
         const imageUrl = this.getDestinationImage(dest);
-        const videoUrl = this.getVideoUrl(dest);
-
-        return this.createCardHTML(dest, index, imageUrl, videoUrl);
+        return this.createCardHTML(dest, index, imageUrl);
       })
       .join("");
 
     this.cards = document.querySelectorAll(".carousel-card");
     this.totalSlides = this.cards.length;
 
-    console.log(`📊 Rendered ${this.totalSlides} carousel cards`);
-
     this.cards.forEach((card, index) => {
       card.addEventListener("click", (e) => {
         e.stopPropagation();
         const destinationId = card.getAttribute("data-id");
 
-        if (window.destinationsManager) {
-          window.destinationsManager.showDestinationModal(
-            parseInt(destinationId),
-          );
-        }
+        const tryShow = (retries = 0) => {
+          if (
+            window.destinationsManager &&
+            typeof window.destinationsManager.showDestinationModal ===
+              "function"
+          ) {
+            window.destinationsManager.showDestinationModal(
+              parseInt(destinationId),
+            );
+          } else if (retries < 10) {
+            setTimeout(() => tryShow(retries + 1), 100);
+          } else {
+            console.error(
+              "destinationsManager.showDestinationModal not available",
+            );
+          }
+        };
+        tryShow();
       });
     });
 
@@ -167,54 +118,38 @@ class CarouselManager {
     }
   }
 
-  // ===== FIXED: Gaya sa destinationsManager ang image handling =====
   getDestinationImage(dest) {
     if (!dest) return this.getDefaultImage();
 
-    // PRIORITY 1: destination_images table (gaya sa destinationsManager)
     if (dest.destination_images && dest.destination_images.length > 0) {
-      // Hanapin ang primary image
       const primaryImage = dest.destination_images.find(
         (img) => img.is_primary === true,
       );
       if (primaryImage && primaryImage.url) {
-        console.log(
-          `✅ Using primary image for ${dest.name}:`,
-          primaryImage.url,
-        );
         return primaryImage.url;
       }
-
-      // Kung walang primary, gamitin ang unang image
       const firstImage = dest.destination_images[0];
       if (firstImage && firstImage.url) {
-        console.log(`✅ Using first image for ${dest.name}:`, firstImage.url);
         return firstImage.url;
       }
     }
 
-    // PRIORITY 2: image_url field
     if (dest.image_url) {
       if (dest.image_url.startsWith("http")) {
-        console.log(`✅ Using image_url for ${dest.name}:`, dest.image_url);
         return dest.image_url;
       }
-
       if (dest.image_url.startsWith("destinations/")) {
         const { data } = window.sns_supabase_client.storage
           .from("destination-images")
           .getPublicUrl(dest.image_url);
-        console.log(`✅ Using storage image for ${dest.name}:`, data.publicUrl);
         return data.publicUrl;
       }
     }
 
-    // PRIORITY 3: banner_image
     if (dest.banner_image) {
       if (dest.banner_image.startsWith("http")) {
         return dest.banner_image;
       }
-
       if (dest.banner_image.startsWith("destinations/")) {
         const { data } = window.sns_supabase_client.storage
           .from("destination-images")
@@ -223,13 +158,11 @@ class CarouselManager {
       }
     }
 
-    // PRIORITY 4: multiple_images array
     if (dest.multiple_images && dest.multiple_images.length > 0) {
       const firstImage = dest.multiple_images[0];
       if (firstImage.startsWith("http")) {
         return firstImage;
       }
-
       if (firstImage.startsWith("destinations/")) {
         const { data } = window.sns_supabase_client.storage
           .from("destination-images")
@@ -238,12 +171,9 @@ class CarouselManager {
       }
     }
 
-    // PRIORITY 5: Unsplash fallback
-    console.log(`⚠️ No image found for ${dest.name}, using Unsplash fallback`);
     return this.getUnsplashFallback(dest.name);
   }
 
-  // ===== UNSplash fallback - gaya sa destinationsManager =====
   getUnsplashFallback(name) {
     const images = {
       Bacolod:
@@ -283,7 +213,7 @@ class CarouselManager {
     return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&auto=format";
   }
 
-  createCardHTML(dest, index, imageUrl, videoUrl) {
+  createCardHTML(dest, index, imageUrl) {
     const imageOnError = `this.onerror=null; this.src='${this.getDefaultImage()}';`;
 
     return `
@@ -293,8 +223,7 @@ class CarouselManager {
            data-region="${dest.country || "Philippines"}"
            data-title="${dest.name || "Destination"}"
            data-desc="${dest.description || ""}"
-           data-bg="${imageUrl}"
-           data-video="${videoUrl || ""}">
+           data-bg="${imageUrl}">
         
         <div class="relative w-full h-32 overflow-hidden rounded-t-lg bg-gray-200">
           <img src="${imageUrl}" 
@@ -316,37 +245,6 @@ class CarouselManager {
     `;
   }
 
-  getVideoUrl(destination) {
-    if (!this.videoFiles || !this.videoFiles.length) return null;
-
-    const destName = destination.name?.toLowerCase() || "";
-    const firstWord = destName.split(" ")[0];
-
-    const matchedVideo = this.videoFiles.find((video) => {
-      const videoName = video.name.toLowerCase();
-      const videoWithoutExt = videoName.replace(
-        /\.(mp4|mov|avi|mkv|webm)$/,
-        "",
-      );
-
-      return (
-        videoName.includes(destName) ||
-        videoName.includes(firstWord) ||
-        destName.includes(videoWithoutExt) ||
-        firstWord.includes(videoWithoutExt)
-      );
-    });
-
-    if (matchedVideo) {
-      const { data } = window.sns_supabase_client.storage
-        .from("videos")
-        .getPublicUrl(matchedVideo.name);
-      return data.publicUrl;
-    }
-
-    return null;
-  }
-
   goToSlide(index) {
     if (!this.cards || !this.cards.length || this.isPlaying) return;
 
@@ -359,14 +257,13 @@ class CarouselManager {
     const title = this.cards[index].getAttribute("data-title");
     const desc = this.cards[index].getAttribute("data-desc");
     const bg = this.cards[index].getAttribute("data-bg");
-    const video = this.cards[index].getAttribute("data-video");
 
     if (this.heroRegion) this.heroRegion.textContent = region || "Philippines";
     if (this.heroTitle)
       this.heroTitle.innerHTML = title || "Experience the Philippines";
     if (this.heroDesc) this.heroDesc.textContent = desc || "";
 
-    this.setBackground(bg, video);
+    this.setBackground(bg);
 
     if (this.pageNumber) {
       this.pageNumber.textContent = (index + 1).toString().padStart(2, "0");
@@ -379,62 +276,9 @@ class CarouselManager {
     }, 500);
   }
 
-  setBackground(imageUrl, videoUrl) {
+  setBackground(imageUrl) {
     if (!this.heroBg) return;
-
-    if (videoUrl && videoUrl === this.currentVideoUrl) {
-      console.log("🎥 Same video already playing, skipping...");
-      return;
-    }
-
-    const existingVideo = document.querySelector(".hero-video");
-    if (existingVideo) existingVideo.remove();
-
-    this.heroBg.style.backgroundImage = "none";
-
-    if (videoUrl && videoUrl !== "null" && videoUrl !== "") {
-      this.currentVideoUrl = videoUrl;
-
-      const videoElement = document.createElement("video");
-      videoElement.className =
-        "hero-video absolute inset-0 w-full h-full object-cover";
-      videoElement.autoplay = true;
-      videoElement.loop = true;
-      videoElement.muted = true;
-      videoElement.playsInline = true;
-
-      const source = document.createElement("source");
-      source.src = videoUrl;
-      source.type = "video/mp4";
-
-      videoElement.appendChild(source);
-
-      videoElement.onerror = () => {
-        console.error("❌ Error loading video:", videoUrl);
-        this.heroBg.style.backgroundImage = `url('${imageUrl}')`;
-        videoElement.remove();
-        this.currentVideoUrl = null;
-      };
-
-      videoElement.oncanplay = () => {
-        console.log("🎥 Video loaded successfully:", videoUrl);
-      };
-
-      const overlay = document.querySelector("#home .overlay");
-      if (overlay) {
-        overlay.parentNode.insertBefore(videoElement, overlay);
-      } else {
-        this.heroBg.parentNode.insertBefore(
-          videoElement,
-          this.heroBg.nextSibling,
-        );
-      }
-
-      console.log("🎥 Background video playing:", videoUrl);
-    } else {
-      this.currentVideoUrl = null;
-      this.heroBg.style.backgroundImage = `url('${imageUrl}')`;
-    }
+    this.heroBg.style.backgroundImage = `url('${imageUrl}')`;
   }
 
   setupControls() {
@@ -477,7 +321,6 @@ class CarouselManager {
 
   forceRender() {
     if (this.destinations.length > 0) {
-      console.log("🔄 Force re-rendering carousel...");
       this.render(this.destinations);
       this.setupControls();
       this.startAutoPlay();
@@ -485,21 +328,13 @@ class CarouselManager {
   }
 }
 
-// Initialize carousel
 const carouselManager = new CarouselManager();
 window.carouselManager = carouselManager;
 
-console.log("✅ Carousel loaded - FIXED IMAGES (gaya sa destinations)");
-
-// ===== SIMPLIFIED INITIALIZATION =====
 async function initCarouselOnce() {
-  // Diretsong i-load ang destinations with images
   await carouselManager.loadDestinationsWithImages();
 
   if (carouselManager.destinations.length > 0) {
-    console.log(
-      `🎬 Initializing carousel with ${carouselManager.destinations.length} destinations`,
-    );
     carouselManager.render(carouselManager.destinations);
     carouselManager.setupControls();
     carouselManager.startAutoPlay();
@@ -507,9 +342,7 @@ async function initCarouselOnce() {
     return true;
   }
 
-  // Fallback: gamitin ang destinationsManager kung may laman
   if (window.destinationsManager?.destinations?.length > 0) {
-    console.log("🎬 Using destinationsManager data as fallback");
     carouselManager.destinations = window.destinationsManager.destinations;
     carouselManager.render(carouselManager.destinations);
     carouselManager.setupControls();
@@ -521,13 +354,10 @@ async function initCarouselOnce() {
   return false;
 }
 
-// Initialize pag ready na ang DOM
 document.addEventListener("DOMContentLoaded", function () {
-  console.log("📄 DOM ready");
   setTimeout(initCarouselOnce, 1000);
 });
 
-// Add CSS for image loading
 const style = document.createElement("style");
 style.textContent = `
   .carousel-card img {

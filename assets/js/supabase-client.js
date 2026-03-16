@@ -1,5 +1,5 @@
 // ============================================
-// SUPABASE CLIENT
+// SUPABASE CLIENT - PRODUCTION (NO CONSOLE)
 // ============================================
 
 const sns_supabase_client = window.supabase.createClient(
@@ -7,82 +7,28 @@ const sns_supabase_client = window.supabase.createClient(
   CONFIG.SUPABASE_ANON_KEY,
 );
 window.sns_supabase_client = sns_supabase_client;
-console.log("✅ Supabase client initialized");
 
-// ===== VIDEO FUNCTIONS =====
-async function listVideos() {
-  console.log("📁 Listing videos from storage...");
-
-  try {
-    const { data, error } = await sns_supabase_client.storage
-      .from(CONFIG.STORAGE_BUCKETS.VIDEOS)
-      .list();
-
-    if (error) {
-      console.error("❌ Error listing videos:", error.message);
-      return [];
-    }
-
-    console.log(
-      `✅ Found ${data?.length || 0} videos:`,
-      data?.map((v) => v.name) || [],
-    );
-    return data || [];
-  } catch (error) {
-    console.error("❌ Exception in listVideos:", error);
-    return [];
-  }
-}
-
-async function getVideoUrl(videoFileName) {
-  if (!videoFileName) return null;
-
-  try {
-    const { data } = sns_supabase_client.storage
-      .from(CONFIG.STORAGE_BUCKETS.VIDEOS)
-      .getPublicUrl(videoFileName);
-
-    return data.publicUrl;
-  } catch (error) {
-    console.error("❌ Error getting video URL:", error);
-    return null;
-  }
-}
-
-// ===== DESTINATION FUNCTIONS =====
 async function fetchDestinations() {
-  console.log("📋 Fetching destinations...");
-
   try {
     const { data, error } = await sns_supabase_client
       .from("destinations")
       .select("*");
 
     if (error) {
-      console.warn("⚠️ Supabase error, using fallback data:", error.message);
       return getFallbackDestinations();
     }
 
     if (data && data.length > 0) {
-      console.log("✅ Got data from Supabase:", data.length, "destinations");
       return data;
     } else {
-      console.log("⚠️ No data from Supabase, using fallback");
       return getFallbackDestinations();
     }
   } catch (error) {
-    console.warn(
-      "⚠️ Exception in fetchDestinations, using fallback:",
-      error.message,
-    );
     return getFallbackDestinations();
   }
 }
 
-// ✅ FALLBACK DESTINATIONS WITH PROPER PRICES
 function getFallbackDestinations() {
-  console.log("📋 Using fallback destinations data");
-
   return [
     {
       id: 1,
@@ -138,8 +84,5 @@ function getFallbackDestinations() {
   ];
 }
 
-// Make functions globally available
-window.listVideos = listVideos;
-window.getVideoUrl = getVideoUrl;
 window.fetchDestinations = fetchDestinations;
 window.getFallbackDestinations = getFallbackDestinations;

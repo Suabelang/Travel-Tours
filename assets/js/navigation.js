@@ -1,5 +1,5 @@
 // ============================================
-// NAVIGATION AND MOBILE MENU
+// NAVIGATION AND MOBILE MENU - PRODUCTION (NO CONSOLE)
 // ============================================
 
 class NavigationManager {
@@ -137,15 +137,11 @@ class NavigationManager {
   }
 }
 
-// Initialize
 const navigationManager = new NavigationManager();
 window.navigationManager = navigationManager;
 
-// Legacy function
 function toggleMobileMenu() {
   navigationManager.toggleMobileMenu();
 }
 
 window.toggleMobileMenu = toggleMobileMenu;
-
-console.log("✅ Navigation loaded");

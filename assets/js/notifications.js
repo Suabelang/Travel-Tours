@@ -1,5 +1,5 @@
 // ============================================
-// NOTIFICATION SYSTEM
+// NOTIFICATION SYSTEM - PRODUCTION (NO CONSOLE)
 // ============================================
 
 class NotificationManager {
@@ -47,15 +47,11 @@ class NotificationManager {
   }
 }
 
-// Initialize notification manager
 const notificationManager = new NotificationManager();
 window.notificationManager = notificationManager;
 
-// Legacy function
 function showNotification(type, message) {
   notificationManager.show(type, message);
 }
 
 window.showNotification = showNotification;
-
-console.log("✅ Notifications loaded");

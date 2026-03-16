@@ -2127,6 +2127,460 @@
           right: max(20px, env(safe-area-inset-right));
         }
       }
+
+      /* ===== TABLET RESPONSIVENESS (768px - 1024px) ===== */
+      @media (min-width: 768px) and (max-width: 1024px) {
+        /* Home Section */
+        #home {
+          min-height: 100vh;
+          height: auto;
+        }
+
+        .hero-content {
+          left: 2rem;
+          max-width: 450px;
+          top: 45%;
+          transform: translateY(-45%);
+        }
+
+        .hero-region {
+          font-size: 1.1rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .hero-title {
+          font-size: 2.8rem;
+          line-height: 1.2;
+          margin-bottom: 1rem;
+        }
+
+        .hero-desc {
+          font-size: 1rem;
+          line-height: 1.6;
+          max-width: 400px;
+          display: block;
+        }
+
+        /* Carousel for Tablet */
+        .carousel-container {
+          bottom: 2rem;
+          right: 2rem;
+          width: auto;
+          max-width: 500px;
+        }
+
+        .carousel-cards {
+          gap: 0.75rem;
+          justify-content: flex-end;
+        }
+
+        .carousel-card {
+          min-width: 140px;
+          width: 150px;
+        }
+
+        .carousel-card .relative {
+          height: 90px !important;
+        }
+
+        .carousel-card img {
+          height: 90px;
+        }
+
+        .card-content {
+          padding: 0.6rem !important;
+        }
+
+        .card-content h4 {
+          font-size: 0.85rem !important;
+        }
+
+        .card-content p {
+          font-size: 0.7rem !important;
+        }
+
+        .carousel-controls {
+          margin-top: 0.5rem;
+          gap: 1rem;
+        }
+
+        .carousel-btn {
+          width: 40px;
+          height: 40px;
+          font-size: 0.9rem;
+        }
+
+        .carousel-page {
+          font-size: 1.5rem;
+        }
+
+        /* Destinations Grid for Tablet */
+        .destinations-grid {
+          grid-template-columns: repeat(2, 1fr) !important;
+          gap: 1.25rem;
+          padding: 0 1rem;
+        }
+
+        .destination-card {
+          height: 100%;
+        }
+
+        .destination-card img {
+          height: 180px;
+        }
+
+        .destination-card-body {
+          padding: 1.25rem;
+        }
+
+        .destination-card-title {
+          font-size: 1.3rem;
+        }
+
+        /* Services Section for Tablet */
+        #services {
+          padding: 0 1.5rem;
+        }
+
+        #services .bg-white {
+          padding: 2.5rem !important;
+        }
+
+        #serviceButtons {
+          gap: 1.5rem;
+        }
+
+        .service-card {
+          padding: 1.5rem;
+        }
+
+        .service-icon {
+          width: 70px;
+          height: 70px;
+          font-size: 2rem;
+        }
+
+        /* About Section for Tablet */
+        #about .grid {
+          gap: 1.5rem;
+        }
+
+        #about .md\:grid-cols-3 {
+          grid-template-columns: repeat(3, 1fr) !important;
+        }
+
+        #about .md\:grid-cols-4 {
+          grid-template-columns: repeat(2, 1fr) !important;
+        }
+
+        .timeline-card {
+          padding: 1.25rem;
+        }
+
+        /* Footer for Tablet */
+        footer .grid {
+          grid-template-columns: repeat(2, 1fr) !important;
+          gap: 2rem;
+        }
+
+        /* Modal adjustments for Tablet */
+        .modal-content-wrapper {
+          padding: 70px 20px 30px;
+        }
+
+        .modal-tabs {
+          gap: 0.5rem;
+          padding: 0.5rem 0;
+        }
+
+        .modal-tab {
+          padding: 0.6rem 1.2rem;
+          font-size: 0.9rem;
+        }
+
+        .modal-package-grid {
+          grid-template-columns: 1fr !important;
+          gap: 1.5rem;
+        }
+
+        .modal-price-table {
+          overflow-x: auto;
+        }
+
+        .modal-price-table table {
+          min-width: 600px;
+        }
+
+        .modal-day-card {
+          padding: 1.25rem;
+        }
+
+        .modal-day-card h3 {
+          font-size: 1.2rem;
+        }
+
+        /* Image carousel in modal */
+        .carousel-main {
+          height: 300px;
+        }
+
+        .carousel-nav {
+          width: 38px;
+          height: 38px;
+        }
+
+        /* Filter buttons for Tablet */
+        #filterButtons .flex {
+          gap: 0.5rem;
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+
+        .filter-btn {
+          padding: 0.5rem 1rem;
+          font-size: 0.85rem;
+        }
+
+        .sub-filter-btn {
+          padding: 0.4rem 0.8rem;
+          font-size: 0.75rem;
+        }
+      }
+
+      /* ===== LARGE TABLETS (1024px specific) ===== */
+      @media (min-width: 1024px) and (max-width: 1200px) {
+        .hero-content {
+          left: 3rem;
+          max-width: 500px;
+        }
+
+        .hero-title {
+          font-size: 3.2rem;
+        }
+
+        .carousel-container {
+          right: 2.5rem;
+          bottom: 2.5rem;
+        }
+
+        .carousel-card {
+          min-width: 160px;
+          width: 170px;
+        }
+
+        .carousel-card .relative {
+          height: 100px !important;
+        }
+
+        .destinations-grid {
+          grid-template-columns: repeat(3, 1fr) !important;
+          gap: 1.5rem;
+        }
+
+        .modal-package-grid {
+          grid-template-columns: 2fr 1fr !important;
+        }
+      }
+
+      /* ===== PORTRAIT TABLETS (iPad Portrait) ===== */
+      @media (min-width: 768px) and (max-width: 834px) and (orientation: portrait) {
+        .hero-content {
+          top: 40%;
+          transform: translateY(-40%);
+          max-width: 400px;
+        }
+
+        .hero-title {
+          font-size: 2.5rem;
+        }
+
+        .hero-desc {
+          font-size: 0.95rem;
+          max-width: 350px;
+        }
+
+        .carousel-container {
+          bottom: 1.5rem;
+          right: 1.5rem;
+          max-width: 400px;
+        }
+
+        .carousel-card {
+          min-width: 120px;
+          width: 130px;
+        }
+
+        .carousel-card .relative {
+          height: 80px !important;
+        }
+      }
+
+      /* ===== LANDSCAPE TABLETS (iPad Landscape) ===== */
+      @media (min-width: 1024px) and (max-width: 1194px) and (orientation: landscape) {
+        .hero-content {
+          left: 4rem;
+          max-width: 550px;
+        }
+
+        .hero-title {
+          font-size: 3.5rem;
+        }
+
+        .carousel-container {
+          bottom: 2.5rem;
+          right: 3rem;
+        }
+
+        .carousel-card {
+          min-width: 170px;
+          width: 180px;
+        }
+      }
+
+      /* ===== FIX FOR MODAL POPUPS ON TABLET ===== */
+      @media (min-width: 768px) and (max-width: 1024px) {
+        .modal-popup-content {
+          max-width: 600px;
+          width: 90%;
+        }
+
+        .country-grid-popup {
+          grid-template-columns: repeat(4, 1fr) !important;
+          gap: 0.75rem;
+        }
+
+        .country-popup-btn {
+          padding: 0.75rem 0.25rem;
+        }
+
+        .country-popup-btn span:first-child {
+          font-size: 1.8rem;
+        }
+
+        .input-popup {
+          padding: 0.9rem 1rem;
+          font-size: 0.95rem;
+        }
+
+        .btn-popup {
+          padding: 0.9rem;
+          font-size: 0.95rem;
+        }
+
+        /* Booking Modal for Tablet */
+        #bookingModal .bg-white {
+          max-width: 90%;
+          width: 800px;
+        }
+
+        #bookingModal .grid-cols-1.md\:grid-cols-2 {
+          grid-template-columns: 1fr !important;
+        }
+
+        .hotel-category-card {
+          margin-bottom: 1rem;
+        }
+
+        .hotels-section .grid-cols-1.md\:grid-cols-2 {
+          grid-template-columns: repeat(2, 1fr) !important;
+        }
+      }
+
+      /* ===== FIX FOR NAVIGATION ON TABLET ===== */
+      @media (min-width: 768px) and (max-width: 1024px) {
+        .nav-links {
+          display: flex !important;
+          gap: 0.25rem;
+        }
+
+        .nav-links li a {
+          padding: 0.6rem 1rem;
+          font-size: 0.85rem;
+        }
+
+        .login-btn-tropical {
+          padding: 0.5rem 1rem;
+          font-size: 0.85rem;
+        }
+
+        .mobile-menu-btn {
+          display: none !important;
+        }
+
+        .mobile-menu {
+          display: none !important;
+        }
+
+        /* Logo adjustment */
+        .logo-premium-s {
+          font-size: 2.4rem;
+        }
+
+        .logo-premium-amp {
+          font-size: 1.8rem;
+        }
+
+        .vintage-icon {
+          width: 55px;
+          height: 55px;
+        }
+      }
+
+      /* ===== FIX FOR GRID LAYOUTS ON TABLET ===== */
+      @media (min-width: 768px) and (max-width: 1024px) {
+        /* Timeline grid */
+        #about .grid.md\:grid-cols-3 {
+          grid-template-columns: repeat(3, 1fr) !important;
+        }
+
+        /* Core values grid */
+        #about .grid.md\:grid-cols-4 {
+          grid-template-columns: repeat(2, 1fr) !important;
+          gap: 1rem;
+        }
+
+        /* Footer grid */
+        footer .grid.md\:grid-cols-2.lg\:grid-cols-4 {
+          grid-template-columns: repeat(2, 1fr) !important;
+        }
+
+        /* Service buttons */
+        #serviceButtons {
+          grid-template-columns: repeat(2, 1fr) !important;
+        }
+      }
+
+      /* ===== FIX FOR TEXT SIZES ON TABLET ===== */
+      @media (min-width: 768px) and (max-width: 1024px) {
+        .section-title h2 {
+          font-size: 2.5rem;
+        }
+
+        .section-title p {
+          font-size: 1.1rem;
+        }
+
+        #about h2.text-4xl {
+          font-size: 2.2rem;
+        }
+
+        #about .text-xl {
+          font-size: 1.1rem;
+        }
+
+        .gradient-text {
+          font-size: inherit;
+        }
+
+        /* Mission/Vision cards */
+        #about .bg-\[\#076653\] h3 {
+          font-size: 1.3rem;
+        }
+
+        #about .bg-\[\#076653\] p {
+          font-size: 0.95rem;
+        }
+      }
     </style>
   </head>
   <body>

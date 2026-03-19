@@ -28,7 +28,7 @@ if (typeof window.DestinationsManager !== "undefined") {
       this.currentSubFilter = "all";
       this.hotelCategories = [];
       this.realtimeSubscription = null;
-      this.isLoading = false;
+      this.isLoading = se;
 
       // Clear grid sa simula pa lang
       if (this.grid) {

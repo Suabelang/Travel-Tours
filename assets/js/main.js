@@ -2,6 +2,10 @@
 // MAIN INITIALIZATION - COMPLETE VERSION
 // ============================================
 
+// ✅ IDAGDAG ITO SA ITAAS - GLOBAL DECLARATION
+let destinationsManager;
+let carouselManager;
+
 function initAOS() {
   if (typeof AOS !== "undefined") {
     AOS.init({ duration: 1000, once: true, offset: 100 });
@@ -131,14 +135,33 @@ function showUserMenu(element, user) {
   }, 100);
 }
 
-// Initialize everything
+// ✅ I-UPDATE ANG INITIALIZATION SECTION
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("🚀 Initializing application...");
   initAOS();
   await checkUserSession();
 
-  if (destinationsManager) {
-    await destinationsManager.loadDestinations();
+  // ✅ CHECK MUNA KUNG MAY DESTINATIONSGRID
+  const hasDestinationsGrid = document.getElementById("destinationsGrid");
+
+  if (hasDestinationsGrid) {
+    // Wait for tours.js to load
+    setTimeout(() => {
+      // Use window.destinationsManager (from tours.js)
+      if (window.destinationsManager) {
+        destinationsManager = window.destinationsManager;
+        console.log("✅ Using existing destinationsManager from window");
+
+        // Load destinations
+        if (destinationsManager.loadDestinations) {
+          destinationsManager.loadDestinations();
+        }
+      } else {
+        console.log("⚠️ destinationsManager not available yet");
+      }
+    }, 1000);
+  } else {
+    console.log("⏭️ No destinations grid on this page");
   }
 
   console.log("✅ Application ready!");
@@ -146,9 +169,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
-    carouselManager?.stopAutoPlay();
+    if (carouselManager) carouselManager.stopAutoPlay();
   } else {
-    carouselManager?.startAutoPlay();
+    if (carouselManager) carouselManager.startAutoPlay();
   }
 });
 

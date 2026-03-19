@@ -2,9 +2,12 @@
 // MAIN INITIALIZATION - COMPLETE VERSION
 // ============================================
 
-// ✅ IDAGDAG ITO SA ITAAS - GLOBAL DECLARATION
-let destinationsManager;
-let carouselManager;
+// ✅ SIGURADUHING ISA LANG ANG DECLARATION
+if (typeof window.destinationsManager === "undefined") {
+  var destinationsManager;
+}
+
+// ✅ TANGGALIN ANG carouselManager DECLARATION - nasa carousel.js na yan!
 
 function initAOS() {
   if (typeof AOS !== "undefined") {
@@ -24,19 +27,16 @@ async function checkUserSession() {
       console.log("✅ User logged in:", user.email);
 
       // FIX: Only show user info on dashboard pages, not on main site
-      // Check if we're on the admin dashboard page
       const isDashboardPage =
         window.location.pathname.includes("dashboard.html");
 
       if (isDashboardPage) {
         updateUIForLoggedInUser(user);
       } else {
-        // On main site, ALWAYS show login button, never user info
         resetToLoginButtons();
       }
     } else {
       console.log("👤 No user logged in");
-      // Make sure login buttons are visible on main site
       resetToLoginButtons();
     }
   } catch (error) {
@@ -52,7 +52,7 @@ function resetToLoginButtons() {
     loginBtn.innerHTML =
       '<i class="fas fa-sign-in-alt"></i> <span>Login</span>';
     loginBtn.href = "login.html";
-    loginBtn.onclick = null; // Remove any custom onclick
+    loginBtn.onclick = null;
   }
 
   const mobileLogin = document.getElementById("mobileLoginButton");
@@ -117,11 +117,27 @@ function showUserMenu(element, user) {
     try {
       const { error } = await sns_supabase_client.auth.signOut();
       if (error) throw error;
-      notificationManager.success("Logged out successfully!");
+
+      if (
+        typeof notificationManager !== "undefined" &&
+        notificationManager.success
+      ) {
+        notificationManager.success("Logged out successfully!");
+      } else {
+        alert("Logged out successfully!");
+      }
+
       menu.remove();
       location.reload();
     } catch (error) {
-      notificationManager.error("Logout failed: " + error.message);
+      if (
+        typeof notificationManager !== "undefined" &&
+        notificationManager.error
+      ) {
+        notificationManager.error("Logout failed: " + error.message);
+      } else {
+        alert("Logout failed: " + error.message);
+      }
     }
   });
 
@@ -135,24 +151,22 @@ function showUserMenu(element, user) {
   }, 100);
 }
 
-// ✅ I-UPDATE ANG INITIALIZATION SECTION
+// ✅ MAIN INITIALIZATION
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("🚀 Initializing application...");
   initAOS();
   await checkUserSession();
 
-  // ✅ CHECK MUNA KUNG MAY DESTINATIONSGRID
+  // ✅ CHECK KUNG MAY DESTINATIONS GRID
   const hasDestinationsGrid = document.getElementById("destinationsGrid");
 
   if (hasDestinationsGrid) {
     // Wait for tours.js to load
     setTimeout(() => {
-      // Use window.destinationsManager (from tours.js)
       if (window.destinationsManager) {
         destinationsManager = window.destinationsManager;
         console.log("✅ Using existing destinationsManager from window");
 
-        // Load destinations
         if (destinationsManager.loadDestinations) {
           destinationsManager.loadDestinations();
         }
@@ -167,11 +181,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("✅ Application ready!");
 });
 
+// ✅ VISIBILITY CHANGE - GAMITIN ANG window.carouselManager
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
-    if (carouselManager) carouselManager.stopAutoPlay();
+    if (window.carouselManager && window.carouselManager.stopAutoPlay) {
+      window.carouselManager.stopAutoPlay();
+    }
   } else {
-    if (carouselManager) carouselManager.startAutoPlay();
+    if (window.carouselManager && window.carouselManager.startAutoPlay) {
+      window.carouselManager.startAutoPlay();
+    }
   }
 });
 

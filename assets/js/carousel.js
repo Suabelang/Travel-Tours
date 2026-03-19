@@ -251,15 +251,18 @@ class CarouselManager {
   }
 }
 
-// Initialize
-const carouselManager = new CarouselManager();
-window.carouselManager = carouselManager;
+// ✅ FIXED: Check if carouselManager already exists
+if (typeof window.carouselManager === "undefined") {
+  window.carouselManager = new CarouselManager();
 
-document.addEventListener("DOMContentLoaded", function () {
-  carouselManager.init().catch((error) => {
-    console.error("Failed to initialize carousel:", error);
+  document.addEventListener("DOMContentLoaded", function () {
+    window.carouselManager.init().catch((error) => {
+      console.error("Failed to initialize carousel:", error);
+    });
   });
-});
+} else {
+  console.log("⚠️ CarouselManager already exists, skipping initialization");
+}
 
 // Add loading animation styles
 const style = document.createElement("style");

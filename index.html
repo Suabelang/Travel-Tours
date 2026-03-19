@@ -2776,15 +2776,15 @@
           </p>
         </div>
 
-        <!-- Service Buttons -->
+        <!-- Service Buttons - REMOVED ALL ONCLICK ATTRIBUTES -->
         <div
           id="serviceButtons"
           class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto relative z-10"
         >
-          <!-- Visa Assistance -->
+          <!-- Visa Assistance - NO ONCLICK -->
           <div
             class="group bg-white rounded-2xl p-8 text-center shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer border-2 border-transparent hover:border-[#f97316]"
-            onclick="openVisaModal()"
+            id="visaCard"
           >
             <div class="relative">
               <div
@@ -2805,10 +2805,7 @@
                 </p>
                 <button
                   class="inline-flex items-center justify-center px-8 py-3 bg-gradient-to-r from-[#f97316] to-[#076653] text-white font-semibold rounded-full transition-all duration-300 hover:shadow-xl hover:scale-105 w-full group-hover:shadow-[#f97316]/25"
-                  onclick="
-                    event.stopPropagation();
-                    openVisaModal();
-                  "
+                  id="visaButton"
                 >
                   <i class="fas fa-paper-plane mr-2"></i> Inquire Now
                 </button>
@@ -2816,10 +2813,10 @@
             </div>
           </div>
 
-          <!-- Ferry Assistance -->
+          <!-- Ferry Assistance - NO ONCLICK -->
           <div
             class="group bg-white rounded-2xl p-8 text-center shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer border-2 border-transparent hover:border-[#f97316]"
-            onclick="openFerryModal()"
+            id="ferryCard"
           >
             <div class="relative">
               <div
@@ -2840,10 +2837,7 @@
                 </p>
                 <button
                   class="inline-flex items-center justify-center px-8 py-3 bg-gradient-to-r from-[#f97316] to-[#076653] text-white font-semibold rounded-full transition-all duration-300 hover:shadow-xl hover:scale-105 w-full group-hover:shadow-[#f97316]/25"
-                  onclick="
-                    event.stopPropagation();
-                    openFerryModal();
-                  "
+                  id="ferryButton"
                 >
                   <i class="fas fa-paper-plane mr-2"></i> Inquire Now
                 </button>
@@ -2879,16 +2873,10 @@
     </section>
 
     <!-- VISA MODAL POPUP -->
-    <div
-      id="visaModal"
-      class="modal-popup"
-      onclick="if (event.target === this) closeVisaModal();"
-    >
+    <div id="visaModal" class="modal-popup">
       <div class="modal-popup-content">
         <div class="modal-popup-header">
-          <button class="modal-popup-close" onclick="closeVisaModal()">
-            ✕
-          </button>
+          <button class="modal-popup-close" id="closeVisaModalBtn">✕</button>
           <div class="flex items-center gap-4">
             <div
               class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-4xl"
@@ -2951,7 +2939,7 @@
               <button
                 type="button"
                 class="btn-popup btn-outline-popup"
-                onclick="closeVisaModal()"
+                id="cancelVisaBtn"
               >
                 Cancel
               </button>
@@ -2965,19 +2953,13 @@
     </div>
 
     <!-- FERRY MODAL POPUP -->
-    <div
-      id="ferryModal"
-      class="modal-popup"
-      onclick="if (event.target === this) closeFerryModal();"
-    >
+    <div id="ferryModal" class="modal-popup">
       <div class="modal-popup-content">
         <div
           class="modal-popup-header"
           style="background: linear-gradient(135deg, #0e7a5c, #0a8a6e)"
         >
-          <button class="modal-popup-close" onclick="closeFerryModal()">
-            ✕
-          </button>
+          <button class="modal-popup-close" id="closeFerryModalBtn">✕</button>
           <div class="flex items-center gap-4">
             <div
               class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-4xl"
@@ -3062,7 +3044,7 @@
               <button
                 type="button"
                 class="btn-popup btn-outline-popup"
-                onclick="closeFerryModal()"
+                id="cancelFerryBtn"
               >
                 Cancel
               </button>
@@ -3509,7 +3491,7 @@
       </div>
     </footer>
 
-    <!-- Scripts -->
+    <!-- Scripts - Tamang order para maiwasan ang conflict -->
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="./assets/js/config.js"></script>
     <script src="./assets/js/supabase-client.js"></script>
@@ -3518,10 +3500,12 @@
     <script src="./assets/js/navigation.js"></script>
     <script src="./assets/js/carousel.js"></script>
     <script src="./assets/js/tours.js"></script>
+
+    <!-- SERVICES MUNA bago ang visa at ferry -->
     <script src="./assets/js/services.js"></script>
-    <script src="./assets/js/main.js"></script>
-    <script src="./assets/js/ferryassistance.js"></script>
     <script src="./assets/js/visaassistance.js"></script>
+    <script src="./assets/js/ferryassistance.js"></script>
+    <script src="./assets/js/main.js"></script>
 
     <script>
       // ===== MOBILE MENU FIX =====
@@ -3529,216 +3513,26 @@
         const menu = document.getElementById("mobileMenu");
         const btn = document.querySelector(".mobile-menu-btn");
 
-        if (menu.style.display === "block") {
-          menu.style.display = "none";
-          btn.classList.remove("active");
-        } else {
-          menu.style.display = "block";
-          btn.classList.add("active");
-        }
+        menu.classList.toggle("active");
+        btn.classList.toggle("active");
       }
 
       // Close menu when clicking links
       document.querySelectorAll(".mobile-menu a").forEach((link) => {
         link.addEventListener("click", function () {
-          document.getElementById("mobileMenu").style.display = "none";
+          document.getElementById("mobileMenu").classList.remove("active");
           document.querySelector(".mobile-menu-btn").classList.remove("active");
         });
       });
 
-      // Close menu when clicking outside
-      document.addEventListener("click", function (event) {
-        const menu = document.getElementById("mobileMenu");
-        const btn = document.querySelector(".mobile-menu-btn");
-
-        if (
-          menu.style.display === "block" &&
-          !menu.contains(event.target) &&
-          !btn.contains(event.target)
-        ) {
-          menu.style.display = "none";
-          btn.classList.remove("active");
-        }
-      });
-
-      // ===== VISA MODAL FUNCTIONS =====
-      const countries = [
-        { code: "usa", name: "USA", flag: "🇺🇸" },
-        { code: "canada", name: "Canada", flag: "🇨🇦" },
-        { code: "japan", name: "Japan", flag: "🇯🇵" },
-        { code: "korea", name: "Korea", flag: "🇰🇷" },
-        { code: "australia", name: "Australia", flag: "🇦🇺" },
-        { code: "uk", name: "UK", flag: "🇬🇧" },
-      ];
-
-      const requirements = {
-        usa: [
-          "Valid Passport (6 months)",
-          "DS-160 Form",
-          "Passport Photo",
-          "Bank Statement",
-          "Employment Certificate",
-        ],
-        canada: [
-          "Valid Passport",
-          "Application Form",
-          "Passport Photos",
-          "Proof of Funds",
-          "Travel History",
-        ],
-        japan: [
-          "Valid Passport",
-          "Application Form",
-          "Passport Photo",
-          "Bank Certificate",
-          "Flight Itinerary",
-        ],
-        korea: [
-          "Valid Passport",
-          "Application Form",
-          "Passport Photo",
-          "Bank Statement",
-          "Employment Proof",
-        ],
-        australia: [
-          "Valid Passport",
-          "Online Application",
-          "Passport Photo",
-          "Bank Statements",
-          "Travel History",
-        ],
-        uk: [
-          "Valid Passport",
-          "Online Application",
-          "Passport Photo",
-          "Bank Statements",
-          "Accommodation Details",
-        ],
-      };
-
-      function createCountryButtons() {
-        const grid = document.getElementById("visaCountryGrid");
-        if (!grid) return;
-
-        grid.innerHTML = countries
-          .map(
-            (c) => `
-          <div class="country-popup-btn" data-country="${c.code}" onclick="selectCountry(this)">
-            <span class="text-2xl block mb-1">${c.flag}</span>
-            <span class="text-xs font-medium">${c.name}</span>
-          </div>
-        `,
-          )
-          .join("");
-      }
-
-      window.selectCountry = function (btn) {
-        document.querySelectorAll(".country-popup-btn").forEach((b) => {
-          b.classList.remove("selected", "border-[#076653]", "bg-[#f0fdf4]");
-        });
-
-        btn.classList.add("selected", "border-[#076653]", "bg-[#f0fdf4]");
-
-        const country = btn.dataset.country;
-        const countryName = btn.querySelector("span:last-child").textContent;
-        const reqList = requirements[country];
-
-        if (reqList) {
-          const box = document.getElementById("visaRequirementsBox");
-          const title = document.getElementById("visaSelectedCountry");
-          const list = document.getElementById("visaRequirementsList");
-
-          title.querySelector("span").textContent =
-            countryName + " Requirements";
-          list.innerHTML = reqList
-            .map(
-              (r) => `
-            <li class="flex items-start gap-2 text-sm">
-              <i class="fas fa-check-circle text-green-500 mt-1"></i>
-              <span>${r}</span>
-            </li>
-          `,
-            )
-            .join("");
-
-          box.style.display = "block";
-        }
-      };
-
-      window.openVisaModal = function () {
-        document.getElementById("serviceWelcomeScreen").style.display = "none";
-        document.getElementById("serviceButtons").style.display = "none";
-        document.getElementById("visaModal").style.display = "flex";
-        document.body.style.overflow = "hidden";
-        createCountryButtons();
-      };
-
-      window.closeVisaModal = function () {
-        document.getElementById("visaModal").style.display = "none";
-        document.getElementById("serviceWelcomeScreen").style.display = "block";
-        document.getElementById("serviceButtons").style.display = "grid";
-        document.body.style.overflow = "";
-
-        document.getElementById("visaModalForm")?.reset();
-        document.getElementById("visaRequirementsBox").style.display = "none";
-      };
-
-      // ===== FERRY MODAL FUNCTIONS =====
-      window.openFerryModal = function () {
-        document.getElementById("serviceWelcomeScreen").style.display = "none";
-        document.getElementById("serviceButtons").style.display = "none";
-        document.getElementById("ferryModal").style.display = "flex";
-        document.body.style.overflow = "hidden";
-      };
-
-      window.closeFerryModal = function () {
-        document.getElementById("ferryModal").style.display = "none";
-        document.getElementById("serviceWelcomeScreen").style.display = "block";
-        document.getElementById("serviceButtons").style.display = "grid";
-        document.body.style.overflow = "";
-        document.getElementById("ferryModalForm")?.reset();
-      };
-
-      // ===== SUCCESS MODAL FUNCTIONS =====
-      window.closeSuccessModal = function () {
-        document.getElementById("successModal").style.display = "none";
-        document.body.style.overflow = "";
-      };
-
-      window.openSuccessModal = function () {
-        document.getElementById("successModal").style.display = "flex";
-        document.body.style.overflow = "hidden";
-        setTimeout(closeSuccessModal, 3000);
-      };
-
-      // ===== FORM SUBMISSIONS =====
-      document
-        .getElementById("visaModalForm")
-        ?.addEventListener("submit", (e) => {
-          e.preventDefault();
-          const selected = document.querySelector(
-            ".country-popup-btn.selected",
-          );
-          if (!selected) {
-            alert("Please select a country");
-            return;
-          }
-          openSuccessModal();
-          closeVisaModal();
-        });
-
-      document
-        .getElementById("ferryModalForm")
-        ?.addEventListener("submit", (e) => {
-          e.preventDefault();
-          openSuccessModal();
-          closeFerryModal();
-        });
-
       // ===== BACK TO TOP =====
       const backToTop = document.getElementById("backToTop");
       window.addEventListener("scroll", () => {
-        backToTop.style.display = window.scrollY > 300 ? "flex" : "none";
+        if (window.scrollY > 300) {
+          backToTop.classList.add("show");
+        } else {
+          backToTop.classList.remove("show");
+        }
       });
 
       backToTop.addEventListener("click", () => {
@@ -3747,6 +3541,324 @@
 
       // ===== INITIALIZE AOS =====
       AOS.init({ duration: 800, once: true });
+    </script>
+
+    <!-- ===== ULTIMATE FIX - PARA TALAGANG GUMAANA ANG MGA BUTTONS ===== -->
+    <script>
+      (function ultimateFix() {
+        console.log("🔥🔥🔥 ULTIMATE FIX: Starting...");
+
+        // ===== DIRECT FUNCTIONS PARA MAG-OPEN NG MODALS =====
+        window.openVisaModalDirect = function () {
+          console.log("🎯 DIRECT: Opening visa modal");
+
+          // Hide welcome screen and buttons
+          const welcome = document.getElementById("serviceWelcomeScreen");
+          const buttons = document.getElementById("serviceButtons");
+          if (welcome) welcome.style.display = "none";
+          if (buttons) buttons.style.display = "none";
+
+          // Show modal
+          const modal = document.getElementById("visaModal");
+          if (modal) {
+            modal.style.display = "flex";
+            modal.classList.add("active");
+            document.body.style.overflow = "hidden";
+
+            // Create country buttons
+            const grid = document.getElementById("visaCountryGrid");
+            if (grid && grid.children.length === 0) {
+              const countries = [
+                { code: "usa", flag: "🇺🇸", name: "USA" },
+                { code: "canada", flag: "🇨🇦", name: "Canada" },
+                { code: "japan", flag: "🇯🇵", name: "Japan" },
+                { code: "korea", flag: "🇰🇷", name: "Korea" },
+                { code: "australia", flag: "🇦🇺", name: "Australia" },
+                { code: "uk", flag: "🇬🇧", name: "UK" },
+                { code: "schengen", flag: "🇪🇺", name: "Schengen" },
+                { code: "china", flag: "🇨🇳", name: "China" },
+                { code: "thailand", flag: "🇹🇭", name: "Thailand" },
+              ];
+
+              grid.innerHTML = countries
+                .map(
+                  (c) => `
+                <div class="country-popup-btn" data-country="${c.code}">
+                  <span class="text-2xl block mb-1">${c.flag}</span>
+                  <span class="text-xs font-medium">${c.name}</span>
+                </div>
+              `,
+                )
+                .join("");
+            }
+          }
+        };
+
+        window.openFerryModalDirect = function () {
+          console.log("🎯 DIRECT: Opening ferry modal");
+
+          // Hide welcome screen and buttons
+          const welcome = document.getElementById("serviceWelcomeScreen");
+          const buttons = document.getElementById("serviceButtons");
+          if (welcome) welcome.style.display = "none";
+          if (buttons) buttons.style.display = "none";
+
+          // Show modal
+          const modal = document.getElementById("ferryModal");
+          if (modal) {
+            modal.style.display = "flex";
+            modal.classList.add("active");
+            document.body.style.overflow = "hidden";
+          }
+        };
+
+        window.closeVisaModalDirect = function () {
+          const modal = document.getElementById("visaModal");
+          const welcome = document.getElementById("serviceWelcomeScreen");
+          const buttons = document.getElementById("serviceButtons");
+
+          if (modal) {
+            modal.style.display = "none";
+            modal.classList.remove("active");
+          }
+          if (welcome) welcome.style.display = "block";
+          if (buttons) buttons.style.display = "grid";
+          document.body.style.overflow = "";
+        };
+
+        window.closeFerryModalDirect = function () {
+          const modal = document.getElementById("ferryModal");
+          const welcome = document.getElementById("serviceWelcomeScreen");
+          const buttons = document.getElementById("serviceButtons");
+
+          if (modal) {
+            modal.style.display = "none";
+            modal.classList.remove("active");
+          }
+          if (welcome) welcome.style.display = "block";
+          if (buttons) buttons.style.display = "grid";
+          document.body.style.overflow = "";
+        };
+
+        // ===== OVERRIDE GLOBAL FUNCTIONS =====
+        window.openVisaModal = window.openVisaModalDirect;
+        window.closeVisaModal = window.closeVisaModalDirect;
+        window.openFerryModal = window.openFerryModalDirect;
+        window.closeFerryModal = window.closeFerryModalDirect;
+
+        // ===== SELECT COUNTRY FUNCTION =====
+        window.selectCountry = function (btn) {
+          console.log("🎯 Selecting country:", btn.dataset.country);
+
+          // Remove selection from all
+          document.querySelectorAll(".country-popup-btn").forEach((b) => {
+            b.classList.remove("selected", "border-[#076653]", "bg-[#f0fdf4]");
+          });
+
+          // Add selection to clicked
+          btn.classList.add("selected", "border-[#076653]", "bg-[#f0fdf4]");
+
+          // Show requirements box
+          const box = document.getElementById("visaRequirementsBox");
+          if (box) box.style.display = "block";
+
+          // Update requirements
+          const country = btn.dataset.country;
+          const list = document.getElementById("visaRequirementsList");
+          const title = document.getElementById("visaSelectedCountry");
+
+          if (list && title) {
+            const countryName =
+              btn.querySelector("span:last-child").textContent;
+            title.querySelector("span").textContent =
+              countryName + " Requirements";
+
+            // Basic requirements
+            list.innerHTML = `
+              <li class="flex items-start gap-2 py-1">
+                <i class="fas fa-check-circle text-green-500 mt-1"></i>
+                <span>Valid Passport (6 months validity)</span>
+              </li>
+              <li class="flex items-start gap-2 py-1">
+                <i class="fas fa-check-circle text-green-500 mt-1"></i>
+                <span>Visa Application Form</span>
+              </li>
+              <li class="flex items-start gap-2 py-1">
+                <i class="fas fa-check-circle text-green-500 mt-1"></i>
+                <span>Passport Photos (2x2)</span>
+              </li>
+              <li class="flex items-start gap-2 py-1">
+                <i class="fas fa-check-circle text-green-500 mt-1"></i>
+                <span>Bank Certificate & Statement</span>
+              </li>
+              <li class="flex items-start gap-2 py-1">
+                <i class="fas fa-check-circle text-green-500 mt-1"></i>
+                <span>Certificate of Employment</span>
+              </li>
+            `;
+          }
+        };
+
+        // ===== ATTACH CLICK HANDLERS TO COUNTRY BUTTONS =====
+        function attachCountryClickHandlers() {
+          document
+            .querySelectorAll("#visaModal .country-popup-btn")
+            .forEach((btn) => {
+              btn.onclick = function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.selectCountry(this);
+              };
+            });
+        }
+
+        // ===== SETUP MODAL CLOSE BUTTONS =====
+        document
+          .getElementById("closeVisaModalBtn")
+          ?.addEventListener("click", function (e) {
+            e.preventDefault();
+            window.closeVisaModalDirect();
+          });
+
+        document
+          .getElementById("cancelVisaBtn")
+          ?.addEventListener("click", function (e) {
+            e.preventDefault();
+            window.closeVisaModalDirect();
+          });
+
+        document
+          .getElementById("closeFerryModalBtn")
+          ?.addEventListener("click", function (e) {
+            e.preventDefault();
+            window.closeFerryModalDirect();
+          });
+
+        document
+          .getElementById("cancelFerryBtn")
+          ?.addEventListener("click", function (e) {
+            e.preventDefault();
+            window.closeFerryModalDirect();
+          });
+
+        // ===== SETUP FORM SUBMISSIONS =====
+        document
+          .getElementById("visaModalForm")
+          ?.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const selected = document.querySelector(
+              ".country-popup-btn.selected",
+            );
+            if (!selected) {
+              alert("Please select a country");
+              return;
+            }
+
+            alert("✅ Inquiry submitted! We'll contact you within 24 hours.");
+            window.closeVisaModalDirect();
+          });
+
+        document
+          .getElementById("ferryModalForm")
+          ?.addEventListener("submit", function (e) {
+            e.preventDefault();
+            alert(
+              "✅ Ferry inquiry submitted! We'll contact you within 24 hours.",
+            );
+            window.closeFerryModalDirect();
+          });
+
+        // ===== CLOSE MODALS WHEN CLICKING OUTSIDE =====
+        document
+          .getElementById("visaModal")
+          ?.addEventListener("click", function (e) {
+            if (e.target === this) {
+              window.closeVisaModalDirect();
+            }
+          });
+
+        document
+          .getElementById("ferryModal")
+          ?.addEventListener("click", function (e) {
+            if (e.target === this) {
+              window.closeFerryModalDirect();
+            }
+          });
+
+        // ===== ATTACH CLICK HANDLERS TO SERVICE CARDS AND BUTTONS =====
+        function attachServiceClickHandlers() {
+          console.log("🔧 Attaching service click handlers...");
+
+          // Visa card
+          const visaCard = document.getElementById("visaCard");
+          if (visaCard) {
+            visaCard.onclick = function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+              window.openVisaModalDirect();
+            };
+          }
+
+          // Visa button
+          const visaButton = document.getElementById("visaButton");
+          if (visaButton) {
+            visaButton.onclick = function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+              window.openVisaModalDirect();
+            };
+          }
+
+          // Ferry card
+          const ferryCard = document.getElementById("ferryCard");
+          if (ferryCard) {
+            ferryCard.onclick = function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+              window.openFerryModalDirect();
+            };
+          }
+
+          // Ferry button
+          const ferryButton = document.getElementById("ferryButton");
+          if (ferryButton) {
+            ferryButton.onclick = function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+              window.openFerryModalDirect();
+            };
+          }
+
+          console.log("✅ Service click handlers attached");
+        }
+
+        // ===== RUN EVERYTHING =====
+        function runAllFixes() {
+          attachServiceClickHandlers();
+          attachCountryClickHandlers();
+
+          // Re-attach after a delay for dynamically loaded content
+          setTimeout(attachCountryClickHandlers, 500);
+          setTimeout(attachServiceClickHandlers, 500);
+          setTimeout(attachCountryClickHandlers, 1000);
+          setTimeout(attachServiceClickHandlers, 1000);
+        }
+
+        // Run when DOM is ready
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", runAllFixes);
+        } else {
+          runAllFixes();
+        }
+
+        // Run again after everything loads
+        setTimeout(runAllFixes, 500);
+        setTimeout(runAllFixes, 1000);
+        setTimeout(runAllFixes, 2000);
+
+        console.log("🔥🔥🔥 Ultimate fix complete!");
+      })();
     </script>
   </body>
 </html>

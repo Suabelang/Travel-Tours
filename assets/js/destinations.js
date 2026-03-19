@@ -12,10 +12,81 @@ import {
   showLoading,
 } from "../js/config_admin.js";
 
+// ADD THIS IMPORT - Table format functions from modules folder
+import {
+  fetchTableFormatByName,
+  openTableFormatBuilderModal,
+  openTableFormatSelectorModal,
+  deleteTableFormat,
+  fetchRateRows,
+} from "../js/table_formats.js";
+
 // =====================================================
 // HELPER FUNCTIONS
 // =====================================================
+// Helper function to get format description
+async function getFormatDescription(destinationId, formatName) {
+  try {
+    const { data } = await supabase
+      .from("rate_column_definitions")
+      .select("format_description")
+      .eq("destination_id", destinationId)
+      .eq("format_name", formatName)
+      .eq("is_active", true)
+      .limit(1)
+      .single();
 
+    return data?.format_description || "";
+  } catch (error) {
+    return "";
+  }
+}
+
+// Helper function to get format column count
+async function getFormatColumnCount(destinationId, formatName) {
+  try {
+    const { count } = await supabase
+      .from("rate_column_definitions")
+      .select("*", { count: "exact", head: true })
+      .eq("destination_id", destinationId)
+      .eq("format_name", formatName)
+      .eq("is_active", true);
+
+    return count || 0;
+  } catch (error) {
+    return 0;
+  }
+}
+
+// Helper function to get total rate rows across all categories
+async function getTotalRateRows(packageId) {
+  try {
+    const { count } = await supabase
+      .from("package_rate_values")
+      .select("*", { count: "exact", head: true })
+      .eq("package_id", packageId);
+
+    // Group by season/sneak/duration to get unique rows
+    const { data } = await supabase
+      .from("package_rate_values")
+      .select("season, sneak, duration")
+      .eq("package_id", packageId);
+
+    if (!data) return 0;
+
+    // Count unique combinations
+    const uniqueRows = new Set();
+    data.forEach((row) => {
+      uniqueRows.add(
+        `${row.season || ""}_${row.sneak || ""}_${row.duration || ""}`,
+      );
+    });
+
+    return uniqueRows.size;
+  } catch (error) {
+    return 0;
+  }
+}
 async function getCategoryIdByName(categoryName, destinationType) {
   if (!categoryName) return null;
   const { data } = await supabase
@@ -632,28 +703,39 @@ export async function updatePackage(id, formData) {
     const destinationType =
       destData?.country === "Philippines" ? "local" : "international";
 
-    // Update main package info
-    const { error: packageError } = await supabase
+    // ========== 1. UPDATE MAIN PACKAGE INFO ==========
+    const { data: updatedData, error: packageError } = await supabase
       .from("destination_packages")
       .update({
         package_code: formData.package_code,
         package_name: formData.package_name,
         tour_category: formData.tour_category,
-        has_extra_night: formData.has_extra_night === "true",
+        has_extra_night: String(formData.has_extra_night) === "true",
         base_price: formData.base_price ? parseFloat(formData.base_price) : 0,
         markup_percent: formData.markup_percent
           ? parseFloat(formData.markup_percent)
           : 0,
-        tax_included: formData.tax_included === "true",
-        is_active: formData.is_active === "true",
+        tax_included: String(formData.tax_included) === "true",
+        is_active: String(formData.is_active) === "true",
         updated_at: new Date(),
       })
-      .eq("id", id);
+      .eq("id", id)
+      .select();
 
-    if (packageError) throw packageError;
+    console.log("📦 UPDATE RESPONSE - Full response:", {
+      updatedData,
+      error: packageError,
+    });
+
+    if (packageError) {
+      console.error("❌ PACKAGE UPDATE ERROR:", packageError);
+      throw packageError;
+    }
+
     console.log("✅ Package basic info updated");
+    console.log("📊 UPDATED DATA FROM DB:", updatedData);
 
-    // Handle inclusions deletion
+    // ========== 2. HANDLE INCLUSIONS DELETION ==========
     if (formData.delete_inclusions) {
       const idsToDelete = JSON.parse(formData.delete_inclusions);
       if (idsToDelete.length > 0) {
@@ -667,7 +749,7 @@ export async function updatePackage(id, formData) {
       }
     }
 
-    // Handle inclusions updates
+    // ========== 3. HANDLE INCLUSIONS UPDATES ==========
     if (formData.update_inclusions) {
       const updates = JSON.parse(formData.update_inclusions);
       console.log("🔄 Updating inclusions:", updates);
@@ -691,7 +773,7 @@ export async function updatePackage(id, formData) {
       }
     }
 
-    // Handle exclusions deletion
+    // ========== 4. HANDLE EXCLUSIONS DELETION ==========
     if (formData.delete_exclusions) {
       const idsToDelete = JSON.parse(formData.delete_exclusions);
       if (idsToDelete.length > 0) {
@@ -705,7 +787,7 @@ export async function updatePackage(id, formData) {
       }
     }
 
-    // Handle exclusions updates
+    // ========== 5. HANDLE EXCLUSIONS UPDATES ==========
     if (formData.update_exclusions) {
       const updates = JSON.parse(formData.update_exclusions);
       console.log("🔄 Updating exclusions:", updates);
@@ -729,7 +811,7 @@ export async function updatePackage(id, formData) {
       }
     }
 
-    // Handle edited tours
+    // ========== 6. HANDLE EDITED TOURS ==========
     if (formData.edited_tours) {
       const editedTours = JSON.parse(formData.edited_tours);
       for (const tour of editedTours) {
@@ -762,7 +844,7 @@ export async function updatePackage(id, formData) {
       }
     }
 
-    // Handle new tours
+    // ========== 7. HANDLE NEW TOURS ==========
     if (formData.new_tours) {
       const newTours = JSON.parse(formData.new_tours);
       for (const tour of newTours) {
@@ -808,7 +890,7 @@ export async function updatePackage(id, formData) {
       }
     }
 
-    // Handle transportation
+    // ========== 8. HANDLE TRANSPORTATION ==========
     if (formData.transportation) {
       await supabase
         .from("package_transportation")
@@ -830,49 +912,91 @@ export async function updatePackage(id, formData) {
       console.log("✅ Transportation updated");
     }
 
-    // Handle itineraries
+    // ========== 9. HANDLE ITINERARIES - FIXED TO REPLACE NOT APPEND ==========
     if (formData.update_itineraries === "true") {
-      await supabase.from("package_itineraries").delete().eq("package_id", id);
+      console.log("🔄 Updating itineraries - replacing all existing");
 
-      if (
-        formData.itineraries &&
-        Object.keys(formData.itineraries).length > 0
-      ) {
-        for (const [dayNum, fullText] of Object.entries(formData.itineraries)) {
-          if (fullText && fullText.trim()) {
-            const lines = fullText.trim().split("\n");
-            const dayTitle = lines[0];
-            const dayDescription = lines.slice(1).filter((l) => l.trim());
+      // Delete ALL existing itineraries for this package
+      const { error: deleteError } = await supabase
+        .from("package_itineraries")
+        .delete()
+        .eq("package_id", id);
 
-            const insertData = {
-              package_id: id,
-              day_number: parseInt(dayNum),
-              day_title: dayTitle,
-              display_order: parseInt(dayNum),
-            };
-
-            if (dayDescription.length > 0) {
-              insertData.day_description = dayDescription;
-            }
-
-            await supabase.from("package_itineraries").insert([insertData]);
-          }
-        }
+      if (deleteError) {
+        console.error("❌ Error deleting existing itineraries:", deleteError);
+        throw deleteError;
       }
-      console.log("✅ Itineraries updated");
+
+      console.log("✅ Deleted existing itineraries");
+
+      // Parse the new itineraries
+      let itineraries = {};
+      try {
+        itineraries = JSON.parse(formData.itineraries || "{}");
+        console.log("📦 Parsed itineraries:", itineraries);
+      } catch (e) {
+        console.error("❌ Error parsing itineraries:", e);
+      }
+
+      // Insert new itineraries if there are any
+      if (Object.keys(itineraries).length > 0) {
+        const itineraryInserts = [];
+
+        for (const [dayNumStr, itiData] of Object.entries(itineraries)) {
+          const dayNum = parseInt(dayNumStr);
+
+          // Prepare insert data
+          const insertData = {
+            package_id: id,
+            day_number: dayNum,
+            day_title: itiData.day_title || `Day ${dayNum}`,
+            display_order: dayNum,
+          };
+
+          // Add day_description if it exists and is not empty
+          if (
+            itiData.day_description &&
+            Array.isArray(itiData.day_description) &&
+            itiData.day_description.length > 0
+          ) {
+            insertData.day_description = itiData.day_description;
+          }
+
+          // Add meals_included if needed (from your existing structure)
+          if (itiData.meals_included) {
+            insertData.meals_included = itiData.meals_included;
+          }
+
+          itineraryInserts.push(insertData);
+        }
+
+        if (itineraryInserts.length > 0) {
+          console.log("📝 Inserting new itineraries:", itineraryInserts);
+
+          const { error: insertError } = await supabase
+            .from("package_itineraries")
+            .insert(itineraryInserts);
+
+          if (insertError) {
+            console.error("❌ Error inserting new itineraries:", insertError);
+            throw insertError;
+          }
+
+          console.log(`✅ Inserted ${itineraryInserts.length} new itineraries`);
+        }
+      } else {
+        console.log(
+          "📝 No itineraries to insert - package will have no itinerary",
+        );
+      }
+
+      console.log("✅ Itineraries updated successfully (replaced)");
     }
-
-    // =====================================================
-    // HANDLE HOTEL RATES WITH SEASON, SNEAK AND DURATION
-    // =====================================================
-
-    // If hotel rates data is provided in the update
+    // ========== 10. HANDLE HOTEL RATES WITH ADDITIONAL INFO ==========
     if (formData.hotel_rates_data) {
       const hotelRatesData = JSON.parse(formData.hotel_rates_data);
 
-      // For each category's rates
       for (const rateData of hotelRatesData) {
-        // Check if rate already exists for this package and category
         const { data: existing } = await supabase
           .from("package_hotel_rates")
           .select("id")
@@ -881,7 +1005,7 @@ export async function updatePackage(id, formData) {
           .maybeSingle();
 
         if (existing) {
-          // Update existing rate
+          // UPDATE existing rate - INCLUDING ADDITIONAL INFO
           const { error } = await supabase
             .from("package_hotel_rates")
             .update({
@@ -923,16 +1047,17 @@ export async function updatePackage(id, formData) {
                 rateData.extra_night_child_no_breakfast || null,
               breakfast_included: rateData.breakfast_included === true,
               breakfast_notes: rateData.breakfast_notes || null,
+              additional_info: rateData.additional_info || null, // <-- ADDITIONAL INFO
               updated_at: new Date(),
             })
             .eq("id", existing.id);
 
           if (error) throw error;
           console.log(
-            `✅ Updated hotel rate for category ${rateData.hotel_category_id}`,
+            `✅ Updated hotel rate for category ${rateData.hotel_category_id} (with additional info)`,
           );
         } else {
-          // Insert new rate
+          // INSERT new rate - INCLUDING ADDITIONAL INFO
           const { error } = await supabase.from("package_hotel_rates").insert([
             {
               package_id: id,
@@ -975,12 +1100,13 @@ export async function updatePackage(id, formData) {
                 rateData.extra_night_child_no_breakfast || null,
               breakfast_included: rateData.breakfast_included === true,
               breakfast_notes: rateData.breakfast_notes || null,
+              additional_info: rateData.additional_info || null, // <-- ADDITIONAL INFO
             },
           ]);
 
           if (error) throw error;
           console.log(
-            `✅ Inserted new hotel rate for category ${rateData.hotel_category_id}`,
+            `✅ Inserted new hotel rate for category ${rateData.hotel_category_id} (with additional info)`,
           );
         }
       }
@@ -1207,7 +1333,7 @@ export async function savePackageHotelRate(formData) {
       hotel_category_id: parseInt(formData.hotel_category_id),
       season: formData.season || null,
       sneak: formData.sneak || null,
-      duration: formData.duration || null, // THIS IS THE DURATION FIELD
+      duration: formData.duration || null,
       // Regular rates 1-15 pax
       rate_solo: formData.rate_solo ? parseFloat(formData.rate_solo) : null,
       rate_2pax: formData.rate_2pax ? parseFloat(formData.rate_2pax) : null,
@@ -1278,6 +1404,7 @@ export async function savePackageHotelRate(formData) {
         : null,
       breakfast_included: formData.breakfast_included === "true",
       breakfast_notes: formData.breakfast_notes || null,
+      additional_info: formData.additional_info || null, // <-- ADDITIONAL INFO
       is_promo: formData.is_promo === "true",
       promo_name: formData.promo_name || null,
       validity_date: formData.validity_date || null,
@@ -2137,6 +2264,21 @@ export function openBulkRateEditModal(packageId) {
                     <input type="text" name="rates[${cat.id}][breakfast_notes]" value="${rate.breakfast_notes || ""}" 
                            placeholder="Breakfast notes" 
                            class="mt-2 w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm">
+                            <!-- ADD THIS - Additional Information field -->
+  <div class="mt-3">
+    <label class="block text-sm font-medium text-gray-700 mb-1">
+      <i class="fas fa-info-circle text-indigo-500 mr-1"></i>
+      Additional Information (Check-in/out times, policies, etc.)
+    </label>
+    <textarea name="rates[${cat.id}][additional_info]" rows="3"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+              placeholder="Check-in: 2:00 PM
+Check-out: 12:00 PM
+Free WiFi
+Pool access
+Parking available">${rate.additional_info || ""}</textarea>
+    <p class="text-xs text-gray-400 mt-1">One item per line for better formatting</p>
+  </div>
                   </div>
                 </div>
               `;
@@ -2312,10 +2454,6 @@ export function openBulkRateEditModal(packageId) {
   });
 }
 
-// =====================================================
-// UI DISPLAY FUNCTIONS
-// =====================================================
-
 export async function viewDestinationDetails(id) {
   try {
     showLoading(true, "Loading destination details...");
@@ -2335,8 +2473,8 @@ export async function viewDestinationDetails(id) {
 
     modal.innerHTML = `
       <div class="bg-white rounded-2xl max-w-7xl w-full my-8 shadow-2xl transform transition-all flex flex-col" style="max-height: 90vh;">
-        <!-- Fixed Header -->
-        <div class="relative overflow-hidden rounded-t-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 flex-shrink-0">
+        <!-- FIXED HEADER - Hindi nag-soscroll -->
+        <div class="sticky top-0 z-50 rounded-t-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 flex-shrink-0">
           <div class="absolute inset-0 bg-black/10"></div>
           <div class="relative px-6 py-5">
             <div class="flex items-center gap-4">
@@ -2352,11 +2490,11 @@ export async function viewDestinationDetails(id) {
           </div>
         </div>
         
-        <!-- Scrollable Content -->
+        <!-- SCROLLABLE CONTENT - Dito lang nag-soscroll -->
         <div class="flex-1 overflow-y-auto p-6">
           <div class="space-y-6">
             
-            <!-- Destination Overview -->
+            <!-- ========== DESTINATION OVERVIEW ========== -->
             <div class="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-xl border-2 border-indigo-100">
               <div class="flex flex-col md:flex-row gap-6">
                 <div class="md:w-1/3">
@@ -2383,7 +2521,7 @@ export async function viewDestinationDetails(id) {
               </div>
             </div>
 
-            <!-- Image Gallery -->
+            <!-- ========== IMAGE GALLERY ========== -->
             <div class="bg-white p-5 rounded-xl border-2 border-gray-200">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xl font-bold flex items-center gap-2">
@@ -2437,7 +2575,28 @@ export async function viewDestinationDetails(id) {
               }
             </div>
 
-            <!-- Hotels & Accommodations Section -->
+            <!-- ========== TABLE FORMATS ========== -->
+            <div class="bg-white p-5 rounded-xl border-2 border-gray-200">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                  <i class="fas fa-table text-emerald-500"></i>
+                  Rate Table Formats
+                </h3>
+                <button onclick="window.openTableFormatBuilderModal(${destination.id})" 
+                        class="px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600">
+                  <i class="fas fa-plus-circle mr-1"></i> Create Format
+                </button>
+              </div>
+              
+              <div id="tableFormatsContainer-${destination.id}" class="space-y-3">
+                <div class="text-center py-4" id="tableFormatsLoading-${destination.id}">
+                  <i class="fas fa-spinner fa-spin text-gray-400 text-2xl"></i>
+                  <p class="text-sm text-gray-500 mt-2">Loading table formats...</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========== HOTELS & ACCOMMODATIONS ========== -->
             <div class="bg-white p-5 rounded-xl border-2 border-gray-200">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xl font-bold flex items-center gap-2">
@@ -2490,7 +2649,6 @@ export async function viewDestinationDetails(id) {
                               (hotel) => `
                             <div class="border rounded-lg p-3 hover:shadow-md transition bg-white">
                               <div class="flex gap-3">
-                                <!-- Hotel Image -->
                                 <div class="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                                   ${
                                     hotel.image_url
@@ -2504,8 +2662,6 @@ export async function viewDestinationDetails(id) {
                                   `
                                   }
                                 </div>
-                                
-                                <!-- Hotel Info -->
                                 <div class="flex-1">
                                   <h5 class="font-bold text-gray-800">${hotel.name}</h5>
                                   <p class="text-xs text-gray-500">Max: ${hotel.max_capacity || "N/A"} guests</p>
@@ -2523,8 +2679,6 @@ export async function viewDestinationDetails(id) {
                                   </div>
                                 </div>
                               </div>
-                              
-                              <!-- Admin Actions -->
                               <div class="mt-3 pt-2 border-t border-gray-100 flex justify-end gap-2">
                                 <button onclick="window.openEditHotelModal(${hotel.id})" 
                                         class="text-xs text-amber-600 hover:text-amber-800 px-2 py-1 rounded hover:bg-amber-50">
@@ -2571,7 +2725,7 @@ export async function viewDestinationDetails(id) {
               }
             </div>
 
-            <!-- Packages Section -->
+            <!-- ========== PACKAGES SECTION ========== -->
             <div class="bg-white p-5 rounded-xl border-2 border-gray-200">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xl font-bold flex items-center gap-2">
@@ -2600,7 +2754,51 @@ export async function viewDestinationDetails(id) {
                     <div>
                       <h4 class="font-bold text-lg">${pkg.package_name}</h4>
                       <p class="text-sm text-gray-600">${pkg.package_code || "N/A"} • ${pkg.tour_category || "N/A"}</p>
-                      <div class="flex flex-wrap gap-2 mt-1">
+                      
+                      <!-- TABLE FORMAT DISPLAY -->
+                      ${
+                        pkg.table_format
+                          ? `
+                        <div class="flex items-center gap-2 mt-2 flex-wrap">
+                          <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full flex items-center gap-1">
+                            <i class="fas fa-table text-xs"></i>
+                            Format: ${pkg.table_format}
+                          </span>
+                          ${destination.hotel_categories
+                            .map(
+                              (cat) => `
+                            <button onclick="window.openRateInputModal(${pkg.id}, ${cat.id}, '${pkg.table_format}')" 
+                                    class="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200 transition flex items-center gap-1">
+                              <i class="fas fa-edit"></i> ${cat.category_name}
+                            </button>
+                          `,
+                            )
+                            .join("")}
+                          <button onclick="window.viewRatesModal(${pkg.id}, '${pkg.table_format}')" 
+                                  class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-200 transition flex items-center gap-1">
+                            <i class="fas fa-eye"></i> View All
+                          </button>
+                          <button onclick="window.selectTableFormatForPackage(${pkg.id}, ${destination.id})" 
+                                  class="text-xs text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-sync-alt mr-1"></i> Change
+                          </button>
+                          <button onclick="window.editFormatFromDestination(${destination.id}, '${pkg.table_format}')" 
+                                  class="text-xs text-amber-600 hover:text-amber-800">
+                            <i class="fas fa-edit mr-1"></i> Edit Format
+                          </button>
+                        </div>
+                      `
+                          : `
+                        <div class="mt-2">
+                          <button onclick="window.selectTableFormatForPackage(${pkg.id}, ${destination.id})" 
+                                  class="text-xs bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-lg hover:bg-emerald-200 transition">
+                            <i class="fas fa-table mr-1"></i> Select Table Format
+                          </button>
+                        </div>
+                      `
+                      }
+                      
+                      <div class="flex flex-wrap gap-2 mt-2">
                         <span class="px-2 py-0.5 text-xs rounded-full ${pkg.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}">
                           ${pkg.is_active ? "Active" : "Inactive"}
                         </span>
@@ -2620,164 +2818,203 @@ export async function viewDestinationDetails(id) {
                     </div>
                   </div>
                   
-                  <!-- Package Details Accordion -->
+                  <!-- Package Details -->
                   <div class="mt-3 space-y-3">
-        <!-- Hotel Rates Display - FIXED VERSION -->
-${
-  pkg.package_hotel_rates && pkg.package_hotel_rates.length > 0
-    ? `
-  <div class="border rounded-lg p-3 bg-gray-50">
-    <h5 class="font-semibold text-sm mb-2 flex items-center gap-1">
-      <i class="fas fa-hotel text-blue-500"></i> Hotel Rates
-    </h5>
-    
-    ${pkg.package_hotel_rates
-      .map((rate) => {
-        const category = destination.hotel_categories?.find(
-          (c) => c.id === rate.hotel_category_id,
-        );
-        const categoryName = category?.category_name || "Unknown Category";
+                    
+                    <!-- HOTEL RATES DISPLAY -->
+                    <div class="mt-3 space-y-3">
+                      <!-- STATIC TABLE -->
+                      ${
+                        pkg.package_hotel_rates &&
+                        pkg.package_hotel_rates.length > 0
+                          ? `
+                        <div class="border rounded-lg p-3 bg-gray-50">
+                          <div class="flex items-center justify-between mb-2">
+                            <h5 class="font-semibold text-sm flex items-center gap-1">
+                              <i class="fas fa-hotel text-blue-500"></i>
+                              Hotel Rates
+                            </h5>
+                            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                              ${pkg.package_hotel_rates.length} rate(s)
+                            </span>
+                          </div>
+                          
+                          ${pkg.package_hotel_rates
+                            .map((rate) => {
+                              const category =
+                                destination.hotel_categories?.find(
+                                  (c) => c.id === rate.hotel_category_id,
+                                );
+                              const categoryName =
+                                category?.category_name || "Unknown Category";
 
-        return `
-        <div class="mb-4 border-b border-gray-200 pb-3 last:border-0">
-          <h6 class="font-semibold text-sm text-indigo-700 mb-2">${categoryName}</h6>
-          
-          <!-- Regular Rates -->
-          <div class="mb-3">
-            <p class="text-xs font-medium text-gray-600 mb-1">Regular Rates:</p>
-            <div class="overflow-x-auto">
-              <table class="min-w-full text-xs">
-                <thead>
-                  <tr class="bg-gray-100">
-                    <th class="px-2 py-1 text-left">Season</th>
-                    <th class="px-2 py-1 text-left">Sneak</th>
-                    <th class="px-2 py-1 text-left">Duration</th>
-                    <th class="px-2 py-1 text-right">Solo</th>
-                    <th class="px-2 py-1 text-right">2P</th>
-                    <th class="px-2 py-1 text-right">3P</th>
-                    <th class="px-2 py-1 text-right">4P</th>
-                    <th class="px-2 py-1 text-right">5P</th>
-                    <th class="px-2 py-1 text-right">6P</th>
-                    <th class="px-2 py-1 text-right">7P</th>
-                    <th class="px-2 py-1 text-right">8P</th>
-                    <th class="px-2 py-1 text-right">9P</th>
-                    <th class="px-2 py-1 text-right">10P</th>
-                    <th class="px-2 py-1 text-right">11P</th>
-                    <th class="px-2 py-1 text-right">12P</th>
-                    <th class="px-2 py-1 text-right">13P</th>
-                    <th class="px-2 py-1 text-right">14P</th>
-                    <th class="px-2 py-1 text-right">15P</th>
-                    <th class="px-2 py-1 text-right">Child</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr class="border-b">
-                    <td class="px-2 py-1">${rate.season || "N/A"}</td>
-                    <td class="px-2 py-1">${rate.sneak || "N/A"}</td>
-                    <td class="px-2 py-1">${rate.duration || "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_solo ? "₱" + Number(rate.rate_solo).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_2pax ? "₱" + Number(rate.rate_2pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_3pax ? "₱" + Number(rate.rate_3pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_4pax ? "₱" + Number(rate.rate_4pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_5pax ? "₱" + Number(rate.rate_5pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_6pax ? "₱" + Number(rate.rate_6pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_7pax ? "₱" + Number(rate.rate_7pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_8pax ? "₱" + Number(rate.rate_8pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_9pax ? "₱" + Number(rate.rate_9pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_10pax ? "₱" + Number(rate.rate_10pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_11pax ? "₱" + Number(rate.rate_11pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_12pax ? "₱" + Number(rate.rate_12pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_13pax ? "₱" + Number(rate.rate_13pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_14pax ? "₱" + Number(rate.rate_14pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_15pax ? "₱" + Number(rate.rate_15pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.rate_child_no_breakfast ? "₱" + Number(rate.rate_child_no_breakfast).toLocaleString() : "N/A"}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          
-          <!-- Extra Night Rates -->
-          <div class="mt-3">
-            <p class="text-xs font-medium text-gray-600 mb-1">Extra Night Rates:</p>
-            <div class="overflow-x-auto">
-              <table class="min-w-full text-xs">
-                <thead>
-                  <tr class="bg-gray-100">
-                    <th class="px-2 py-1 text-left">Season</th>
-                    <th class="px-2 py-1 text-left">Sneak</th>
-                    <th class="px-2 py-1 text-left">Duration</th>
-                    <th class="px-2 py-1 text-right">Solo</th>
-                    <th class="px-2 py-1 text-right">2P</th>
-                    <th class="px-2 py-1 text-right">3P</th>
-                    <th class="px-2 py-1 text-right">4P</th>
-                    <th class="px-2 py-1 text-right">5P</th>
-                    <th class="px-2 py-1 text-right">6P</th>
-                    <th class="px-2 py-1 text-right">7P</th>
-                    <th class="px-2 py-1 text-right">8P</th>
-                    <th class="px-2 py-1 text-right">9P</th>
-                    <th class="px-2 py-1 text-right">10P</th>
-                    <th class="px-2 py-1 text-right">11P</th>
-                    <th class="px-2 py-1 text-right">12P</th>
-                    <th class="px-2 py-1 text-right">13P</th>
-                    <th class="px-2 py-1 text-right">14P</th>
-                    <th class="px-2 py-1 text-right">15P</th>
-                    <th class="px-2 py-1 text-right">Child</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr class="border-b">
-                    <td class="px-2 py-1">${rate.season || "N/A"}</td>
-                    <td class="px-2 py-1">${rate.sneak || "N/A"}</td>
-                    <td class="px-2 py-1">${rate.duration || "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_solo ? "₱" + Number(rate.extra_night_solo).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_2pax ? "₱" + Number(rate.extra_night_2pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_3pax ? "₱" + Number(rate.extra_night_3pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_4pax ? "₱" + Number(rate.extra_night_4pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_5pax ? "₱" + Number(rate.extra_night_5pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_6pax ? "₱" + Number(rate.extra_night_6pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_7pax ? "₱" + Number(rate.extra_night_7pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_8pax ? "₱" + Number(rate.extra_night_8pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_9pax ? "₱" + Number(rate.extra_night_9pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_10pax ? "₱" + Number(rate.extra_night_10pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_11pax ? "₱" + Number(rate.extra_night_11pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_12pax ? "₱" + Number(rate.extra_night_12pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_13pax ? "₱" + Number(rate.extra_night_13pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_14pax ? "₱" + Number(rate.extra_night_14pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_15pax ? "₱" + Number(rate.extra_night_15pax).toLocaleString() : "N/A"}</td>
-                    <td class="px-2 py-1 text-right">${rate.extra_night_child_no_breakfast ? "₱" + Number(rate.extra_night_child_no_breakfast).toLocaleString() : "N/A"}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          
-          <!-- Breakfast Info -->
-          ${
-            rate.breakfast_included || rate.breakfast_notes
-              ? `
-            <div class="mt-2 text-xs text-gray-600">
-              ${rate.breakfast_included ? '<span class="text-green-600 mr-2">✓ Breakfast Included</span>' : ""}
-              ${rate.breakfast_notes ? `<span class="text-gray-500">Note: ${rate.breakfast_notes}</span>` : ""}
-            </div>
-          `
-              : ""
-          }
-        </div>
-      `;
-      })
-      .join("")}
-  </div>
-`
-    : `
-  <div class="border rounded-lg p-3 bg-gray-50">
-    <h5 class="font-semibold text-sm mb-2 flex items-center gap-1 text-gray-500">
-      <i class="fas fa-hotel"></i> Hotel Rates
-    </h5>
-    <p class="text-xs text-gray-400 italic">N/A - No hotel rates available</p>
-  </div>
-`
-}
+                              return `
+                              <div class="mb-4 border-b border-gray-200 pb-3 last:border-0">
+                                <h6 class="font-semibold text-sm text-indigo-700 mb-2">${categoryName}</h6>
+                                
+                                <!-- Regular Rates -->
+                                <div class="mb-3">
+                                  <p class="text-xs font-medium text-gray-600 mb-1">Regular Rates:</p>
+                                  <div class="overflow-x-auto">
+                                    <table class="min-w-full text-xs">
+                                      <thead>
+                                        <tr class="bg-gray-100">
+                                          <th class="px-2 py-1 text-left">Season</th>
+                                          <th class="px-2 py-1 text-left">Sneak</th>
+                                          <th class="px-2 py-1 text-left">Duration/Travel-Date</th>
+                                          <th class="px-2 py-1 text-right">Solo</th>
+                                          <th class="px-2 py-1 text-right">2P</th>
+                                          <th class="px-2 py-1 text-right">3P</th>
+                                          <th class="px-2 py-1 text-right">4P</th>
+                                          <th class="px-2 py-1 text-right">5P</th>
+                                          <th class="px-2 py-1 text-right">6P</th>
+                                          <th class="px-2 py-1 text-right">7P</th>
+                                          <th class="px-2 py-1 text-right">8P</th>
+                                          <th class="px-2 py-1 text-right">9P</th>
+                                          <th class="px-2 py-1 text-right">10P</th>
+                                          <th class="px-2 py-1 text-right">11P</th>
+                                          <th class="px-2 py-1 text-right">12P</th>
+                                          <th class="px-2 py-1 text-right">13P</th>
+                                          <th class="px-2 py-1 text-right">14P</th>
+                                          <th class="px-2 py-1 text-right">15P</th>
+                                          <th class="px-2 py-1 text-right">Child</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        <tr class="border-b">
+                                          <td class="px-2 py-1">${rate.season || "N/A"}</td>
+                                          <td class="px-2 py-1">${rate.sneak || "N/A"}</td>
+                                          <td class="px-2 py-1">${rate.duration || "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_solo ? "₱" + Number(rate.rate_solo).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_2pax ? "₱" + Number(rate.rate_2pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_3pax ? "₱" + Number(rate.rate_3pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_4pax ? "₱" + Number(rate.rate_4pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_5pax ? "₱" + Number(rate.rate_5pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_6pax ? "₱" + Number(rate.rate_6pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_7pax ? "₱" + Number(rate.rate_7pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_8pax ? "₱" + Number(rate.rate_8pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_9pax ? "₱" + Number(rate.rate_9pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_10pax ? "₱" + Number(rate.rate_10pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_11pax ? "₱" + Number(rate.rate_11pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_12pax ? "₱" + Number(rate.rate_12pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_13pax ? "₱" + Number(rate.rate_13pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_14pax ? "₱" + Number(rate.rate_14pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_15pax ? "₱" + Number(rate.rate_15pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.rate_child_no_breakfast ? "₱" + Number(rate.rate_child_no_breakfast).toLocaleString() : "N/A"}</td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                                
+                                <!-- Extra Night Rates -->
+                                <div class="mt-3">
+                                  <p class="text-xs font-medium text-gray-600 mb-1">Extra Night Rates:</p>
+                                  <div class="overflow-x-auto">
+                                    <table class="min-w-full text-xs">
+                                      <thead>
+                                        <tr class="bg-gray-100">
+                                          <th class="px-2 py-1 text-left">Season</th>
+                                          <th class="px-2 py-1 text-left">Sneak</th>
+                                          <th class="px-2 py-1 text-left">Duration/TravelDate</th>
+                                          <th class="px-2 py-1 text-right">Solo</th>
+                                          <th class="px-2 py-1 text-right">2P</th>
+                                          <th class="px-2 py-1 text-right">3P</th>
+                                          <th class="px-2 py-1 text-right">4P</th>
+                                          <th class="px-2 py-1 text-right">5P</th>
+                                          <th class="px-2 py-1 text-right">6P</th>
+                                          <th class="px-2 py-1 text-right">7P</th>
+                                          <th class="px-2 py-1 text-right">8P</th>
+                                          <th class="px-2 py-1 text-right">9P</th>
+                                          <th class="px-2 py-1 text-right">10P</th>
+                                          <th class="px-2 py-1 text-right">11P</th>
+                                          <th class="px-2 py-1 text-right">12P</th>
+                                          <th class="px-2 py-1 text-right">13P</th>
+                                          <th class="px-2 py-1 text-right">14P</th>
+                                          <th class="px-2 py-1 text-right">15P</th>
+                                          <th class="px-2 py-1 text-right">Child</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        <tr class="border-b">
+                                          <td class="px-2 py-1">${rate.season || "N/A"}</td>
+                                          <td class="px-2 py-1">${rate.sneak || "N/A"}</td>
+                                          <td class="px-2 py-1">${rate.duration || "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_solo ? "₱" + Number(rate.extra_night_solo).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_2pax ? "₱" + Number(rate.extra_night_2pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_3pax ? "₱" + Number(rate.extra_night_3pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_4pax ? "₱" + Number(rate.extra_night_4pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_5pax ? "₱" + Number(rate.extra_night_5pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_6pax ? "₱" + Number(rate.extra_night_6pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_7pax ? "₱" + Number(rate.extra_night_7pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_8pax ? "₱" + Number(rate.extra_night_8pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_9pax ? "₱" + Number(rate.extra_night_9pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_10pax ? "₱" + Number(rate.extra_night_10pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_11pax ? "₱" + Number(rate.extra_night_11pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_12pax ? "₱" + Number(rate.extra_night_12pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_13pax ? "₱" + Number(rate.extra_night_13pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_14pax ? "₱" + Number(rate.extra_night_14pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_15pax ? "₱" + Number(rate.extra_night_15pax).toLocaleString() : "N/A"}</td>
+                                          <td class="px-2 py-1 text-right">${rate.extra_night_child_no_breakfast ? "₱" + Number(rate.extra_night_child_no_breakfast).toLocaleString() : "N/A"}</td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                                
+                                <!-- Breakfast Info -->
+                                ${
+                                  rate.breakfast_included ||
+                                  rate.breakfast_notes
+                                    ? `
+                                  <div class="mt-2 text-xs text-gray-600">
+                                    ${rate.breakfast_included ? '<span class="text-green-600 mr-2">✓ Breakfast Included</span>' : ""}
+                                    ${rate.breakfast_notes ? `<span class="text-gray-500">Note: ${rate.breakfast_notes}</span>` : ""}
+                                  </div>
+                                `
+                                    : ""
+                                }
+
+                               <!-- ADDITIONAL INFO -->
+                               ${
+                                 rate.additional_info
+                                   ? `
+                                 <div class="mt-3 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                                   <div class="flex items-center gap-2 mb-2">
+                                     <i class="fas fa-info-circle text-indigo-500"></i>
+                                     <span class="font-semibold text-sm text-indigo-700">Additional Information:</span>
+                                   </div>
+                                   <div class="space-y-1 text-xs text-gray-700 whitespace-pre-line">
+                                     ${rate.additional_info}
+                                   </div>
+                                 </div>
+                               `
+                                   : ""
+                               }
+                              </div>
+                            `;
+                            })
+                            .join("")}
+                        </div>
+                        `
+                          : ""
+                      }
+
+                      <!-- DYNAMIC TABLE -->
+                      <div id="package-rates-${pkg.id}">
+                        ${
+                          pkg.table_format
+                            ? `
+                          <div class="text-center py-4">
+                            <i class="fas fa-spinner fa-spin text-gray-400 text-2xl"></i>
+                            <p class="text-xs text-gray-500 mt-2">Loading dynamic rates...</p>
+                          </div>
+                        `
+                            : ""
+                        }
+                      </div>
+                    </div>
+                    
                     <!-- Inclusions -->
                     ${
                       pkg.inclusions && pkg.inclusions.length > 0
@@ -2870,91 +3107,89 @@ ${
                     `
                     }
                     
-                  <!-- Optional Tours -->
-${
-  pkg.optional_tours && pkg.optional_tours.length > 0
-    ? `
-  <div class="border rounded-lg p-3 bg-purple-50">
-    <div class="flex items-center justify-between mb-2">
-      <h5 class="font-semibold text-sm flex items-center gap-1 text-purple-700">
-        <i class="fas fa-compass"></i> Optional Tours
-      </h5>
-      <span class="text-xs bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full">
-        ${pkg.optional_tours.length} tour(s)
-      </span>
-    </div>
-    
-    <!-- Tours List with Delete Button -->
-    <div class="space-y-2">
-      ${pkg.optional_tours
-        .map(
-          (tour) => `
-        <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-purple-200 hover:bg-purple-50 transition">
-          <div class="flex items-center gap-2 flex-1">
-            ${
-              tour.image_url
-                ? `
-              <img src="${tour.image_url}" alt="${tour.tour_name}" class="w-8 h-8 rounded-lg object-cover">
-            `
-                : `
-              <i class="fas fa-compass text-purple-400 text-sm"></i>
-            `
-            }
-            <div>
-              <span class="text-sm font-medium">${tour.tour_name}</span>
-              ${
-                tour.duration_hours
-                  ? `
-                <span class="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded ml-2">
-                  ${tour.duration_hours}h
-                </span>
-              `
-                  : ""
-              }
-            </div>
-          </div>
-          <div class="flex gap-1">
-            <button onclick="window.viewOptionalTourDetails(${tour.id})" 
-                    class="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-100 px-2 py-1 rounded transition flex items-center gap-1"
-                    title="View Full Details">
-              <i class="fas fa-eye"></i>
-            </button>
-            <button onclick="window.confirmDeleteOptionalTour(${tour.id})" 
-                    class="text-xs text-red-600 hover:text-red-800 hover:bg-red-100 px-2 py-1 rounded transition flex items-center gap-1"
-                    title="Delete Tour">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-        </div>
-      `,
-        )
-        .join("")}
-    </div>
-    
-    <!-- Add Tours Button -->
-    <div class="mt-3 pt-2 border-t-2 border-dashed border-gray-200">
-      <button onclick="openAddMultipleToursToPackageModal(${pkg.id}, ${destination.id})" 
-                class="w-full px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition flex items-center justify-center gap-2">
-          <i class="fas fa-plus-circle"></i>
-          <span class="font-medium">Add Optional Tours to this Package</span>
-        </button>
-    </div>
-  </div>
-`
-    : `
-  <div class="border rounded-lg p-3 bg-gray-50">
-    <div class="text-center py-2">
-      <i class="fas fa-compass text-2xl text-gray-400 mb-1"></i>
-      <h5 class="font-semibold text-sm text-gray-500 mb-1">Optional Tours</h5>
-      <p class="text-xs text-gray-400 italic">N/A - No optional tours in this package</p>
-      <button onclick="openAddMultipleToursToPackageModal(${pkg.id}, ${destination.id})" 
-                class="mt-2 px-3 py-1 bg-purple-500 text-white rounded-lg text-xs hover:bg-purple-600">
-          <i class="fas fa-plus-circle mr-1"></i> Add Optional Tours
-        </button>
-    </div>
-  </div>
-`
-}
+                    <!-- Optional Tours -->
+                    ${
+                      pkg.optional_tours && pkg.optional_tours.length > 0
+                        ? `
+                      <div class="border rounded-lg p-3 bg-purple-50">
+                        <div class="flex items-center justify-between mb-2">
+                          <h5 class="font-semibold text-sm flex items-center gap-1 text-purple-700">
+                            <i class="fas fa-compass"></i> Optional Tours
+                          </h5>
+                          <span class="text-xs bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full">
+                            ${pkg.optional_tours.length} tour(s)
+                          </span>
+                        </div>
+                        
+                        <div class="space-y-2">
+                          ${pkg.optional_tours
+                            .map(
+                              (tour) => `
+                            <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-purple-200 hover:bg-purple-50 transition">
+                              <div class="flex items-center gap-2 flex-1">
+                                ${
+                                  tour.image_url
+                                    ? `
+                                  <img src="${tour.image_url}" alt="${tour.tour_name}" class="w-8 h-8 rounded-lg object-cover">
+                                `
+                                    : `
+                                  <i class="fas fa-compass text-purple-400 text-sm"></i>
+                                `
+                                }
+                                <div>
+                                  <span class="text-sm font-medium">${tour.tour_name}</span>
+                                  ${
+                                    tour.duration_hours
+                                      ? `
+                                    <span class="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded ml-2">
+                                      ${tour.duration_hours}h
+                                    </span>
+                                  `
+                                      : ""
+                                  }
+                                </div>
+                              </div>
+                              <div class="flex gap-1">
+                                <button onclick="window.viewOptionalTourDetails(${tour.id})" 
+                                        class="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-100 px-2 py-1 rounded transition flex items-center gap-1"
+                                        title="View Full Details">
+                                  <i class="fas fa-eye"></i>
+                                </button>
+                                <button onclick="window.confirmDeleteOptionalTour(${tour.id})" 
+                                        class="text-xs text-red-600 hover:text-red-800 hover:bg-red-100 px-2 py-1 rounded transition flex items-center gap-1"
+                                        title="Delete Tour">
+                                  <i class="fas fa-trash"></i>
+                                </button>
+                              </div>
+                            </div>
+                          `,
+                            )
+                            .join("")}
+                        </div>
+                        
+                        <div class="mt-3 pt-2 border-t-2 border-dashed border-gray-200">
+                          <button onclick="openAddMultipleToursToPackageModal(${pkg.id}, ${destination.id})" 
+                                    class="w-full px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition flex items-center justify-center gap-2">
+                              <i class="fas fa-plus-circle"></i>
+                              <span class="font-medium">Add Optional Tours to this Package</span>
+                          </button>
+                        </div>
+                      </div>
+                    `
+                        : `
+                      <div class="border rounded-lg p-3 bg-gray-50">
+                        <div class="text-center py-2">
+                          <i class="fas fa-compass text-2xl text-gray-400 mb-1"></i>
+                          <h5 class="font-semibold text-sm text-gray-500 mb-1">Optional Tours</h5>
+                          <p class="text-xs text-gray-400 italic">N/A - No optional tours in this package</p>
+                          <button onclick="openAddMultipleToursToPackageModal(${pkg.id}, ${destination.id})" 
+                                    class="mt-2 px-3 py-1 bg-purple-500 text-white rounded-lg text-xs hover:bg-purple-600">
+                              <i class="fas fa-plus-circle mr-1"></i> Add Optional Tours
+                          </button>
+                        </div>
+                      </div>
+                    `
+                    }
                   </div>
                 </div>
               `,
@@ -2963,7 +3198,86 @@ ${
               }
             </div>
 
-            <!-- Action Buttons -->
+            <!-- ========== OPTIONAL TOURS SECTION ========== -->
+            <div class="bg-white p-5 rounded-xl border-2 border-gray-200">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                  <i class="fas fa-compass text-purple-500"></i>
+                  Optional Tours
+                </h3>
+                <button onclick="window.openCreateOptionalTourModal(${destination.id})" 
+                        class="px-3 py-1.5 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600">
+                  <i class="fas fa-plus-circle mr-1"></i> Add Tour
+                </button>
+              </div>
+              
+              ${
+                destination.optional_tours &&
+                destination.optional_tours.length > 0
+                  ? `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  ${destination.optional_tours
+                    .map(
+                      (tour) => `
+                    <div class="border rounded-lg p-3 hover:shadow-md transition bg-white">
+                      <div class="flex gap-3">
+                        <div class="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          ${
+                            tour.image_url
+                              ? `
+                            <img src="${tour.image_url}" alt="${tour.tour_name}" class="w-full h-full object-cover">
+                          `
+                              : `
+                            <div class="w-full h-full flex items-center justify-center">
+                              <i class="fas fa-compass text-gray-400 text-2xl"></i>
+                            </div>
+                          `
+                          }
+                        </div>
+                        <div class="flex-1">
+                          <h4 class="font-bold text-gray-800">${tour.tour_name}</h4>
+                          <p class="text-xs text-gray-500">${tour.duration_hours ? tour.duration_hours + " hours" : "N/A"}</p>
+                          <div class="mt-2 flex items-center gap-2">
+                            <span class="text-xs px-2 py-0.5 rounded-full ${tour.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}">
+                              ${tour.is_active ? "Active" : "Inactive"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="mt-3 pt-2 border-t border-gray-100 flex justify-end gap-2">
+                        <button onclick="window.viewOptionalTourDetails(${tour.id})" 
+                                class="text-xs text-purple-600 hover:text-purple-800 px-2 py-1 rounded hover:bg-purple-50">
+                          <i class="fas fa-eye mr-1"></i> View
+                        </button>
+                        <button onclick="window.openEditOptionalTourModal(${tour.id})" 
+                                class="text-xs text-amber-600 hover:text-amber-800 px-2 py-1 rounded hover:bg-amber-50">
+                          <i class="fas fa-edit mr-1"></i> Edit
+                        </button>
+                        <button onclick="window.confirmDeleteOptionalTour(${tour.id})" 
+                                class="text-xs text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50">
+                          <i class="fas fa-trash mr-1"></i> Delete
+                        </button>
+                      </div>
+                    </div>
+                  `,
+                    )
+                    .join("")}
+                </div>
+              `
+                  : `
+                <div class="text-center py-8 bg-gray-50 rounded-lg">
+                  <i class="fas fa-compass text-4xl text-gray-400 mb-3"></i>
+                  <p class="text-gray-500 mb-3">No optional tours yet</p>
+                  <button onclick="window.openCreateOptionalTourModal(${destination.id})" 
+                          class="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600">
+                    <i class="fas fa-plus-circle mr-1"></i> Create First Tour
+                  </button>
+                </div>
+              `
+              }
+            </div>
+
+            <!-- ========== ACTION BUTTONS ========== -->
             <div class="flex justify-end gap-3 pt-4 border-t-2 border-gray-100">
               <button onclick="this.closest('.fixed').remove()" 
                       class="px-5 py-2.5 border-2 border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-all">
@@ -2981,6 +3295,400 @@ ${
     `;
 
     document.body.appendChild(modal);
+
+    // =====================================================
+    // LOAD TABLE FORMATS
+    // =====================================================
+    (async function loadTableFormats() {
+      try {
+        const formats = await window.fetchTableFormats(destination.id);
+
+        const formatsByName = {};
+        formats.forEach((format) => {
+          if (!formatsByName[format.format_name]) {
+            formatsByName[format.format_name] = {
+              name: format.format_name,
+              description: format.format_description,
+              columns: [],
+            };
+          }
+          formatsByName[format.format_name].columns.push(format);
+        });
+
+        const container = document.getElementById(
+          `tableFormatsContainer-${destination.id}`,
+        );
+
+        if (Object.keys(formatsByName).length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-6 bg-gray-50 rounded-lg">
+              <i class="fas fa-table text-4xl text-gray-400 mb-3"></i>
+              <p class="text-gray-500 mb-3">No table formats yet</p>
+              <button onclick="window.openTableFormatBuilderModal(${destination.id})" 
+                      class="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm">
+                Create Your First Format
+              </button>
+            </div>
+          `;
+        } else {
+          let html = "";
+          for (const [formatName, format] of Object.entries(formatsByName)) {
+            const regularColumns = format.columns.filter(
+              (col) => !col.is_extra_night,
+            );
+            const extraColumns = format.columns.filter(
+              (col) => col.is_extra_night,
+            );
+
+            html += `
+              <div class="border-2 border-gray-200 rounded-lg p-4 hover:border-emerald-300 transition">
+                <div class="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 class="font-bold text-lg">${formatName}</h4>
+                    ${format.description ? `<p class="text-sm text-gray-500">${format.description}</p>` : ""}
+                    <p class="text-xs text-gray-400 mt-1">${format.columns.length} columns</p>
+                  </div>
+                  <div class="flex gap-2">
+                    <button onclick="window.editFormatFromDestination(${destination.id}, '${formatName}')" 
+                            class="text-amber-600 hover:text-amber-800 p-2" title="Edit Format">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="window.deleteFormatFromDestination(${destination.id}, '${formatName}')" 
+                            class="text-red-600 hover:text-red-800 p-2" title="Delete Format">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                  <table class="w-full text-xs border-collapse">
+                    <thead>
+                      <tr class="bg-gray-100">
+                        <th class="border px-2 py-1">Season</th>
+                        <th class="border px-2 py-1">Sneak</th>
+                        <th class="border px-2 py-1">Duration/Travel-Date</th>
+                        ${regularColumns
+                          .map(
+                            (col) =>
+                              `<th class="border px-2 py-1 bg-emerald-50 text-emerald-700">${col.column_label}</th>`,
+                          )
+                          .join("")}
+                        ${extraColumns
+                          .map(
+                            (col) =>
+                              `<th class="border px-2 py-1 bg-purple-50 text-purple-700">${col.column_label} (Extra)</th>`,
+                          )
+                          .join("")}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="border px-2 py-1 text-gray-400">Peak</td>
+                        <td class="border px-2 py-1 text-gray-400">SNK001</td>
+                        <td class="border px-2 py-1 text-gray-400">3D2N</td>
+                        ${regularColumns.map(() => '<td class="border px-2 py-1 text-right text-gray-400">₱0.00</td>').join("")}
+                        ${extraColumns.map(() => '<td class="border px-2 py-1 text-right text-gray-400">₱0.00</td>').join("")}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                
+                <div class="mt-2 text-xs text-gray-500">
+                  <i class="fas fa-info-circle mr-1"></i>
+                  Used in: <span id="formatUsage-${formatName.replace(/\s/g, "-")}">Loading...</span>
+                </div>
+              </div>
+            `;
+          }
+          container.innerHTML = html;
+
+          for (const formatName of Object.keys(formatsByName)) {
+            const packagesUsing =
+              destination.packages?.filter(
+                (pkg) => pkg.table_format === formatName,
+              ) || [];
+
+            const usageSpan = document.getElementById(
+              `formatUsage-${formatName.replace(/\s/g, "-")}`,
+            );
+            if (usageSpan) {
+              if (packagesUsing.length === 0) {
+                usageSpan.innerHTML = "No packages yet";
+              } else {
+                usageSpan.innerHTML = packagesUsing
+                  .map(
+                    (p) =>
+                      `<span class="inline-block bg-gray-100 px-2 py-0.5 rounded mr-1 mb-1">${p.package_name}</span>`,
+                  )
+                  .join("");
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error loading table formats:", error);
+        const container = document.getElementById(
+          `tableFormatsContainer-${destination.id}`,
+        );
+        if (container) {
+          container.innerHTML = `
+            <div class="text-center py-4 bg-red-50 rounded-lg">
+              <i class="fas fa-exclamation-triangle text-red-500 text-2xl mb-2"></i>
+              <p class="text-sm text-red-600">Failed to load table formats</p>
+            </div>
+          `;
+        }
+      }
+    })();
+
+    // =====================================================
+    // LOAD PACKAGE RATES
+    // =====================================================
+    (async function loadPackageRates() {
+      if (!destination.packages) return;
+
+      for (const pkg of destination.packages) {
+        if (!pkg.table_format) {
+          const container = document.getElementById(`package-rates-${pkg.id}`);
+          if (container) container.innerHTML = "";
+          continue;
+        }
+
+        const container = document.getElementById(`package-rates-${pkg.id}`);
+        if (!container) continue;
+
+        try {
+          const formatDescription = await getFormatDescription(
+            destination.id,
+            pkg.table_format,
+          );
+          const columnCount = await getFormatColumnCount(
+            destination.id,
+            pkg.table_format,
+          );
+          const totalRateRows = await getTotalRateRows(pkg.id);
+          const columns =
+            (await fetchTableFormatByName(destination.id, pkg.table_format)) ||
+            [];
+          const regularColumns = columns.filter((col) => !col.is_extra_night);
+          const extraColumns = columns.filter((col) => col.is_extra_night);
+
+          let categoriesHtml = "";
+          let hasAnyRates = false;
+
+          for (const cat of destination.hotel_categories || []) {
+            const rates = await fetchRateRows(pkg.id, cat.id);
+
+            if (!rates || rates.length === 0) {
+              categoriesHtml += `
+                <div class="bg-white p-4 rounded-lg border border-gray-200 hover:shadow-sm transition mb-3">
+                  <div class="flex justify-between items-center">
+                    <div>
+                      <h6 class="font-semibold text-gray-700 flex items-center gap-2">
+                        <i class="fas fa-hotel text-blue-500 text-sm"></i>
+                        ${cat.category_name}
+                      </h6>
+                      <p class="text-xs text-gray-400 mt-1">No rates entered yet</p>
+                    </div>
+                    <button onclick="window.openRateInputModal(${pkg.id}, ${cat.id}, '${pkg.table_format}')" 
+                            class="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600 transition flex items-center gap-1">
+                      <i class="fas fa-plus-circle"></i> Add Rates
+                    </button>
+                  </div>
+                </div>
+              `;
+              continue;
+            }
+
+            hasAnyRates = true;
+            let tableRows = "";
+            rates.forEach((row) => {
+              let regularCells = "";
+              regularColumns.forEach((col) => {
+                const value = row.values[col.column_key]?.value;
+                regularCells += `<td class="border border-gray-300 px-3 py-2 text-right font-mono">${value ? "₱" + Number(value).toLocaleString() : "-"}</td>`;
+              });
+
+              let extraCells = "";
+              extraColumns.forEach((col) => {
+                const value = row.values[col.column_key]?.value;
+                extraCells += `<td class="border border-gray-300 px-3 py-2 text-right font-mono bg-purple-50">${value ? "₱" + Number(value).toLocaleString() : "-"}</td>`;
+              });
+
+              tableRows += `
+                <tr class="hover:bg-gray-50">
+                  <td class="border border-gray-300 px-3 py-2 font-medium">${row.season || "-"}</td>
+                  <td class="border border-gray-300 px-3 py-2">${row.sneak || "-"}</td>
+                  <td class="border border-gray-300 px-3 py-2">${row.duration || "-"}</td>
+                  ${regularCells}
+                  ${extraCells}
+                </tr>
+              `;
+            });
+
+            categoriesHtml += `
+              <div class="bg-white p-4 rounded-lg border border-gray-200 hover:shadow-sm transition mb-3">
+                <div class="flex justify-between items-center mb-3">
+                  <div>
+                    <h6 class="font-semibold text-gray-700 flex items-center gap-2">
+                      <i class="fas fa-hotel text-blue-500 text-sm"></i>
+                      ${cat.category_name}
+                    </h6>
+                    <p class="text-xs text-gray-400">${rates.length} rate row(s)</p>
+                  </div>
+                  <button onclick="window.openRateInputModal(${pkg.id}, ${cat.id}, '${pkg.table_format}')" 
+                          class="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600 transition flex items-center gap-1">
+                    <i class="fas fa-edit"></i> Edit Rates
+                  </button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                  <table class="w-full text-xs border-collapse">
+                    <thead>
+                      <tr class="bg-gray-100">
+                        <th class="border border-gray-300 px-3 py-2 text-left">Season</th>
+                        <th class="border border-gray-300 px-3 py-2 text-left">Sneak</th>
+                        <th class="border border-gray-300 px-3 py-2 text-left">Duration/Travel-Date</th>
+                        ${regularColumns
+                          .map(
+                            (col) =>
+                              `<th class="border border-gray-300 px-3 py-2 bg-emerald-50 text-emerald-800" title="${col.column_type}">
+                            ${col.column_label}
+                            ${col.pax_count ? `<span class="text-xs text-gray-500 block">${col.pax_count} pax</span>` : ""}
+                          </th>`,
+                          )
+                          .join("")}
+                        ${extraColumns
+                          .map(
+                            (col) =>
+                              `<th class="border border-gray-300 px-3 py-2 bg-purple-50 text-purple-800">
+                            ${col.column_label}
+                            <span class="text-xs text-purple-500 block">Extra Night</span>
+                          </th>`,
+                          )
+                          .join("")}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${tableRows}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+          }
+
+          if (!hasAnyRates) {
+            container.innerHTML = `
+              <div class="border rounded-lg p-4 bg-gradient-to-br from-indigo-50 to-white mb-4">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <i class="fas fa-table text-indigo-600"></i>
+                    </div>
+                    <div>
+                      <h5 class="font-bold text-lg text-indigo-800">${pkg.table_format}</h5>
+                      ${formatDescription ? `<p class="text-xs text-gray-600">${formatDescription}</p>` : ""}
+                    </div>
+                  </div>
+                  <div class="flex gap-2">
+                    <button onclick="window.openAssignFormatModal(${pkg.id}, ${destination.id})" 
+                            class="text-xs bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-200 transition flex items-center gap-1">
+                      <i class="fas fa-sync-alt"></i> Change
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                  <div class="bg-white p-2 rounded-lg border border-indigo-200 text-center">
+                    <span class="text-xs text-gray-500">Categories</span>
+                    <p class="font-bold text-indigo-700">${destination.hotel_categories?.length || 0}</p>
+                  </div>
+                  <div class="bg-white p-2 rounded-lg border border-indigo-200 text-center">
+                    <span class="text-xs text-gray-500">Columns</span>
+                    <p class="font-bold text-indigo-700">${columnCount}</p>
+                  </div>
+                  <div class="bg-white p-2 rounded-lg border border-indigo-200 text-center">
+                    <span class="text-xs text-gray-500">Rate Rows</span>
+                    <p class="font-bold text-indigo-700">${totalRateRows}</p>
+                  </div>
+                </div>
+                
+                <div class="text-center py-8 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                  <i class="fas fa-table text-4xl text-gray-400 mb-3"></i>
+                  <p class="text-gray-500 mb-3">No rates entered for this format yet</p>
+                  <div class="flex flex-wrap justify-center gap-2">
+                    ${destination.hotel_categories
+                      ?.map(
+                        (cat) => `
+                      <button onclick="window.openRateInputModal(${pkg.id}, ${cat.id}, '${pkg.table_format}')" 
+                              class="inline-block mx-1 px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs hover:bg-blue-600 transition">
+                        <i class="fas fa-plus-circle mr-1"></i> Add ${cat.category_name} Rates
+                      </button>
+                    `,
+                      )
+                      .join("")}
+                  </div>
+                </div>
+              </div>
+            `;
+          } else {
+            container.innerHTML = `
+              <div class="border rounded-lg p-4 bg-gradient-to-br from-indigo-50 to-white mb-4">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <i class="fas fa-table text-indigo-600"></i>
+                    </div>
+                    <div>
+                      <h5 class="font-bold text-lg text-indigo-800">${pkg.table_format}</h5>
+                      ${formatDescription ? `<p class="text-xs text-gray-600">${formatDescription}</p>` : ""}
+                    </div>
+                  </div>
+                  <div class="flex gap-2">
+                    <button onclick="window.viewRatesModal(${pkg.id}, '${pkg.table_format}')" 
+                            class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-200 transition flex items-center gap-1">
+                      <i class="fas fa-eye"></i> View All
+                    </button>
+                    <button onclick="window.openAssignFormatModal(${pkg.id}, ${destination.id})" 
+                            class="text-xs bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-200 transition flex items-center gap-1">
+                      <i class="fas fa-sync-alt"></i> Change
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                  <div class="bg-white p-2 rounded-lg border border-indigo-200 text-center">
+                    <span class="text-xs text-gray-500">Categories</span>
+                    <p class="font-bold text-indigo-700">${destination.hotel_categories?.length || 0}</p>
+                  </div>
+                  <div class="bg-white p-2 rounded-lg border border-indigo-200 text-center">
+                    <span class="text-xs text-gray-500">Columns</span>
+                    <p class="font-bold text-indigo-700">${columnCount}</p>
+                  </div>
+                  <div class="bg-white p-2 rounded-lg border border-indigo-200 text-center">
+                    <span class="text-xs text-gray-500">Rate Rows</span>
+                    <p class="font-bold text-indigo-700">${totalRateRows}</p>
+                  </div>
+                </div>
+                
+                <div class="space-y-4 mt-3">
+                  ${categoriesHtml}
+                </div>
+              </div>
+            `;
+          }
+        } catch (error) {
+          console.error(`Error loading rates for package ${pkg.id}:`, error);
+          container.innerHTML = `
+            <div class="border rounded-lg p-4 bg-red-50 text-red-700">
+              Error loading dynamic rates for this package
+            </div>
+          `;
+        }
+      }
+    })();
+
     showLoading(false);
   } catch (error) {
     console.error("Error viewing destination details:", error);
@@ -2988,7 +3696,6 @@ ${
     showLoading(false);
   }
 }
-
 export async function renderDestinations() {
   await fetchDestinations();
 
@@ -3079,10 +3786,6 @@ export async function refreshDestinationsPage() {
 
   showToast("✅ Data refreshed!", "success");
 }
-
-// =====================================================
-// CREATE DESTINATION MODAL
-// =====================================================
 
 export function openCreateDestinationModal() {
   const modal = document.createElement("div");
@@ -3607,7 +4310,7 @@ export function openCreateDestinationModal() {
             <input type="text" name="hotel_categories[${rowCount}][breakfast_note]" 
                    placeholder="e.g., Breakfast at hotel restaurant"
                    class="flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg text-sm">
-            <button type="button" onclick="this.closest('.hotel-category-row').remove(); updateHotelCategorySelects()" 
+            <button type="button" onclick="this.closest('.hotel-category-row').remove(); setTimeout(() => updateAllPackagesHotelRates(), 100)" 
                     class="px-2 py-1 bg-red-500 text-white rounded-lg text-xs hover:bg-red-600">
               <i class="fas fa-trash"></i>
             </button>
@@ -3617,6 +4320,8 @@ export function openCreateDestinationModal() {
     `;
     container.insertAdjacentHTML("beforeend", rowHtml);
     updateHotelCategorySelects();
+    // Update all package hotel rates when a new category is added
+    setTimeout(() => updateAllPackagesHotelRates(), 100);
   };
 
   // Update all hotel category selects when categories change
@@ -3671,7 +4376,7 @@ export function openCreateDestinationModal() {
           </div>
           
           <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Duration (hours)</label>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Duration/Travel-Date (hours)</label>
             <input type="number" name="optional_tours[${tourCount}][duration]" step="0.5"
                    class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
                    placeholder="e.g., 4">
@@ -3989,7 +4694,7 @@ export function openCreateDestinationModal() {
     container.insertAdjacentHTML("beforeend", packageHtml);
 
     // Initialize hotel rates for this package
-    updatePackageHotelRates(packageIndex);
+    setTimeout(() => updatePackageHotelRates(packageIndex), 100);
     // Initialize itinerary with default 3 days
     initializePackageItinerary(packageIndex);
   }
@@ -4058,7 +4763,7 @@ export function openCreateDestinationModal() {
     container.insertAdjacentHTML("beforeend", rowHtml);
   };
 
-  // Update hotel rates for a package based on categories - TABLE FORMAT WITH SEASON, SNEAK AND DURATION
+  // Update hotel rates for a package based on categories - FIXED VERSION
   function updatePackageHotelRates(packageIndex) {
     const container = document.getElementById(
       `package-${packageIndex}-hotel-rates`,
@@ -4080,7 +4785,7 @@ export function openCreateDestinationModal() {
       const catName = catNameInput?.value || `Category ${catIndex + 1}`;
 
       ratesHtml += `
-        <div class="border-2 border-gray-200 rounded-xl p-6 mb-8 bg-white shadow-sm">
+        <div class="border-2 border-gray-200 rounded-xl p-6 mb-8 bg-white shadow-sm" data-category-index="${catIndex}">
           <div class="flex items-center justify-between mb-4">
             <h6 class="font-semibold text-lg text-indigo-700">${catName}</h6>
           </div>
@@ -4100,7 +4805,7 @@ export function openCreateDestinationModal() {
                   <tr class="bg-gray-100">
                     <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[180px]">Season</th>
                     <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Sneak In</th>
-                    <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Duration</th>
+                    <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Duration/Travel-Date</th>
                     <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">Solo</th>
                     <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">2P</th>
                     <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">3P</th>
@@ -4142,7 +4847,7 @@ export function openCreateDestinationModal() {
                   <tr class="bg-gray-50">
                     <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[180px]">Season</th>
                     <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Sneak In</th>
-                    <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Duration</th>
+                    <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Duration/Travel-Date</th>
                     <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">Solo</th>
                     <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">2P</th>
                     <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">3P</th>
@@ -4183,6 +4888,22 @@ export function openCreateDestinationModal() {
                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
             </div>
           </div>
+          
+          <!-- Additional Information Field -->
+          <div class="mt-4 pt-3 border-t border-gray-200">
+            <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
+              <i class="fas fa-info-circle text-indigo-500"></i>
+              Additional Information (Check-in/out times, policies, etc.)
+            </label>
+            <textarea name="packages[${packageIndex}][hotel_rates][${catIndex}][additional_info]" rows="4"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      placeholder="Check-in: 2:00 PM
+Check-out: 12:00 PM
+Free WiFi
+Pool access
+Parking available"></textarea>
+            <p class="text-xs text-gray-500 mt-1">One item per line for better formatting</p>
+          </div>
         </div>
       `;
     });
@@ -4198,7 +4919,7 @@ export function openCreateDestinationModal() {
     });
   }
 
-  // Function to add a new rate row with Season, Sneak, and Duration
+  // Function to add a new rate row with Season, Sneak, and Duration - FIXED VERSION
   window.addRateRow = function (packageIndex, catIndex, type) {
     const tbodyId =
       type === "regular"
@@ -4219,10 +4940,9 @@ export function openCreateDestinationModal() {
                  placeholder="e.g., Peak Season 2024">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[150px]">
-          <input type="number" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][sneak]" 
+          <input type="text" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][sneak]" 
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
-                 step="0.01"
-                 placeholder="e.g., 1000.00">
+                 placeholder="e.g., SNK001">
         </td>
         <td class="border border-gray-300 px-3 py-2 min-w-[120px]">
           <input type="text" name="packages[${packageIndex}][hotel_rates][${catIndex}][${rateType}][${rowCount}][duration]" 
@@ -4331,26 +5051,17 @@ export function openCreateDestinationModal() {
   }
 
   // Initialize with first package
-  addPackageSectionWithIndex(0);
-
-  // Watch for changes in hotel categories to update rates
-  const observer = new MutationObserver(() => {
-    updateAllPackagesHotelRates();
-  });
-
-  observer.observe(document.getElementById("hotelCategoriesContainer"), {
-    childList: true,
-    subtree: true,
-    characterData: true,
-  });
+  setTimeout(() => addPackageSectionWithIndex(0), 100);
 
   // =====================================================
-  // FORM SUBMIT HANDLER - UPDATED WITH DURATION
+  // FORM SUBMIT HANDLER - FIXED VERSION
   // =====================================================
   const form = document.getElementById("createDestinationForm");
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+
+    // Show loading immediately
     showLoading(true, "Creating destination with all packages...");
 
     try {
@@ -4386,8 +5097,10 @@ export function openCreateDestinationModal() {
         subcategory: subcategory,
       };
 
+      console.log("Creating destination:", destinationData);
       const destination = await createDestination(destinationData);
       if (!destination) throw new Error("Failed to create destination");
+      console.log("Destination created:", destination);
 
       // 2. Handle Image
       if (destination.id) {
@@ -4418,6 +5131,7 @@ export function openCreateDestinationModal() {
                 is_primary: true,
               },
             ]);
+            console.log("Image uploaded successfully");
           } catch (uploadError) {
             console.error("Image upload failed:", uploadError);
             showToast(
@@ -4434,6 +5148,7 @@ export function openCreateDestinationModal() {
               is_primary: true,
             },
           ]);
+          console.log("Image URL saved successfully");
         }
       }
 
@@ -4456,9 +5171,11 @@ export function openCreateDestinationModal() {
         };
 
         if (catData.category_name) {
+          console.log("Creating hotel category:", catData);
           const result = await createHotelCategory(catData);
           if (result) {
             categoryMap.set(i, result.id);
+            console.log("Category created with ID:", result.id);
           }
         }
       }
@@ -4470,14 +5187,16 @@ export function openCreateDestinationModal() {
         const categoryId = categoryMap.get(parseInt(categoryIndex));
 
         if (categoryId) {
-          await createHotel({
+          const hotelData = {
             category_id: categoryId,
             name: formData.get(`hotels[${i}][name]`),
             max_capacity: formData.get(`hotels[${i}][max_capacity]`),
             description: formData.get(`hotels[${i}][description]`),
             notes: formData.get(`hotels[${i}][notes]`),
             image_url: formData.get(`hotels[${i}][image_url]`),
-          });
+          };
+          console.log("Creating hotel:", hotelData);
+          await createHotel(hotelData);
         }
       }
 
@@ -4512,13 +5231,17 @@ export function openCreateDestinationModal() {
           rate_child_4_9: null,
         };
 
+        console.log("Creating optional tour:", tourData);
         await createOptionalTour(tourData);
       }
 
       // 6. Create Packages
       const packageSections = document.querySelectorAll(".package-section");
+      console.log(`Found ${packageSections.length} package sections to create`);
 
       for (let p = 0; p < packageSections.length; p++) {
+        console.log(`Creating package #${p + 1}`);
+
         // Create package
         const packageData = {
           destination_id: destination.id,
@@ -4534,8 +5257,13 @@ export function openCreateDestinationModal() {
           exclusions: formData.get(`packages[${p}][exclusions]`),
         };
 
+        console.log("Package data:", packageData);
         const newPackage = await createPackage(packageData);
-        if (!newPackage) continue;
+        if (!newPackage) {
+          console.error(`Failed to create package #${p + 1}`);
+          continue;
+        }
+        console.log(`Package #${p + 1} created with ID:`, newPackage.id);
 
         // Create itineraries for this package
         const itineraryInputs = document.querySelectorAll(
@@ -4555,6 +5283,9 @@ export function openCreateDestinationModal() {
         });
 
         for (const iti of itineraries) {
+          console.log(
+            `Adding itinerary day ${iti.day_number} for package ${newPackage.id}`,
+          );
           await supabase.from("package_itineraries").insert([
             {
               package_id: newPackage.id,
@@ -4592,6 +5323,7 @@ export function openCreateDestinationModal() {
               `packages[${p}][hotel_rates][${c}][rates][${regularRowIndex}][duration]`,
             );
 
+            // Check if any field has value
             const hasValue =
               season ||
               sneak ||
@@ -4608,7 +5340,7 @@ export function openCreateDestinationModal() {
                 package_id: newPackage.id,
                 hotel_category_id: categoryId,
                 season: season || null,
-                sneak: sneak ? parseFloat(sneak) : null,
+                sneak: sneak || null,
                 duration: duration || null,
                 rate_solo: formData.get(
                   `packages[${p}][hotel_rates][${c}][rates][${regularRowIndex}][rate_solo]`,
@@ -4762,8 +5494,16 @@ export function openCreateDestinationModal() {
                   formData.get(
                     `packages[${p}][hotel_rates][${c}][breakfast_notes]`,
                   ) || null,
+                additional_info:
+                  formData.get(
+                    `packages[${p}][hotel_rates][${c}][additional_info]`,
+                  ) || null,
               };
 
+              console.log(
+                `Saving regular rate for category ${categoryId}:`,
+                rateData,
+              );
               await savePackageHotelRate(rateData);
             }
             regularRowIndex++;
@@ -4802,7 +5542,7 @@ export function openCreateDestinationModal() {
                 package_id: newPackage.id,
                 hotel_category_id: categoryId,
                 season: season || null,
-                sneak: sneak ? parseFloat(sneak) : null,
+                sneak: sneak || null,
                 duration: duration || null,
                 extra_night_solo: formData.get(
                   `packages[${p}][hotel_rates][${c}][extra][${extraRowIndex}][rate_solo]`,
@@ -4956,8 +5696,16 @@ export function openCreateDestinationModal() {
                   formData.get(
                     `packages[${p}][hotel_rates][${c}][breakfast_notes]`,
                   ) || null,
+                additional_info:
+                  formData.get(
+                    `packages[${p}][hotel_rates][${c}][additional_info]`,
+                  ) || null,
               };
 
+              console.log(
+                `Saving extra night rate for category ${categoryId}:`,
+                extraRateData,
+              );
               await savePackageHotelRate(extraRateData);
             }
             extraRowIndex++;
@@ -4978,20 +5726,20 @@ export function openCreateDestinationModal() {
           const mode = formData.get(
             `packages[${p}][transportation][${transIndex}][mode]`,
           );
-          await supabase.from("package_transportation").insert([
-            {
-              package_id: newPackage.id,
-              transportation_mode_id: modeMap[mode] || 1,
-              description: formData.get(
-                `packages[${p}][transportation][${transIndex}][description]`,
-              ),
-              is_included:
-                formData.get(
-                  `packages[${p}][transportation][${transIndex}][included]`,
-                ) === "true",
-              display_order: transIndex,
-            },
-          ]);
+          const transportData = {
+            package_id: newPackage.id,
+            transportation_mode_id: modeMap[mode] || 1,
+            description: formData.get(
+              `packages[${p}][transportation][${transIndex}][description]`,
+            ),
+            is_included:
+              formData.get(
+                `packages[${p}][transportation][${transIndex}][included]`,
+              ) === "true",
+            display_order: transIndex,
+          };
+          console.log("Adding transportation:", transportData);
+          await supabase.from("package_transportation").insert([transportData]);
           transIndex++;
         }
       }
@@ -5123,7 +5871,9 @@ export async function openEditDestinationModal(id) {
         airport_code: formData.get("airport_code") || null,
         airport_name: formData.get("airport_name") || null,
         country: formData.get("country") || "Philippines",
-        is_active: formData.get("is_active") === "true",
+        is_active:
+          formData.get("is_active") === "true" ||
+          formData.get("is_active") === true,
       };
 
       const result = await updateDestination(destination.id, destinationData);
@@ -5423,7 +6173,7 @@ export function openCreatePackageModal(destinationId) {
                           <tr class="bg-gray-100">
                             <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Season (Text)</th>
                             <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Sneak (Text)</th>
-                             <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Duration</th>
+                             <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Duration/Travel-Date</th>
                             <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">Solo</th>
                             <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">2P</th>
                             <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">3P</th>
@@ -5465,7 +6215,7 @@ export function openCreatePackageModal(destinationId) {
                           <tr class="bg-gray-50">
                             <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Season (Text)</th>
                             <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Sneak (Text)</th>
-                            <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">Duration</th>
+                            <th class="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">/Travel-Date</th>
                             <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">Solo</th>
                             <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">2P</th>
                             <th class="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-700">3P</th>
@@ -6240,7 +6990,7 @@ export async function openEditPackageModal(packageId) {
     for (const dest of state.destinations) {
       const found = dest.packages?.find((p) => p.id === packageId);
       if (found) {
-        pkg = JSON.parse(JSON.stringify(found)); // Deep clone to avoid reference issues
+        pkg = JSON.parse(JSON.stringify(found));
         destination = dest;
         break;
       }
@@ -6252,18 +7002,15 @@ export async function openEditPackageModal(packageId) {
       return;
     }
 
-    // Prepare data with defaults
     const inclusions = pkg.inclusions || [];
     const exclusions = pkg.exclusions || [];
     const itineraries = pkg.itineraries || [];
     const optionalTours = pkg.optional_tours || [];
     const transportation = pkg.transportation || [];
 
-    // Determine destination type
     const destinationType =
       destination?.country === "Philippines" ? "local" : "international";
 
-    // Fetch transportation categories and modes
     const { data: transportCategories } = await supabase
       .from("transportation_categories")
       .select("*")
@@ -6308,9 +7055,7 @@ export async function openEditPackageModal(packageId) {
             <input type="hidden" name="package_id" value="${pkg.id}">
             <input type="hidden" name="destination_type" value="${destinationType}">
             
-            <!-- ========================================= -->
             <!-- SECTION 1: PACKAGE BASIC INFORMATION -->
-            <!-- ========================================= -->
             <div class="bg-gradient-to-br from-blue-50 to-white p-5 rounded-xl border-2 border-blue-100">
               <h4 class="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
                 <div class="h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -6344,21 +7089,19 @@ export async function openEditPackageModal(packageId) {
               
               <div class="flex items-center gap-4 mt-4">
                 <label class="flex items-center gap-2">
-                  <input type="checkbox" name="has_extra_night" value="true" ${pkg.has_extra_night ? "checked" : ""} 
+                  <input type="checkbox" name="has_extra_night" value="true" ${pkg.has_extra_night === true ? "checked" : ""} 
                          class="h-4 w-4 text-blue-600 rounded focus:ring-blue-500">
                   <span class="text-sm text-gray-700">Has Extra Night</span>
                 </label>
                 <label class="flex items-center gap-2">
-                  <input type="checkbox" name="is_active" value="true" ${pkg.is_active !== false ? "checked" : ""} 
+                  <input type="checkbox" name="is_active" value="true" ${pkg.is_active === true ? "checked" : ""} 
                          class="h-4 w-4 text-blue-600 rounded focus:ring-blue-500">
                   <span class="text-sm text-gray-700">Active</span>
                 </label>
               </div>
             </div>
 
-            <!-- ========================================= -->
             <!-- SECTION 2: PACKAGE BASE PRICE -->
-            <!-- ========================================= -->
             <div class="bg-gradient-to-br from-emerald-50 to-white p-5 rounded-xl border-2 border-emerald-100">
               <h4 class="text-lg font-bold text-emerald-800 mb-4 flex items-center gap-2">
                 <div class="h-8 w-8 bg-emerald-100 rounded-lg flex items-center justify-center">
@@ -6379,7 +7122,7 @@ export async function openEditPackageModal(packageId) {
                 </div>
                 <div class="flex items-end">
                   <label class="flex items-center gap-2">
-                    <input type="checkbox" name="tax_included" value="true" ${pkg.tax_included ? "checked" : ""} 
+                    <input type="checkbox" name="tax_included" value="true" ${pkg.tax_included === true ? "checked" : ""} 
                            class="h-4 w-4 text-emerald-600 rounded focus:ring-emerald-500">
                     <span class="text-sm text-gray-700">Tax Included</span>
                   </label>
@@ -6387,9 +7130,7 @@ export async function openEditPackageModal(packageId) {
               </div>
             </div>
             
-            <!-- ========================================= -->
-            <!-- SECTION 3: HOTEL CATEGORIES - FULL CRUD -->
-            <!-- ========================================= -->
+            <!-- SECTION 3: HOTEL CATEGORIES -->
             <div class="bg-gradient-to-br from-blue-50 to-white p-5 rounded-xl border-2 border-blue-100">
               <div class="flex items-center justify-between mb-4">
                 <h4 class="text-lg font-bold text-blue-800 flex items-center gap-2">
@@ -6497,9 +7238,7 @@ export async function openEditPackageModal(packageId) {
               </div>
             </div>
             
-            <!-- ========================================= -->
-            <!-- SECTION 4: HOTEL RATES - TABLE FORMAT WITH SEASON AND SNEAK -->
-            <!-- ========================================= -->
+            <!-- SECTION 4: HOTEL RATES - WITH ADDITIONAL INFO -->
             <div class="bg-gradient-to-br from-indigo-50 to-white p-5 rounded-xl border-2 border-indigo-100">
               <div class="flex items-center justify-between mb-4">
                 <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -6508,12 +7247,6 @@ export async function openEditPackageModal(packageId) {
                   </div>
                   Hotel Rates (₱ per person)
                 </h4>
-                <div class="flex gap-2">
-                  <button type="button" onclick="window.addNewRateRow(${pkg.id})" 
-                          class="px-3 py-1.5 bg-indigo-500 text-white rounded-lg text-sm hover:bg-indigo-600 flex items-center gap-1">
-                    <i class="fas fa-plus-circle"></i> Add Rate Row
-                  </button>
-                </div>
               </div>
 
               <div id="hotelRatesContainer" class="space-y-6">
@@ -6546,7 +7279,7 @@ export async function openEditPackageModal(packageId) {
                                     <tr class="bg-gray-100">
                                       <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[180px]">Season</th>
                                       <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Sneak</th>
-                                      <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Duration</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">/Travel-Date</th>
                                       <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">Solo</th>
                                       <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">2P</th>
                                       <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">3P</th>
@@ -6588,7 +7321,7 @@ export async function openEditPackageModal(packageId) {
                                     <tr class="bg-gray-50">
                                       <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[180px]">Season</th>
                                       <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Sneak</th>
-                                      <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Duration</th>
+                                      <th class="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]"><Duration/Travel-Date/th>
                                       <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">Solo</th>
                                       <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">2P</th>
                                       <th class="border border-gray-300 px-3 py-2 text-right font-semibold text-gray-700 min-w-[100px]">3P</th>
@@ -6619,7 +7352,8 @@ export async function openEditPackageModal(packageId) {
                             <div class="mt-4 pt-3 border-t border-gray-200 grid grid-cols-2 gap-4">
                               <div>
                                 <label class="flex items-center gap-2">
-                                  <input type="checkbox" name="hotel_rates[${cat.id}][breakfast_included]" value="true" ${rates[0]?.breakfast_included ? "checked" : ""} class="h-4 w-4 text-indigo-600 rounded">
+                                  <input type="checkbox" name="hotel_rates[${cat.id}][breakfast_included]" value="true" ${rates[0]?.breakfast_included ? "checked" : ""} 
+                                         class="h-4 w-4 text-indigo-600 rounded breakfast-checkbox">
                                   <span class="text-sm text-gray-700">Breakfast Included</span>
                                 </label>
                               </div>
@@ -6629,6 +7363,25 @@ export async function openEditPackageModal(packageId) {
                                        class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
                               </div>
                             </div>
+                            
+                            <!-- ===== ADDITIONAL INFORMATION FIELD ===== -->
+                            <div class="mt-4 pt-3 border-t border-gray-200">
+                              <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                                <i class="fas fa-info-circle text-indigo-500"></i>
+                                Additional Information (Check-in/out times, policies, etc.)
+                              </label>
+                              <textarea name="hotel_rates[${cat.id}][additional_info]" rows="4"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                        placeholder="Check-in: 2:00 PM
+Check-out: 12:00 PM
+Free WiFi
+Pool access
+Parking available
+Children policy
+Pets policy">${rates[0]?.additional_info || ""}</textarea>
+                              <p class="text-xs text-gray-500 mt-1">One item per line for better formatting</p>
+                            </div>
+                            <!-- ======================================== -->
                           </div>
                         `;
                         })
@@ -6638,365 +7391,228 @@ export async function openEditPackageModal(packageId) {
               </div>
             </div>
             
-            <!-- ========================================= -->
-            <!-- SECTION 5: OPTIONAL TOURS - FULL CRUD -->
-            <!-- ========================================= -->
-            <div class="bg-gradient-to-br from-purple-50 to-white p-5 rounded-xl border-2 border-purple-100">
-              <div class="flex items-center justify-between mb-4">
-                <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <div class="h-8 w-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-compass text-purple-600 text-sm"></i>
-                  </div>
-                  Optional Tours
-                </h4>
-                <div class="flex gap-2">
-                  <button type="button" onclick="window.openCreateOptionalTourModal(${destination.id})" 
-                          class="px-3 py-1.5 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600 flex items-center gap-1">
-                    <i class="fas fa-plus-circle"></i> New Tour
-                  </button>
-                </div>
-              </div>
-              
-              <!-- Currently Linked Tours -->
-              ${
-                pkg.optional_tours && pkg.optional_tours.length > 0
-                  ? `
-                <div class="mb-4">
-                  <h5 class="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
-                    <i class="fas fa-link text-purple-500"></i>
-                    Currently Linked Tours
-                    <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs">${pkg.optional_tours.length}</span>
-                  </h5>
-                  <div class="space-y-2 max-h-48 overflow-y-auto p-1">
-                    ${pkg.optional_tours
-                      .map(
-                        (tour) => `
-                      <div class="flex items-center justify-between bg-white p-2 rounded-lg border-2 border-purple-200 hover:border-purple-300 transition">
-                        <div class="flex items-center gap-3 flex-1">
-                          ${
-                            tour.image_url
-                              ? `
-                            <img src="${tour.image_url}" alt="${tour.tour_name}" class="w-8 h-8 rounded-lg object-cover">
-                          `
-                              : `
-                            <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                              <i class="fas fa-compass text-purple-400 text-xs"></i>
-                            </div>
-                          `
-                          }
-                          <div>
-                            <span class="text-sm font-medium">${tour.tour_name}</span>
-                            <div class="text-xs text-gray-500">
-                              ${tour.duration_hours ? `${tour.duration_hours}h | ` : ""}
-                              From ₱${tour.rates?.[0]?.rate_solo || tour.rates?.[0]?.rate_2pax || "0"}
-                            </div>
-                          </div>
-                        </div>
-                        <div class="flex gap-1">
-                          <button type="button" onclick="window.viewOptionalTourDetails(${tour.id})" 
-                                  class="text-purple-600 hover:text-purple-800 p-1 hover:bg-purple-50 rounded" title="View Details">
-                            <i class="fas fa-eye text-xs"></i>
-                          </button>
-                          <button type="button" onclick="window.openEditOptionalTourModal(${tour.id})" 
-                                  class="text-amber-600 hover:text-amber-800 p-1 hover:bg-amber-50 rounded" title="Edit Tour">
-                            <i class="fas fa-edit text-xs"></i>
-                          </button>
-                          <button type="button" onclick="window.unlinkTourFromPackage(${pkg.id}, ${tour.id})" 
-                                  class="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded" title="Remove from package">
-                            <i class="fas fa-unlink text-xs"></i>
-                          </button>
-                        </div>
-                      </div>
-                    `,
-                      )
-                      .join("")}
-                  </div>
-                </div>
-              `
-                  : ""
+            
+
+<!-- ========================================= -->
+<!-- SECTION 5: ITINERARY - FIXED VERSION -->
+<!-- ========================================= -->
+<div class="bg-gradient-to-br from-amber-50 to-white p-5 rounded-xl border-2 border-amber-100">
+  <div class="flex items-center justify-between mb-4">
+    <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+      <i class="fas fa-map-signs text-amber-500"></i>
+      Itinerary
+    </h4>
+    <button type="button" onclick="addItineraryDayEdit()" 
+            class="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 transition-colors flex items-center gap-2">
+      <i class="fas fa-plus-circle"></i> Add Day
+    </button>
+  </div>
+  
+  <div id="itineraryContainer" class="space-y-3 max-h-80 overflow-y-auto p-2">
+    ${
+      itineraries && itineraries.length > 0
+        ? itineraries
+            .map((iti) => {
+              // Combine day_title and day_description for display
+              let fullText = iti.day_title || "";
+              if (
+                iti.day_description &&
+                Array.isArray(iti.day_description) &&
+                iti.day_description.length > 0
+              ) {
+                fullText += "\n" + iti.day_description.join("\n");
               }
-              
-              <!-- Available Tours to Add -->
-              <div>
-                <h5 class="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
-                  <i class="fas fa-plus-circle text-green-500"></i>
-                  Available Tours to Add
-                </h5>
-                <div id="availableToursContainer" class="space-y-2 max-h-48 overflow-y-auto p-1 border-2 border-gray-200 rounded-lg bg-gray-50">
-                  <!-- Populated by JavaScript -->
-                </div>
-              </div>
+
+              return `
+            <div class="flex items-start gap-2 bg-white p-3 rounded-lg border-2 border-gray-200 hover:border-amber-300 transition-colors" data-day="${iti.day_number}">
+              <span class="text-xs font-bold text-gray-600 w-12 pt-2 flex-shrink-0">Day ${iti.day_number}:</span>
+              <textarea name="itineraries[${iti.day_number}]" rows="6" 
+                        class="flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 resize-y min-h-[150px] whitespace-pre-wrap font-mono leading-relaxed">${fullText}</textarea>
+              <button type="button" onclick="removeItineraryDay(this)" class="text-red-500 hover:text-red-700 p-2 flex-shrink-0">
+                <i class="fas fa-times"></i>
+              </button>
             </div>
-            
-            <!-- ========================================= -->
-            <!-- SECTION 6: TRANSPORTATION - FULL CRUD -->
-            <!-- ========================================= -->
-            <div class="bg-gradient-to-br from-cyan-50 to-white p-5 rounded-xl border-2 border-cyan-100">
-              <div class="flex items-center justify-between mb-4">
-                <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <div class="h-8 w-8 bg-cyan-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-truck text-cyan-600 text-sm"></i>
-                  </div>
-                  Transportation
-                </h4>
-              </div>
-              
-              <div id="transportation-sections" class="space-y-4">
-                ${transportCategories
-                  ?.map((cat) => {
-                    const catTransportation = transportation.filter(
-                      (t) => t.mode?.category_id === cat.id,
-                    );
-                    return `
-                    <div class="border-2 border-gray-200 rounded-lg p-3 bg-white">
-                      <h5 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-1">
-                        <i class="fas ${cat.icon || "fa-question"} text-cyan-500"></i>
-                        ${cat.name}
-                      </h5>
-                      <div id="transport-cat-${cat.id}" class="space-y-2">
-                        ${catTransportation
-                          .map(
-                            (trans, idx) => `
-                          <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border-2 border-gray-200">
-                            <select name="transportation[${cat.id}][${idx}][mode_id]" class="flex-1 px-2 py-1.5 border-2 border-gray-200 rounded-lg text-xs bg-white">
-                              <option value="">Select Mode</option>
-                              ${transportModes
-                                ?.filter((m) => m.category_id === cat.id)
-                                .map(
-                                  (mode) =>
-                                    `<option value="${mode.id}" ${trans.mode?.id === mode.id ? "selected" : ""}>${mode.name}</option>`,
-                                )
-                                .join("")}
-                            </select>
-                            <input type="text" name="transportation[${cat.id}][${idx}][description]" 
-                                   value="${trans.description || ""}" placeholder="Description"
-                                   class="flex-1 px-2 py-1.5 border-2 border-gray-200 rounded-lg text-xs">
-                            <label class="flex items-center gap-1 text-xs">
-                              <input type="checkbox" name="transportation[${cat.id}][${idx}][included]" 
-                                     ${trans.is_included ? "checked" : ""} value="true" class="h-4 w-4 text-cyan-600 rounded">
-                              <span>Included</span>
-                            </label>
-                            <button type="button" onclick="this.closest('.flex').remove()" 
-                                    class="text-red-500 hover:text-red-700 p-1">
-                              <i class="fas fa-times text-xs"></i>
-                            </button>
-                          </div>
-                        `,
-                          )
-                          .join("")}
-                      </div>
-                      <button type="button" onclick="addTransportModeToEdit('${cat.id}')" 
-                              class="mt-2 text-xs text-cyan-600 hover:text-cyan-700 flex items-center gap-1">
-                        <i class="fas fa-plus-circle"></i> Add ${cat.name} Mode
-                      </button>
-                    </div>
-                  `;
-                  })
-                  .join("")}
-              </div>
-            </div>
-            
-            <!-- ========================================= -->
-            <!-- SECTION 7: ITINERARY - FULL CRUD -->
-            <!-- ========================================= -->
-            <div class="bg-gradient-to-br from-amber-50 to-white p-5 rounded-xl border-2 border-amber-100">
-              <div class="flex items-center justify-between mb-4">
-                <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <div class="h-8 w-8 bg-amber-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-map-signs text-amber-600 text-sm"></i>
-                  </div>
-                  Itinerary
-                </h4>
-                <button type="button" onclick="addItineraryDayEdit()" 
-                        class="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 transition-all flex items-center gap-2">
-                  <i class="fas fa-plus-circle"></i> Add Day
-                </button>
-              </div>
-              
-              <div id="itineraryContainer" class="space-y-3 max-h-80 overflow-y-auto p-2">
-                ${
-                  itineraries.length > 0
-                    ? Object.values(itineraries)
-                        .sort((a, b) => a.day_number - b.day_number)
-                        .map((iti) => {
-                          let fullText = iti.day_title || "";
-                          if (
-                            iti.day_description &&
-                            iti.day_description.length > 0
-                          ) {
-                            fullText += "\n" + iti.day_description.join("\n");
-                          }
-                          return `
-                        <div class="flex items-start gap-2 bg-white p-3 rounded-lg border-2 border-gray-200 hover:border-amber-300 transition-colors" data-day="${iti.day_number}">
-                          <span class="text-xs font-bold text-gray-600 w-12 pt-2 flex-shrink-0">Day ${iti.day_number}:</span>
-                          <textarea name="itineraries[${iti.day_number}]" rows="6"
-                                    class="flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 resize-y min-h-[150px] whitespace-pre-wrap font-mono leading-relaxed"
-                                    placeholder="Enter detailed itinerary for day ${iti.day_number}...">${fullText}</textarea>
-                          <button type="button" onclick="removeItineraryDay(this)" 
-                                  class="text-red-500 hover:text-red-700 p-2 flex-shrink-0">
-                            <i class="fas fa-times"></i>
-                          </button>
-                        </div>
-                      `;
-                        })
-                        .join("")
-                    : `
-                    <div class="flex items-start gap-2 bg-white p-3 rounded-lg border-2 border-gray-200 hover:border-amber-300 transition-colors" data-day="1">
-                      <span class="text-xs font-bold text-gray-600 w-12 pt-2 flex-shrink-0">Day 1:</span>
-                      <textarea name="itineraries[1]" rows="6" 
-                                class="flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 resize-y min-h-[150px] whitespace-pre-wrap font-mono leading-relaxed"
-                                placeholder="Enter detailed itinerary for day 1..."></textarea>
-                      <button type="button" onclick="removeItineraryDay(this)" class="text-red-500 hover:text-red-700 p-2 flex-shrink-0">
-                        <i class="fas fa-times"></i>
-                      </button>
-                    </div>
-                  `
-                }
-              </div>
-              
-              <div class="flex items-center gap-2 mt-3 text-xs text-gray-500">
-                <i class="fas fa-info-circle text-amber-500"></i>
-                <span>Total: <span id="totalDays" class="font-bold text-amber-600">${itineraries.length || 1}</span> day(s) / <span id="totalNights" class="font-bold text-amber-600">${(itineraries.length || 1) - 1}</span> night(s)</span>
-              </div>
-            </div>
-            
-            <!-- ========================================= -->
-            <!-- SECTION 8: INCLUSIONS - FULL CRUD -->
-            <!-- ========================================= -->
-            <div class="bg-gradient-to-br from-green-50 to-white p-5 rounded-xl border-2 border-green-100">
-              <div class="flex items-center justify-between mb-4">
-                <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <div class="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-check-circle text-green-600 text-sm"></i>
-                  </div>
-                  Inclusions
-                </h4>
-                <div class="flex items-center gap-2">
-                  <label class="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-lg">
-                    <input type="checkbox" id="selectAllInclusions" onclick="toggleAllInclusions(this)" class="h-3 w-3 text-green-600 rounded">
-                    <span>Select All</span>
-                  </label>
-                  <button type="button" onclick="deleteSelectedInclusions(${pkg.id})" 
-                          class="px-2 py-1 bg-red-500 text-white rounded-lg text-xs hover:bg-red-600 transition-colors flex items-center gap-1">
-                    <i class="fas fa-trash-alt"></i> Delete Selected
-                  </button>
-                  <button type="button" onclick="addNewInclusion()" 
-                          class="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-all flex items-center gap-1">
-                    <i class="fas fa-plus-circle"></i> Add New
-                  </button>
-                </div>
-              </div>
-              
-              <div id="inclusions-list" class="space-y-3 max-h-60 overflow-y-auto p-2">
-                ${
-                  inclusions.length > 0
-                    ? inclusions
-                        .map(
-                          (inc) => `
-                      <div class="flex items-start gap-2 p-3 hover:bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-green-300 transition-colors" data-inclusion-id="${inc.id}">
-                        <input type="checkbox" name="inclusions_selected[]" value="${inc.id}" 
-                               class="inclusion-checkbox mt-1.5 h-4 w-4 text-green-500 rounded flex-shrink-0">
-                        <div class="flex-1">
-                          <textarea name="inclusion_text_${inc.id}" 
-                                    data-inclusion-id="${inc.id}" 
-                                    class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-green-500 focus:ring-2 focus:ring-green-200 resize-y min-h-[60px] whitespace-pre-wrap"
-                                    rows="2">${inc.inclusion_text}</textarea>
-                        </div>
-                        <div class="flex gap-1 flex-shrink-0">
-                          <button type="button" onclick="deletePackageInclusion(${inc.id})" 
-                                  class="text-red-600 hover:text-red-800 p-2" title="Delete">
-                            <i class="fas fa-trash"></i>
-                          </button>
-                        </div>
-                      </div>
-                    `,
-                        )
-                        .join("")
-                    : '<p class="text-sm text-gray-400 italic text-center py-4">No inclusions added yet</p>'
-                }
-              </div>
-              
-              <div id="new-inclusion-input" class="mt-3 hidden">
-                <textarea id="new-inclusion-text" rows="3" 
-                          class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:border-green-500 focus:ring-2 focus:ring-green-200 resize-y min-h-[80px] whitespace-pre-wrap"
-                          placeholder="Enter new inclusion..."></textarea>
-                <div class="flex justify-end gap-2 mt-2">
-                  <button type="button" onclick="cancelNewInclusion()" 
-                          class="px-4 py-2 border-2 border-gray-200 rounded-lg text-xs hover:bg-gray-50 transition-colors">Cancel</button>
-                  <button type="button" onclick="saveNewInclusion(${pkg.id})" 
-                          class="px-4 py-2 bg-green-500 text-white rounded-lg text-xs hover:bg-green-600 transition-colors">Save</button>
-                </div>
-              </div>
-            </div>
-            
-            <!-- ========================================= -->
-            <!-- SECTION 9: EXCLUSIONS - FULL CRUD -->
-            <!-- ========================================= -->
-            <div class="bg-gradient-to-br from-red-50 to-white p-5 rounded-xl border-2 border-red-100">
-              <div class="flex items-center justify-between mb-4">
-                <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <div class="h-8 w-8 bg-red-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-times-circle text-red-600 text-sm"></i>
-                  </div>
-                  Exclusions
-                </h4>
-                <div class="flex items-center gap-2">
-                  <label class="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-lg">
-                    <input type="checkbox" id="selectAllExclusions" onclick="toggleAllExclusions(this)" class="h-3 w-3 text-red-600 rounded">
-                    <span>Select All</span>
-                  </label>
-                  <button type="button" onclick="deleteSelectedExclusions(${pkg.id})" 
-                          class="px-2 py-1 bg-red-500 text-white rounded-lg text-xs hover:bg-red-600 transition-colors flex items-center gap-1">
-                    <i class="fas fa-trash-alt"></i> Delete Selected
-                  </button>
-                  <button type="button" onclick="addNewExclusion()" 
-                          class="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-all flex items-center gap-1">
-                    <i class="fas fa-plus-circle"></i> Add New
-                  </button>
-                </div>
-              </div>
-              
-              <div id="exclusions-list" class="space-y-3 max-h-60 overflow-y-auto p-2">
-                ${
-                  exclusions.length > 0
-                    ? exclusions
-                        .map(
-                          (exc) => `
-                      <div class="flex items-start gap-2 p-3 hover:bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-red-300 transition-colors" data-exclusion-id="${exc.id}">
-                        <input type="checkbox" name="exclusions_selected[]" value="${exc.id}" 
-                               class="exclusion-checkbox mt-1.5 h-4 w-4 text-red-500 rounded flex-shrink-0">
-                        <div class="flex-1">
-                          <textarea name="exclusion_text_${exc.id}" 
-                                    data-exclusion-id="${exc.id}" 
-                                    class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-red-500 focus:ring-2 focus:ring-red-200 resize-y min-h-[60px] whitespace-pre-wrap"
-                                    rows="2">${exc.exclusion_text}</textarea>
-                        </div>
-                        <div class="flex gap-1 flex-shrink-0">
-                          <button type="button" onclick="deletePackageExclusion(${exc.id})" 
-                                  class="text-red-600 hover:text-red-800 p-2" title="Delete">
-                            <i class="fas fa-trash"></i>
-                          </button>
-                        </div>
-                      </div>
-                    `,
-                        )
-                        .join("")
-                    : '<p class="text-sm text-gray-400 italic text-center py-4">No exclusions added yet</p>'
-                }
-              </div>
-              
-              <div id="new-exclusion-input" class="mt-3 hidden">
-                <textarea id="new-exclusion-text" rows="3" 
-                          class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:border-red-500 focus:ring-2 focus:ring-red-200 resize-y min-h-[80px] whitespace-pre-wrap"
-                          placeholder="Enter new exclusion..."></textarea>
-                <div class="flex justify-end gap-2 mt-2">
-                  <button type="button" onclick="cancelNewExclusion()" 
-                          class="px-4 py-2 border-2 border-gray-200 rounded-lg text-xs hover:bg-gray-50 transition-colors">Cancel</button>
-                  <button type="button" onclick="saveNewExclusion(${pkg.id})" 
-                          class="px-4 py-2 bg-green-500 text-white rounded-lg text-xs hover:bg-green-600 transition-colors">Save</button>
-                </div>
-              </div>
-            </div>
+          `;
+            })
+            .join("")
+        : `
+        <!-- Only show this if NO itineraries exist -->
+        <div class="flex items-start gap-2 bg-white p-3 rounded-lg border-2 border-gray-200 hover:border-amber-300 transition-colors" data-day="1">
+          <span class="text-xs font-bold text-gray-600 w-12 pt-2 flex-shrink-0">Day 1:</span>
+          <textarea name="itineraries[1]" rows="6" 
+                    class="flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 resize-y min-h-[150px] whitespace-pre-wrap font-mono leading-relaxed"
+                    placeholder="Enter detailed itinerary for day 1..."></textarea>
+          <button type="button" onclick="removeItineraryDay(this)" class="text-red-500 hover:text-red-700 p-2 flex-shrink-0">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="flex items-start gap-2 bg-white p-3 rounded-lg border-2 border-gray-200 hover:border-amber-300 transition-colors" data-day="2">
+          <span class="text-xs font-bold text-gray-600 w-12 pt-2 flex-shrink-0">Day 2:</span>
+          <textarea name="itineraries[2]" rows="6"
+                    class="flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 resize-y min-h-[150px] whitespace-pre-wrap font-mono leading-relaxed"
+                    placeholder="Enter detailed itinerary for day 2..."></textarea>
+          <button type="button" onclick="removeItineraryDay(this)" class="text-red-500 hover:text-red-700 p-2 flex-shrink-0">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="flex items-start gap-2 bg-white p-3 rounded-lg border-2 border-gray-200 hover:border-amber-300 transition-colors" data-day="3">
+          <span class="text-xs font-bold text-gray-600 w-12 pt-2 flex-shrink-0">Day 3:</span>
+          <textarea name="itineraries[3]" rows="6"
+                    class="flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 resize-y min-h-[150px] whitespace-pre-wrap font-mono leading-relaxed"
+                    placeholder="Enter detailed itinerary for day 3..."></textarea>
+          <button type="button" onclick="removeItineraryDay(this)" class="text-red-500 hover:text-red-700 p-2 flex-shrink-0">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `
+    }
+  </div>
+  
+  <div class="flex items-center gap-2 mt-3 text-xs text-gray-500">
+    <i class="fas fa-info-circle"></i>
+    <span>Total: <span id="totalDays">${itineraries?.length || 3}</span> day(s)</span>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- SECTION 6: INCLUSIONS -->
+<!-- ========================================= -->
+<div class="bg-gradient-to-br from-green-50 to-white p-5 rounded-xl border-2 border-green-100">
+  <div class="flex items-center justify-between mb-4">
+    <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+      <i class="fas fa-check-circle text-green-500"></i>
+      Inclusions
+    </h4>
+    <button type="button" onclick="addNewInclusion()" 
+            class="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors flex items-center gap-2">
+      <i class="fas fa-plus-circle"></i> Add Inclusion
+    </button>
+  </div>
+  
+  <!-- Bulk Delete Checkbox -->
+  <div class="mb-3 flex items-center justify-between bg-green-100 p-2 rounded-lg">
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" onclick="toggleAllInclusions(this)" class="h-4 w-4 text-green-600 rounded">
+      <span class="font-medium">Select All</span>
+    </label>
+    <button type="button" onclick="deleteSelectedInclusions(${pkg.id})" 
+            class="px-3 py-1 bg-red-500 text-white rounded-lg text-xs hover:bg-red-600">
+      <i class="fas fa-trash mr-1"></i> Delete Selected
+    </button>
+  </div>
+  
+  <div id="inclusions-list" class="space-y-2 max-h-60 overflow-y-auto p-2">
+    ${
+      inclusions.length > 0
+        ? inclusions
+            .map(
+              (inc) => `
+        <div class="flex items-center gap-2 bg-white p-2 rounded-lg border border-green-200 hover:shadow-sm transition">
+          <input type="checkbox" class="inclusion-checkbox checkbox-inclusions-${pkg.id}" value="${inc.id}" 
+                 class="h-4 w-4 text-green-600 rounded flex-shrink-0">
+          <textarea data-inclusion-id="${inc.id}" class="flex-1 px-2 py-1 border border-gray-200 rounded text-sm" 
+                    rows="2">${inc.inclusion_text}</textarea>
+          <button type="button" onclick="deletePackageInclusion(${inc.id})" 
+                  class="text-red-500 hover:text-red-700 p-1" title="Delete">
+            <i class="fas fa-trash text-xs"></i>
+          </button>
+        </div>
+      `,
+            )
+            .join("")
+        : '<p class="text-gray-500 italic text-sm py-4 text-center">No inclusions yet</p>'
+    }
+  </div>
+  
+  <!-- New Inclusion Input (Hidden by default) -->
+  <div id="new-inclusion-input" class="mt-3 hidden">
+    <div class="flex items-center gap-2">
+      <textarea id="new-inclusion-text" rows="2" 
+                class="flex-1 px-3 py-2 border-2 border-green-300 rounded-lg text-sm"
+                placeholder="Enter new inclusion..."></textarea>
+      <div class="flex flex-col gap-1">
+        <button type="button" onclick="saveNewInclusion(${pkg.id})" 
+                class="px-3 py-1 bg-green-500 text-white rounded-lg text-xs hover:bg-green-600">
+          <i class="fas fa-check"></i>
+        </button>
+        <button type="button" onclick="cancelNewInclusion()" 
+                class="px-3 py-1 bg-gray-500 text-white rounded-lg text-xs hover:bg-gray-600">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- SECTION 7: EXCLUSIONS -->
+<!-- ========================================= -->
+<div class="bg-gradient-to-br from-red-50 to-white p-5 rounded-xl border-2 border-red-100">
+  <div class="flex items-center justify-between mb-4">
+    <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+      <i class="fas fa-times-circle text-red-500"></i>
+      Exclusions
+    </h4>
+    <button type="button" onclick="addNewExclusion()" 
+            class="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors flex items-center gap-2">
+      <i class="fas fa-plus-circle"></i> Add Exclusion
+    </button>
+  </div>
+  
+  <!-- Bulk Delete Checkbox -->
+  <div class="mb-3 flex items-center justify-between bg-red-100 p-2 rounded-lg">
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" onclick="toggleAllExclusions(this)" class="h-4 w-4 text-red-600 rounded">
+      <span class="font-medium">Select All</span>
+    </label>
+    <button type="button" onclick="deleteSelectedExclusions(${pkg.id})" 
+            class="px-3 py-1 bg-red-500 text-white rounded-lg text-xs hover:bg-red-600">
+      <i class="fas fa-trash mr-1"></i> Delete Selected
+    </button>
+  </div>
+  
+  <div id="exclusions-list" class="space-y-2 max-h-60 overflow-y-auto p-2">
+    ${
+      exclusions.length > 0
+        ? exclusions
+            .map(
+              (exc) => `
+        <div class="flex items-center gap-2 bg-white p-2 rounded-lg border border-red-200 hover:shadow-sm transition">
+          <input type="checkbox" class="exclusion-checkbox checkbox-exclusions-${pkg.id}" value="${exc.id}" 
+                 class="h-4 w-4 text-red-600 rounded flex-shrink-0">
+          <textarea data-exclusion-id="${exc.id}" class="flex-1 px-2 py-1 border border-gray-200 rounded text-sm" 
+                    rows="2">${exc.exclusion_text}</textarea>
+          <button type="button" onclick="deletePackageExclusion(${exc.id})" 
+                  class="text-red-500 hover:text-red-700 p-1" title="Delete">
+            <i class="fas fa-trash text-xs"></i>
+          </button>
+        </div>
+      `,
+            )
+            .join("")
+        : '<p class="text-gray-500 italic text-sm py-4 text-center">No exclusions yet</p>'
+    }
+  </div>
+  
+  <!-- New Exclusion Input (Hidden by default) -->
+  <div id="new-exclusion-input" class="mt-3 hidden">
+    <div class="flex items-center gap-2">
+      <textarea id="new-exclusion-text" rows="2" 
+                class="flex-1 px-3 py-2 border-2 border-red-300 rounded-lg text-sm"
+                placeholder="Enter new exclusion..."></textarea>
+      <div class="flex flex-col gap-1">
+        <button type="button" onclick="saveNewExclusion(${pkg.id})" 
+                class="px-3 py-1 bg-red-500 text-white rounded-lg text-xs hover:bg-red-600">
+          <i class="fas fa-check"></i>
+        </button>
+        <button type="button" onclick="cancelNewExclusion()" 
+                class="px-3 py-1 bg-gray-500 text-white rounded-lg text-xs hover:bg-gray-600">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
             
             <!-- Action Buttons -->
             <div class="flex justify-end gap-3 pt-4 border-t-2 border-gray-100">
@@ -7017,10 +7633,9 @@ export async function openEditPackageModal(packageId) {
     document.body.appendChild(modal);
 
     // =====================================================
-    // POPULATE EXISTING RATE ROWS - FIXED VERSION
+    // POPULATE EXISTING RATE ROWS
     // =====================================================
 
-    // Add debug logging right after finding the package
     console.log(
       "🔍 Package hotel rates details:",
       pkg.package_hotel_rates?.map((rate) => ({
@@ -7031,10 +7646,10 @@ export async function openEditPackageModal(packageId) {
         duration: rate.duration,
         rate_solo: rate.rate_solo,
         extra_night_solo: rate.extra_night_solo,
+        additional_info: rate.additional_info,
       })),
     );
 
-    // Use setTimeout to ensure DOM is ready
     setTimeout(() => {
       console.log("🔄 Starting to populate rate rows...");
 
@@ -7060,6 +7675,9 @@ export async function openEditPackageModal(packageId) {
                 season: r.season,
                 sneak: r.sneak,
                 duration: r.duration,
+                additional_info: r.additional_info
+                  ? "Has additional info"
+                  : "No additional info",
               });
             }
             return match;
@@ -7067,7 +7685,6 @@ export async function openEditPackageModal(packageId) {
 
         console.log(`  Found ${categoryRates.length} rates for this category`);
 
-        // Clear existing rows first
         const regularTbody = document.getElementById(
           `category-${catIndex}-regular-rates`,
         );
@@ -7077,22 +7694,14 @@ export async function openEditPackageModal(packageId) {
 
         if (regularTbody) {
           regularTbody.innerHTML = "";
-          console.log(`  Cleared regular tbody for category ${catIndex}`);
-        } else {
-          console.log(`  ❌ Regular tbody not found for category ${catIndex}`);
         }
 
         if (extraTbody) {
           extraTbody.innerHTML = "";
-          console.log(`  Cleared extra tbody for category ${catIndex}`);
-        } else {
-          console.log(`  ❌ Extra tbody not found for category ${catIndex}`);
         }
 
-        // Populate rates
         if (categoryRates.length > 0) {
           categoryRates.forEach((rate, rateIndex) => {
-            // Check for regular rates
             const hasRegularRates =
               rate.rate_solo ||
               rate.rate_2pax ||
@@ -7112,10 +7721,6 @@ export async function openEditPackageModal(packageId) {
               rate.rate_child_no_breakfast;
 
             if (hasRegularRates && regularTbody) {
-              console.log(
-                `  Adding regular rate row ${rateIndex} with season:`,
-                rate.season,
-              );
               const regularRowHtml = createRateRowHtml(
                 cat.id,
                 catIndex,
@@ -7126,7 +7731,6 @@ export async function openEditPackageModal(packageId) {
               regularTbody.insertAdjacentHTML("beforeend", regularRowHtml);
             }
 
-            // Check for extra rates
             const hasExtraRates =
               rate.extra_night_solo ||
               rate.extra_night_2pax ||
@@ -7146,10 +7750,6 @@ export async function openEditPackageModal(packageId) {
               rate.extra_night_child_no_breakfast;
 
             if (hasExtraRates && extraTbody) {
-              console.log(
-                `  Adding extra rate row ${rateIndex} with season:`,
-                rate.season,
-              );
               const extraRowHtml = createRateRowHtml(
                 cat.id,
                 catIndex,
@@ -7162,54 +7762,22 @@ export async function openEditPackageModal(packageId) {
           });
         }
 
-        // Add empty rows if no rates were added
         if (regularTbody && regularTbody.children.length === 0) {
-          console.log(`  No regular rates, adding empty row`);
           addRateRow(catIndex, "regular");
         }
 
         if (extraTbody && extraTbody.children.length === 0) {
-          console.log(`  No extra rates, adding empty row`);
           addRateRow(catIndex, "extra");
         }
       });
 
       console.log("✅ Rate population complete");
-    }, 500); // 500ms delay to ensure DOM is ready
-    if (!pkg) {
-      showToast("Package not found", "error");
-      showLoading(false);
-      return;
-    }
+    }, 500);
 
-    // ADD THIS DEBUG CODE
-    console.log("🔍 Full package data:", JSON.stringify(pkg, null, 2));
-    console.log(
-      "🔍 Package hotel rates details:",
-      pkg.package_hotel_rates?.map((rate) => ({
-        id: rate.id,
-        category_id: rate.hotel_category_id,
-        season: rate.season,
-        sneak: rate.sneak,
-        duration: rate.duration,
-        rate_solo: rate.rate_solo,
-        extra_night_solo: rate.extra_night_solo,
-      })),
-    );
-    // Helper function to create rate row HTML - FIXED for season, sneak, duration
+    // Helper function to create rate row HTML
     function createRateRowHtml(categoryId, catIndex, rowIndex, type, rate) {
-      // Ensure rate is an object
       rate = rate || {};
 
-      // Log what we're receiving
-      console.log(`Creating ${type} row for category ${catIndex}:`, {
-        season: rate.season,
-        sneak: rate.sneak,
-        duration: rate.duration,
-        id: rate.id,
-      });
-
-      // Get values with proper defaults - use explicit checking
       const seasonValue =
         rate.season !== null && rate.season !== undefined ? rate.season : "";
       const sneakValue =
@@ -7330,7 +7898,6 @@ export async function openEditPackageModal(packageId) {
       </tr>
     `;
       } else {
-        // For extra night rates
         return `
       <tr class="hover:bg-gray-50" data-rate-id="${rate.id || ""}">
         <td class="border border-gray-300 px-3 py-2 min-w-[180px]">
@@ -7447,7 +8014,6 @@ export async function openEditPackageModal(packageId) {
     // DEFINE ALL HELPER FUNCTIONS
     // =====================================================
 
-    // Add rate row function
     window.addRateRow = function (categoryIndex, type) {
       const tbodyId =
         type === "regular"
@@ -7680,299 +8246,8 @@ export async function openEditPackageModal(packageId) {
       tbody.insertAdjacentHTML("beforeend", rowHtml);
     };
 
-    // Update day count function
-    function updateDayCount() {
-      const container = document.getElementById("itineraryContainer");
-      const days = container.children.length;
-      const nights = days > 0 ? days - 1 : 0;
-      const totalDaysEl = document.getElementById("totalDays");
-      const totalNightsEl = document.getElementById("totalNights");
-      if (totalDaysEl) totalDaysEl.textContent = days;
-      if (totalNightsEl) totalNightsEl.textContent = nights;
-    }
-
-    // Add Transport Mode function
-    window.addTransportModeToEdit = (categoryId) => {
-      const container = document.getElementById(`transport-cat-${categoryId}`);
-      const index = container.children.length;
-      const modes =
-        transportModes?.filter((m) => m.category_id === parseInt(categoryId)) ||
-        [];
-      const modeOptions = modes
-        .map((m) => `<option value="${m.id}">${m.name}</option>`)
-        .join("");
-
-      const modeHtml = `
-        <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border-2 border-gray-200">
-          <select name="transportation[${categoryId}][${index}][mode_id]" class="flex-1 px-2 py-1.5 border-2 border-gray-200 rounded-lg text-xs bg-white">
-            <option value="">Select Mode</option>
-            ${modeOptions}
-          </select>
-          <input type="text" name="transportation[${categoryId}][${index}][description]" 
-                 placeholder="Description" class="flex-1 px-2 py-1.5 border-2 border-gray-200 rounded-lg text-xs">
-          <label class="flex items-center gap-1 text-xs">
-            <input type="checkbox" name="transportation[${categoryId}][${index}][included]" value="true" checked class="h-4 w-4 text-cyan-600 rounded">
-            <span>Included</span>
-          </label>
-          <button type="button" onclick="this.closest('.flex').remove()" 
-                  class="text-red-500 hover:text-red-700 p-1">
-            <i class="fas fa-times text-xs"></i>
-          </button>
-        </div>
-      `;
-      container.insertAdjacentHTML("beforeend", modeHtml);
-    };
-
-    // Add Itinerary Day function
-    window.addItineraryDayEdit = function () {
-      const container = document.getElementById("itineraryContainer");
-      const dayCount = container.children.length + 1;
-      const dayHtml = `
-        <div class="flex items-start gap-2 bg-white p-3 rounded-lg border-2 border-gray-200 hover:border-amber-300 transition-colors" data-day="${dayCount}">
-          <span class="text-xs font-bold text-gray-600 w-12 pt-2 flex-shrink-0">Day ${dayCount}:</span>
-          <textarea name="itineraries[${dayCount}]" rows="6"
-                    class="flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 resize-y min-h-[150px] whitespace-pre-wrap font-mono leading-relaxed"
-                    placeholder="Enter detailed itinerary for day ${dayCount}..."></textarea>
-          <button type="button" onclick="removeItineraryDay(this)" 
-                  class="text-red-500 hover:text-red-700 p-2 flex-shrink-0">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-      `;
-      container.insertAdjacentHTML("beforeend", dayHtml);
-      updateDayCount();
-    };
-
-    // Remove Itinerary Day function
-    window.removeItineraryDay = function (button) {
-      const dayDiv = button.closest("[data-day]");
-      if (dayDiv) {
-        dayDiv.remove();
-        const container = document.getElementById("itineraryContainer");
-        const days = container.children;
-        for (let i = 0; i < days.length; i++) {
-          const daySpan = days[i].querySelector("span:first-child");
-          const textarea = days[i].querySelector("textarea");
-          if (daySpan && textarea) {
-            const newDayNum = i + 1;
-            daySpan.textContent = `Day ${newDayNum}:`;
-            textarea.name = `itineraries[${newDayNum}]`;
-            days[i].setAttribute("data-day", newDayNum);
-          }
-        }
-        updateDayCount();
-      }
-    };
-
-    // Toggle all inclusions/exclusions
-    window.toggleAllInclusions = function (checkbox) {
-      document
-        .querySelectorAll(".inclusion-checkbox")
-        .forEach((cb) => (cb.checked = checkbox.checked));
-    };
-
-    window.toggleAllExclusions = function (checkbox) {
-      document
-        .querySelectorAll(".exclusion-checkbox")
-        .forEach((cb) => (cb.checked = checkbox.checked));
-    };
-
-    // Delete selected inclusions/exclusions
-    window.deleteSelectedInclusions = async function (packageId) {
-      const selected = Array.from(
-        document.querySelectorAll(".inclusion-checkbox:checked"),
-      ).map((cb) => cb.value);
-      if (selected.length === 0) {
-        showToast("No inclusions selected", "warning");
-        return;
-      }
-      if (!confirm(`Delete ${selected.length} selected inclusion(s)?`)) return;
-
-      try {
-        await supabase.from("package_inclusions").delete().in("id", selected);
-        showToast("Inclusions deleted successfully", "success");
-        document.getElementById("editPackageModal").remove();
-        await openEditPackageModal(packageId);
-      } catch (error) {
-        console.error("Error deleting inclusions:", error);
-        showToast("Failed to delete inclusions", "error");
-      }
-    };
-
-    window.deleteSelectedExclusions = async function (packageId) {
-      const selected = Array.from(
-        document.querySelectorAll(".exclusion-checkbox:checked"),
-      ).map((cb) => cb.value);
-      if (selected.length === 0) {
-        showToast("No exclusions selected", "warning");
-        return;
-      }
-      if (!confirm(`Delete ${selected.length} selected exclusion(s)?`)) return;
-
-      try {
-        await supabase.from("package_exclusions").delete().in("id", selected);
-        showToast("Exclusions deleted successfully", "success");
-        document.getElementById("editPackageModal").remove();
-        await openEditPackageModal(packageId);
-      } catch (error) {
-        console.error("Error deleting exclusions:", error);
-        showToast("Failed to delete exclusions", "error");
-      }
-    };
-
-    // Delete single inclusion/exclusion
-    window.deletePackageInclusion = async function (inclusionId) {
-      if (!confirm("Delete this inclusion?")) return;
-      try {
-        await supabase
-          .from("package_inclusions")
-          .delete()
-          .eq("id", inclusionId);
-        showToast("Inclusion deleted successfully", "success");
-        const element = document.querySelector(
-          `[data-inclusion-id="${inclusionId}"]`,
-        );
-        if (element) element.remove();
-      } catch (error) {
-        console.error("Error deleting inclusion:", error);
-        showToast("Failed to delete inclusion", "error");
-      }
-    };
-
-    window.deletePackageExclusion = async function (exclusionId) {
-      if (!confirm("Delete this exclusion?")) return;
-      try {
-        await supabase
-          .from("package_exclusions")
-          .delete()
-          .eq("id", exclusionId);
-        showToast("Exclusion deleted successfully", "success");
-        const element = document.querySelector(
-          `[data-exclusion-id="${exclusionId}"]`,
-        );
-        if (element) element.remove();
-      } catch (error) {
-        console.error("Error deleting exclusion:", error);
-        showToast("Failed to delete exclusion", "error");
-      }
-    };
-
-    // Add new inclusion/exclusion
-    window.addNewInclusion = () =>
-      document.getElementById("new-inclusion-input").classList.remove("hidden");
-    window.cancelNewInclusion = () => {
-      document.getElementById("new-inclusion-input").classList.add("hidden");
-      document.getElementById("new-inclusion-text").value = "";
-    };
-
-    window.addNewExclusion = () =>
-      document.getElementById("new-exclusion-input").classList.remove("hidden");
-    window.cancelNewExclusion = () => {
-      document.getElementById("new-exclusion-input").classList.add("hidden");
-      document.getElementById("new-exclusion-text").value = "";
-    };
-
-    // Save new inclusion/exclusion
-    window.saveNewInclusion = async function (packageId) {
-      const text = document.getElementById("new-inclusion-text").value;
-      if (!text.trim()) {
-        showToast("Please enter inclusion text", "warning");
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from("package_inclusions")
-          .insert([
-            {
-              package_id: packageId,
-              inclusion_text: text,
-              display_order: document.querySelectorAll("#inclusions-list .flex")
-                .length,
-            },
-          ])
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        showToast("Inclusion added successfully", "success");
-        const list = document.getElementById("inclusions-list");
-        const newHtml = `
-          <div class="flex items-start gap-2 p-3 hover:bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-green-300 transition-colors" data-inclusion-id="${data.id}">
-            <input type="checkbox" name="inclusions_selected[]" value="${data.id}" 
-                   class="inclusion-checkbox mt-1.5 h-4 w-4 text-green-500 rounded flex-shrink-0">
-            <div class="flex-1">
-              <textarea name="inclusion_text_${data.id}" data-inclusion-id="${data.id}" 
-                        class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-green-500 focus:ring-2 focus:ring-green-200 resize-y min-h-[60px] whitespace-pre-wrap"
-                        rows="2">${text}</textarea>
-            </div>
-            <div class="flex gap-1 flex-shrink-0">
-              <button type="button" onclick="deletePackageInclusion(${data.id})" class="text-red-600 hover:text-red-800 p-2" title="Delete">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          </div>
-        `;
-        list.insertAdjacentHTML("beforeend", newHtml);
-        cancelNewInclusion();
-      } catch (error) {
-        console.error("Error adding inclusion:", error);
-        showToast("Failed to add inclusion", "error");
-      }
-    };
-
-    window.saveNewExclusion = async function (packageId) {
-      const text = document.getElementById("new-exclusion-text").value;
-      if (!text.trim()) {
-        showToast("Please enter exclusion text", "warning");
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from("package_exclusions")
-          .insert([
-            {
-              package_id: packageId,
-              exclusion_text: text,
-              display_order: document.querySelectorAll("#exclusions-list .flex")
-                .length,
-            },
-          ])
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        showToast("Exclusion added successfully", "success");
-        const list = document.getElementById("exclusions-list");
-        const newHtml = `
-          <div class="flex items-start gap-2 p-3 hover:bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-red-300 transition-colors" data-exclusion-id="${data.id}">
-            <input type="checkbox" name="exclusions_selected[]" value="${data.id}" 
-                   class="exclusion-checkbox mt-1.5 h-4 w-4 text-red-500 rounded flex-shrink-0">
-            <div class="flex-1">
-              <textarea name="exclusion_text_${data.id}" data-exclusion-id="${data.id}" 
-                        class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-red-500 focus:ring-2 focus:ring-red-200 resize-y min-h-[60px] whitespace-pre-wrap"
-                        rows="2">${text}</textarea>
-            </div>
-            <div class="flex gap-1 flex-shrink-0">
-              <button type="button" onclick="deletePackageExclusion(${data.id})" class="text-red-600 hover:text-red-800 p-2" title="Delete">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          </div>
-        `;
-        list.insertAdjacentHTML("beforeend", newHtml);
-        cancelNewExclusion();
-      } catch (error) {
-        console.error("Error adding exclusion:", error);
-        showToast("Failed to add exclusion", "error");
-      }
-    };
-
     // =====================================================
-    // FORM SUBMIT HANDLER - FIXED TO PRESERVE ALL DATA
+    // FORM SUBMIT HANDLER - FIXED WITH PROPER CRUD OPERATIONS
     // =====================================================
     const form = document.getElementById("editPackageForm");
     form.addEventListener("submit", async (e) => {
@@ -7983,7 +8258,10 @@ export async function openEditPackageModal(packageId) {
         const formData = new FormData(form);
 
         // ========== 1. BASIC PACKAGE DATA ==========
-        // Always use form data if provided, otherwise fall back to original data
+        const isActiveValue = formData.get("is_active");
+        const hasExtraNightValue = formData.get("has_extra_night");
+        const taxIncludedValue = formData.get("tax_included");
+
         const updateData = {
           package_code:
             formData.get("package_code") || pkg.package_code || null,
@@ -7991,84 +8269,95 @@ export async function openEditPackageModal(packageId) {
             formData.get("package_name") || pkg.package_name || null,
           tour_category:
             formData.get("tour_category") || pkg.tour_category || null,
-          has_extra_night:
-            formData.get("has_extra_night") === "true"
-              ? true
-              : pkg.has_extra_night || false,
-          is_active:
-            formData.get("is_active") === "true"
-              ? true
-              : pkg.is_active !== false,
+          has_extra_night: String(hasExtraNightValue) === "true",
+          is_active: String(isActiveValue) === "true",
           base_price: formData.get("base_price")
             ? parseFloat(formData.get("base_price"))
             : pkg.base_price || null,
           markup_percent: formData.get("markup_percent")
             ? parseFloat(formData.get("markup_percent"))
             : pkg.markup_percent || 0,
-          tax_included:
-            formData.get("tax_included") === "true"
-              ? true
-              : pkg.tax_included || false,
+          tax_included: String(taxIncludedValue) === "true",
         };
 
-        // ========== 2. ITINERARIES ==========
+        console.log("📤 UPDATE VALUES SENT:", {
+          is_active_raw: isActiveValue,
+          is_active_converted: String(isActiveValue) === "true",
+          has_extra_night: String(hasExtraNightValue) === "true",
+          tax_included: String(taxIncludedValue) === "true",
+        });
+
+        // ========== 2. ITINERARIES - FIXED TO PREVENT DUPLICATION ==========
         const itineraries = {};
-        const existingItineraries = pkg.itineraries || {};
+        let hasItineraryData = false;
 
-        // Get all itinerary textareas
-        document
-          .querySelectorAll('[name^="itineraries["]')
-          .forEach((textarea) => {
-            const match = textarea.name.match(/\[(\d+)\]/);
-            if (match) {
-              const dayNum = parseInt(match[1]);
-              if (textarea.value?.trim()) {
-                // Parse the combined text back into title and description
-                const lines = textarea.value.split("\n");
-                const dayTitle = lines[0] || `Day ${dayNum}`;
-                const dayDescription = lines
-                  .slice(1)
-                  .filter((line) => line.trim());
+        // Get ALL itinerary textareas
+        const itineraryTextareas = document.querySelectorAll(
+          '[name^="itineraries["]',
+        );
+        console.log(
+          `📝 Found ${itineraryTextareas.length} itinerary textareas`,
+        );
 
-                itineraries[dayNum] = {
-                  day_number: dayNum,
-                  day_title: dayTitle,
-                  day_description:
-                    dayDescription.length > 0 ? dayDescription : null,
-                };
-              } else if (existingItineraries[dayNum]) {
-                // Preserve existing itinerary if field is empty
-                itineraries[dayNum] = existingItineraries[dayNum];
-              }
+        itineraryTextareas.forEach((textarea) => {
+          const match = textarea.name.match(/\[(\d+)\]/);
+          if (match) {
+            const dayNum = parseInt(match[1]);
+            const value = textarea.value?.trim();
+
+            if (value) {
+              hasItineraryData = true;
+              // Split by lines, first line is title, rest are description
+              const lines = value.split("\n").filter((line) => line.trim());
+              const dayTitle = lines[0] || `Day ${dayNum}`;
+              const dayDescription = lines
+                .slice(1)
+                .filter((line) => line.trim());
+
+              itineraries[dayNum] = {
+                day_number: dayNum,
+                day_title: dayTitle,
+                day_description:
+                  dayDescription.length > 0 ? dayDescription : null,
+              };
+              console.log(`📝 Day ${dayNum}:`, {
+                title: dayTitle,
+                descriptionCount: dayDescription.length,
+              });
             }
-          });
+          }
+        });
 
-        // If no itineraries found but we have existing ones, preserve them all
-        if (
-          Object.keys(itineraries).length === 0 &&
-          Object.keys(existingItineraries).length > 0
-        ) {
-          updateData.itineraries = existingItineraries;
+        // ALWAYS send itineraries data, even if empty (to clear existing ones)
+        if (hasItineraryData) {
+          updateData.itineraries = JSON.stringify(itineraries);
+          updateData.update_itineraries = "true";
+          console.log(
+            "📤 Sending itineraries:",
+            Object.keys(itineraries).length,
+            "days",
+          );
         } else {
-          updateData.itineraries = itineraries;
+          // If no itineraries, send empty object to clear them
+          updateData.itineraries = JSON.stringify({});
+          updateData.update_itineraries = "true";
+          console.log("📤 Sending empty itineraries (to clear existing)");
         }
 
-        // ========== 3. INCLUSIONS ==========
-        // Get selected inclusions to delete
+        // ========== 3. INCLUSIONS - FIXED ==========
+        // Get selected inclusions for deletion - using correct class name
         const selectedInclusions = Array.from(
-          document.querySelectorAll(
-            'input[name="inclusions_selected[]"]:checked',
-          ),
+          document.querySelectorAll(".inclusion-checkbox:checked"),
         ).map((cb) => parseInt(cb.value));
 
         if (selectedInclusions.length > 0) {
-          updateData.delete_inclusions = selectedInclusions;
+          updateData.delete_inclusions = JSON.stringify(selectedInclusions);
         }
 
-        // Get updated inclusion texts
+        // Get updated inclusion text
         const inclusionUpdates = [];
         document
-          .querySelectorAll("#inclusions-list textarea[data-inclusion-id]")
+          .querySelectorAll("textarea[data-inclusion-id]")
           .forEach((textarea) => {
             const inclusionId = parseInt(textarea.dataset.inclusionId);
             const newText = textarea.value.trim();
@@ -8076,37 +8365,33 @@ export async function openEditPackageModal(packageId) {
               (i) => i.id === inclusionId,
             );
 
-            // Only update if text changed
             if (
               newText &&
               (!existingInclusion ||
                 existingInclusion.inclusion_text !== newText)
             ) {
-              inclusionUpdates.push({
-                id: inclusionId,
-                text: newText,
-              });
+              inclusionUpdates.push({ id: inclusionId, text: newText });
             }
           });
 
         if (inclusionUpdates.length > 0) {
-          updateData.update_inclusions = inclusionUpdates;
+          updateData.update_inclusions = JSON.stringify(inclusionUpdates);
         }
 
-        // ========== 4. EXCLUSIONS ==========
+        // ========== 4. EXCLUSIONS - FIXED ==========
+        // Get selected exclusions for deletion - using correct class name
         const selectedExclusions = Array.from(
-          document.querySelectorAll(
-            'input[name="exclusions_selected[]"]:checked',
-          ),
+          document.querySelectorAll(".exclusion-checkbox:checked"),
         ).map((cb) => parseInt(cb.value));
 
         if (selectedExclusions.length > 0) {
-          updateData.delete_exclusions = selectedExclusions;
+          updateData.delete_exclusions = JSON.stringify(selectedExclusions);
         }
 
+        // Get updated exclusion text
         const exclusionUpdates = [];
         document
-          .querySelectorAll("#exclusions-list textarea[data-exclusion-id]")
+          .querySelectorAll("textarea[data-exclusion-id]")
           .forEach((textarea) => {
             const exclusionId = parseInt(textarea.dataset.exclusionId);
             const newText = textarea.value.trim();
@@ -8119,55 +8404,55 @@ export async function openEditPackageModal(packageId) {
               (!existingExclusion ||
                 existingExclusion.exclusion_text !== newText)
             ) {
-              exclusionUpdates.push({
-                id: exclusionId,
-                text: newText,
-              });
+              exclusionUpdates.push({ id: exclusionId, text: newText });
             }
           });
 
         if (exclusionUpdates.length > 0) {
-          updateData.update_exclusions = exclusionUpdates;
+          updateData.update_exclusions = JSON.stringify(exclusionUpdates);
         }
 
         // ========== 5. NEW INCLUSIONS/EXCLUSIONS ==========
         const newInclusionText =
           document.getElementById("new-inclusion-text")?.value;
         if (newInclusionText?.trim()) {
-          updateData.new_inclusions = [newInclusionText.trim()];
+          updateData.new_inclusions = JSON.stringify([newInclusionText.trim()]);
         }
 
         const newExclusionText =
           document.getElementById("new-exclusion-text")?.value;
         if (newExclusionText?.trim()) {
-          updateData.new_exclusions = [newExclusionText.trim()];
+          updateData.new_exclusions = JSON.stringify([newExclusionText.trim()]);
         }
 
         // ========== 6. TRANSPORTATION ==========
         const transportationData = [];
-        transportCategories?.forEach((cat) => {
-          let index = 0;
-          while (true) {
-            const modeId = formData.get(
-              `transportation[${cat.id}][${index}][mode_id]`,
-            );
-            if (!modeId) break;
+        let transportIndex = 0;
 
+        document.querySelectorAll(".transportation-row").forEach((row) => {
+          const modeSelect = row.querySelector(
+            'select[name^="transportation"]',
+          );
+          const descInput = row.querySelector(
+            'input[name^="transportation"][name*="[description]"]',
+          );
+          const includedCheck = row.querySelector(
+            'input[name^="transportation"][name*="[included]"]',
+          );
+
+          if (modeSelect && modeSelect.value) {
+            const modeMap = {
+              private_van: 1,
+              private_car: 2,
+              coaster: 3,
+              shuttle: 4,
+            };
             transportationData.push({
-              mode_id: parseInt(modeId),
-              description:
-                formData.get(
-                  `transportation[${cat.id}][${index}][description]`,
-                ) || null,
-              included:
-                formData.get(
-                  `transportation[${cat.id}][${index}][included]`,
-                ) === "true"
-                  ? "true"
-                  : "false",
-              display_order: index,
+              mode_id: modeMap[modeSelect.value] || 1,
+              description: descInput?.value || null,
+              included: includedCheck?.checked ? "true" : "false",
+              display_order: transportIndex++,
             });
-            index++;
           }
         });
 
@@ -8175,18 +8460,19 @@ export async function openEditPackageModal(packageId) {
           updateData.transportation = JSON.stringify(transportationData);
         }
 
-        // ========== 7. HOTEL RATES - FIXED TO HANDLE DELETED VALUES ==========
+        // ========== 7. HOTEL RATES - WITH ADDITIONAL INFO ==========
         const hotelRatesToSave = [];
 
         destination?.hotel_categories?.forEach((cat, catIndex) => {
           const categoryId = cat.id;
 
-          // Get breakfast settings from the category section
           const breakfastIncluded =
             formData.get(`hotel_rates[${categoryId}][breakfast_included]`) ===
             "true";
           const breakfastNotes =
             formData.get(`hotel_rates[${categoryId}][breakfast_notes]`) || null;
+          const additionalInfo =
+            formData.get(`hotel_rates[${categoryId}][additional_info]`) || null;
 
           // Process regular rate rows
           const regularTbody = document.getElementById(
@@ -8195,7 +8481,6 @@ export async function openEditPackageModal(packageId) {
           if (regularTbody) {
             const rows = regularTbody.querySelectorAll("tr");
             rows.forEach((row, rowIndex) => {
-              // Get ALL field values, including empty ones
               const season = row.querySelector(
                 `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][season]"]`,
               )?.value;
@@ -8206,161 +8491,108 @@ export async function openEditPackageModal(packageId) {
                 `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][duration]"]`,
               )?.value;
 
-              const rateSolo = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_solo]"]`,
-              )?.value;
-              const rate2pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_2pax]"]`,
-              )?.value;
-              const rate3pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_3pax]"]`,
-              )?.value;
-              const rate4pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_4pax]"]`,
-              )?.value;
-              const rate5pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_5pax]"]`,
-              )?.value;
-              const rate6pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_6pax]"]`,
-              )?.value;
-              const rate7pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_7pax]"]`,
-              )?.value;
-              const rate8pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_8pax]"]`,
-              )?.value;
-              const rate9pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_9pax]"]`,
-              )?.value;
-              const rate10pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_10pax]"]`,
-              )?.value;
-              const rate11pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_11pax]"]`,
-              )?.value;
-              const rate12pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_12pax]"]`,
-              )?.value;
-              const rate13pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_13pax]"]`,
-              )?.value;
-              const rate14pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_14pax]"]`,
-              )?.value;
-              const rate15pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_15pax]"]`,
-              )?.value;
-              const rateChild = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_child]"]`,
-              )?.value;
-
-              // Check if ANY field has a value (including empty strings for text fields)
-              const hasAnyValue =
-                season !== undefined ||
-                sneak !== undefined ||
-                duration !== undefined ||
-                rateSolo ||
-                rate2pax ||
-                rate3pax ||
-                rate4pax ||
-                rate5pax ||
-                rate6pax ||
-                rate7pax ||
-                rate8pax ||
-                rate9pax ||
-                rate10pax ||
-                rate11pax ||
-                rate12pax ||
-                rate13pax ||
-                rate14pax ||
-                rate15pax ||
-                rateChild;
-
-              // Always create a rate record for this row, even if all fields are empty
-              // This ensures that if a user deleted all values, they become NULL in the database
               const rateData = {
                 package_id: pkg.id,
                 hotel_category_id: categoryId,
-                // Text fields: if undefined or empty string, set to null
-                season:
-                  season !== undefined && season.trim() !== ""
-                    ? season.trim()
-                    : null,
-                sneak:
-                  sneak !== undefined && sneak.trim() !== ""
-                    ? sneak.trim()
-                    : null,
-                duration:
-                  duration !== undefined && duration.trim() !== ""
-                    ? duration.trim()
-                    : null,
-                // Numeric fields: if empty string or undefined, set to null, otherwise parse as float
+                season: season?.trim() || null,
+                sneak: sneak?.trim() || null,
+                duration: duration?.trim() || null,
                 rate_solo:
-                  rateSolo && rateSolo.trim() !== ""
-                    ? parseFloat(rateSolo)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_solo]"]`,
+                    )?.value,
+                  ) || null,
                 rate_2pax:
-                  rate2pax && rate2pax.trim() !== ""
-                    ? parseFloat(rate2pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_2pax]"]`,
+                    )?.value,
+                  ) || null,
                 rate_3pax:
-                  rate3pax && rate3pax.trim() !== ""
-                    ? parseFloat(rate3pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_3pax]"]`,
+                    )?.value,
+                  ) || null,
                 rate_4pax:
-                  rate4pax && rate4pax.trim() !== ""
-                    ? parseFloat(rate4pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_4pax]"]`,
+                    )?.value,
+                  ) || null,
                 rate_5pax:
-                  rate5pax && rate5pax.trim() !== ""
-                    ? parseFloat(rate5pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_5pax]"]`,
+                    )?.value,
+                  ) || null,
                 rate_6pax:
-                  rate6pax && rate6pax.trim() !== ""
-                    ? parseFloat(rate6pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_6pax]"]`,
+                    )?.value,
+                  ) || null,
                 rate_7pax:
-                  rate7pax && rate7pax.trim() !== ""
-                    ? parseFloat(rate7pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_7pax]"]`,
+                    )?.value,
+                  ) || null,
                 rate_8pax:
-                  rate8pax && rate8pax.trim() !== ""
-                    ? parseFloat(rate8pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_8pax]"]`,
+                    )?.value,
+                  ) || null,
                 rate_9pax:
-                  rate9pax && rate9pax.trim() !== ""
-                    ? parseFloat(rate9pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_9pax]"]`,
+                    )?.value,
+                  ) || null,
                 rate_10pax:
-                  rate10pax && rate10pax.trim() !== ""
-                    ? parseFloat(rate10pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_10pax]"]`,
+                    )?.value,
+                  ) || null,
                 rate_11pax:
-                  rate11pax && rate11pax.trim() !== ""
-                    ? parseFloat(rate11pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_11pax]"]`,
+                    )?.value,
+                  ) || null,
                 rate_12pax:
-                  rate12pax && rate12pax.trim() !== ""
-                    ? parseFloat(rate12pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_12pax]"]`,
+                    )?.value,
+                  ) || null,
                 rate_13pax:
-                  rate13pax && rate13pax.trim() !== ""
-                    ? parseFloat(rate13pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_13pax]"]`,
+                    )?.value,
+                  ) || null,
                 rate_14pax:
-                  rate14pax && rate14pax.trim() !== ""
-                    ? parseFloat(rate14pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_14pax]"]`,
+                    )?.value,
+                  ) || null,
                 rate_15pax:
-                  rate15pax && rate15pax.trim() !== ""
-                    ? parseFloat(rate15pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_15pax]"]`,
+                    )?.value,
+                  ) || null,
                 rate_child_no_breakfast:
-                  rateChild && rateChild.trim() !== ""
-                    ? parseFloat(rateChild)
-                    : null,
-                // Clear extra night fields
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][rates][${rowIndex}][rate_child]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_solo: null,
                 extra_night_2pax: null,
                 extra_night_3pax: null,
@@ -8379,20 +8611,43 @@ export async function openEditPackageModal(packageId) {
                 extra_night_child_no_breakfast: null,
                 breakfast_included: breakfastIncluded,
                 breakfast_notes: breakfastNotes,
+                additional_info: additionalInfo,
               };
 
-              hotelRatesToSave.push(rateData);
+              // Only add if at least one rate field has value
+              if (
+                rateData.rate_solo ||
+                rateData.rate_2pax ||
+                rateData.rate_3pax ||
+                rateData.rate_4pax ||
+                rateData.rate_5pax ||
+                rateData.rate_6pax ||
+                rateData.rate_7pax ||
+                rateData.rate_8pax ||
+                rateData.rate_9pax ||
+                rateData.rate_10pax ||
+                rateData.rate_11pax ||
+                rateData.rate_12pax ||
+                rateData.rate_13pax ||
+                rateData.rate_14pax ||
+                rateData.rate_15pax ||
+                rateData.rate_child_no_breakfast ||
+                rateData.season ||
+                rateData.sneak ||
+                rateData.duration
+              ) {
+                hotelRatesToSave.push(rateData);
+              }
             });
           }
 
-          // Process extra night rate rows (similar changes)
+          // Process extra night rate rows
           const extraTbody = document.getElementById(
             `category-${catIndex}-extra-rates`,
           );
           if (extraTbody) {
             const rows = extraTbody.querySelectorAll("tr");
             rows.forEach((row, rowIndex) => {
-              // Get ALL field values
               const season = row.querySelector(
                 `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][season]"]`,
               )?.value;
@@ -8403,137 +8658,108 @@ export async function openEditPackageModal(packageId) {
                 `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][duration]"]`,
               )?.value;
 
-              const rateSolo = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_solo]"]`,
-              )?.value;
-              const rate2pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_2pax]"]`,
-              )?.value;
-              const rate3pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_3pax]"]`,
-              )?.value;
-              const rate4pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_4pax]"]`,
-              )?.value;
-              const rate5pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_5pax]"]`,
-              )?.value;
-              const rate6pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_6pax]"]`,
-              )?.value;
-              const rate7pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_7pax]"]`,
-              )?.value;
-              const rate8pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_8pax]"]`,
-              )?.value;
-              const rate9pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_9pax]"]`,
-              )?.value;
-              const rate10pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_10pax]"]`,
-              )?.value;
-              const rate11pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_11pax]"]`,
-              )?.value;
-              const rate12pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_12pax]"]`,
-              )?.value;
-              const rate13pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_13pax]"]`,
-              )?.value;
-              const rate14pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_14pax]"]`,
-              )?.value;
-              const rate15pax = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_15pax]"]`,
-              )?.value;
-              const rateChild = row.querySelector(
-                `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_child]"]`,
-              )?.value;
-
               const rateData = {
                 package_id: pkg.id,
                 hotel_category_id: categoryId,
-                // Text fields: if empty, set to null
-                season:
-                  season !== undefined && season.trim() !== ""
-                    ? season.trim()
-                    : null,
-                sneak:
-                  sneak !== undefined && sneak.trim() !== ""
-                    ? sneak.trim()
-                    : null,
-                duration:
-                  duration !== undefined && duration.trim() !== ""
-                    ? duration.trim()
-                    : null,
-                // Extra night fields
+                season: season?.trim() || null,
+                sneak: sneak?.trim() || null,
+                duration: duration?.trim() || null,
                 extra_night_solo:
-                  rateSolo && rateSolo.trim() !== ""
-                    ? parseFloat(rateSolo)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_solo]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_2pax:
-                  rate2pax && rate2pax.trim() !== ""
-                    ? parseFloat(rate2pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_2pax]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_3pax:
-                  rate3pax && rate3pax.trim() !== ""
-                    ? parseFloat(rate3pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_3pax]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_4pax:
-                  rate4pax && rate4pax.trim() !== ""
-                    ? parseFloat(rate4pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_4pax]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_5pax:
-                  rate5pax && rate5pax.trim() !== ""
-                    ? parseFloat(rate5pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_5pax]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_6pax:
-                  rate6pax && rate6pax.trim() !== ""
-                    ? parseFloat(rate6pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_6pax]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_7pax:
-                  rate7pax && rate7pax.trim() !== ""
-                    ? parseFloat(rate7pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_7pax]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_8pax:
-                  rate8pax && rate8pax.trim() !== ""
-                    ? parseFloat(rate8pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_8pax]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_9pax:
-                  rate9pax && rate9pax.trim() !== ""
-                    ? parseFloat(rate9pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_9pax]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_10pax:
-                  rate10pax && rate10pax.trim() !== ""
-                    ? parseFloat(rate10pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_10pax]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_11pax:
-                  rate11pax && rate11pax.trim() !== ""
-                    ? parseFloat(rate11pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_11pax]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_12pax:
-                  rate12pax && rate12pax.trim() !== ""
-                    ? parseFloat(rate12pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_12pax]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_13pax:
-                  rate13pax && rate13pax.trim() !== ""
-                    ? parseFloat(rate13pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_13pax]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_14pax:
-                  rate14pax && rate14pax.trim() !== ""
-                    ? parseFloat(rate14pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_14pax]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_15pax:
-                  rate15pax && rate15pax.trim() !== ""
-                    ? parseFloat(rate15pax)
-                    : null,
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_15pax]"]`,
+                    )?.value,
+                  ) || null,
                 extra_night_child_no_breakfast:
-                  rateChild && rateChild.trim() !== ""
-                    ? parseFloat(rateChild)
-                    : null,
-                // Clear regular rate fields
+                  parseFloat(
+                    row.querySelector(
+                      `[name^="hotel_rates[${categoryId}][extra][${rowIndex}][rate_child]"]`,
+                    )?.value,
+                  ) || null,
                 rate_solo: null,
                 rate_2pax: null,
                 rate_3pax: null,
@@ -8552,16 +8778,44 @@ export async function openEditPackageModal(packageId) {
                 rate_child_no_breakfast: null,
                 breakfast_included: breakfastIncluded,
                 breakfast_notes: breakfastNotes,
+                additional_info: additionalInfo,
               };
 
-              hotelRatesToSave.push(rateData);
+              // Only add if at least one rate field has value
+              if (
+                rateData.extra_night_solo ||
+                rateData.extra_night_2pax ||
+                rateData.extra_night_3pax ||
+                rateData.extra_night_4pax ||
+                rateData.extra_night_5pax ||
+                rateData.extra_night_6pax ||
+                rateData.extra_night_7pax ||
+                rateData.extra_night_8pax ||
+                rateData.extra_night_9pax ||
+                rateData.extra_night_10pax ||
+                rateData.extra_night_11pax ||
+                rateData.extra_night_12pax ||
+                rateData.extra_night_13pax ||
+                rateData.extra_night_14pax ||
+                rateData.extra_night_15pax ||
+                rateData.extra_night_child_no_breakfast ||
+                rateData.season ||
+                rateData.sneak ||
+                rateData.duration
+              ) {
+                hotelRatesToSave.push(rateData);
+              }
             });
           }
         });
 
-        // Add hotel rates to update data if any
         if (hotelRatesToSave.length > 0) {
           updateData.hotel_rates_data = JSON.stringify(hotelRatesToSave);
+          console.log(
+            "📊 Hotel rates data saved:",
+            hotelRatesToSave.length,
+            "rows",
+          );
         }
 
         // ========== 8. OPTIONAL TOURS ==========
@@ -8574,7 +8828,6 @@ export async function openEditPackageModal(packageId) {
 
         console.log("📦 Sending update data:", updateData);
 
-        // Call your updatePackage function
         const result = await updatePackage(pkg.id, updateData);
 
         if (result) {
@@ -8641,16 +8894,13 @@ export async function openEditPackageModal(packageId) {
       }
     }
 
-    // Call loadAvailableTours
     loadAvailableTours();
-    window.updateDayCount = updateDayCount;
   } catch (error) {
     console.error("Error in openEditPackageModal:", error);
     showLoading(false);
     showToast("Failed to open edit modal: " + error.message, "error");
   }
 }
-
 // =====================================================
 // HOTEL CATEGORY MODALS
 // =====================================================
@@ -9302,7 +9552,7 @@ export function openCreateOptionalTourModal(destinationId) {
               </div>
               
               <div>
-                <label class="block text-sm font-semibold text-gray-600 mb-2">Duration (hours)</label>
+                <label class="block text-sm font-semibold text-gray-600 mb-2">Duration/Travel-Date (hours)</label>
                 <input type="number" name="duration_hours" step="0.5" min="0.5"
                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 text-sm"
                        placeholder="e.g., 4">
@@ -9922,7 +10172,7 @@ export async function openEditOptionalTourModal(tourId) {
                 
                 <div>
                   <label class="block text-sm font-semibold text-gray-600 mb-2">
-                    Duration (hours)
+                    Duration/Travel-Date (hours)
                   </label>
                   <input type="number" name="duration_hours" value="${tour.duration_hours || ""}" step="0.5" min="0"
                          class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200 text-sm">
@@ -10971,7 +11221,7 @@ export function viewOptionalTourDetails(tourId) {
             </h4>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <p class="text-xs text-gray-500">Duration</p>
+                <p class="text-xs text-gray-500"><DurationTravel/Date/p>
                 <p class="font-semibold">${tour.duration_hours ? tour.duration_hours + " hours" : "Not specified"}</p>
               </div>
               <div>
@@ -12403,7 +12653,23 @@ export function openEditPackageRateModal(rateId) {
           <input type="text" name="breakfast_notes" value="${rate.breakfast_notes || ""}"
                  class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm">
         </div>
-        
+        <!-- ADD THIS - Additional Information field -->
+<div class="mt-4">
+  <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
+    <i class="fas fa-info-circle text-amber-500"></i>
+    Additional Information
+  </label>
+  <textarea name="additional_info" rows="4"
+            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm"
+            placeholder="Check-in time: 2:00 PM
+Check-out time: 12:00 PM
+Free WiFi available
+Pool access: 6:00 AM - 8:00 PM
+Parking: Free
+Children policy: Welcome
+Pets: Not allowed">${rate.additional_info || ""}</textarea>
+  <p class="text-xs text-gray-500 mt-1">One item per line for better formatting</p>
+</div>
         <div class="mt-4">
           <label class="flex items-center gap-2">
             <input type="checkbox" name="is_promo" value="true" ${rate.is_promo ? "checked" : ""}
@@ -12596,7 +12862,512 @@ export function confirmDeleteHotel(id) {
 export function confirmDeleteOptionalTour(id) {
   deleteOptionalTour(id);
 }
+// Add this function to destinations.js
+// Add this function to destinations.js
+window.showRateInfo = function (rateId) {
+  // Find the rate
+  let rate = null;
+  let pkg = null;
+  let category = null;
 
+  for (const dest of state.destinations) {
+    for (const p of dest.packages || []) {
+      const found = p.package_hotel_rates?.find((r) => r.id === rateId);
+      if (found) {
+        rate = found;
+        pkg = p;
+        category = dest.hotel_categories?.find(
+          (c) => c.id === rate.hotel_category_id,
+        );
+        break;
+      }
+    }
+  }
+
+  if (!rate || !rate.additional_info) {
+    showToast("No additional information available", "info");
+    return;
+  }
+
+  // Parse additional info (split by line)
+  const infoLines = rate.additional_info
+    .split("\n")
+    .filter((line) => line.trim());
+
+  const modal = document.createElement("div");
+  modal.className =
+    "fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm";
+
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl">
+      <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 rounded-t-2xl">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xl font-bold text-white">Additional Information</h3>
+          <button onclick="this.closest('.fixed').remove()" class="text-white/80 hover:text-white text-2xl">&times;</button>
+        </div>
+        <p class="text-indigo-100 text-sm mt-1">${pkg?.package_name} • ${category?.category_name || "Hotel"}</p>
+      </div>
+      
+      <div class="p-6">
+        <div class="space-y-3 max-h-96 overflow-y-auto">
+          ${infoLines
+            .map((line) => {
+              // Try to format nicely if it contains a colon
+              if (line.includes(":")) {
+                const [label, value] = line.split(":").map((s) => s.trim());
+                return `
+                <div class="border-b border-gray-100 pb-2">
+                  <span class="text-xs font-semibold text-gray-600 block">${label}:</span>
+                  <span class="text-sm text-gray-800">${value || "Not specified"}</span>
+                </div>
+              `;
+              } else {
+                return `
+                <div class="border-b border-gray-100 pb-2">
+                  <span class="text-sm text-gray-800">${line}</span>
+                </div>
+              `;
+              }
+            })
+            .join("")}
+        </div>
+        
+        <div class="flex justify-end mt-6 pt-4 border-t border-gray-200">
+          <button onclick="this.closest('.fixed').remove()"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+};
+// Add these helper functions inside openEditPackageModal, after modal.innerHTML definition
+// but before the form submit handler
+
+// =====================================================
+// ITINERARY HELPER FUNCTIONS
+// =====================================================
+
+// Function to update day count display
+function updateDayCount() {
+  const container = document.getElementById("itineraryContainer");
+  if (!container) return;
+
+  const days = container.children.length;
+  const totalDaysSpan = document.getElementById("totalDays");
+  if (totalDaysSpan) {
+    totalDaysSpan.textContent = days;
+  }
+}
+
+// Function to remove itinerary day
+window.removeItineraryDay = function (button) {
+  const dayDiv = button.closest("[data-day]");
+  if (dayDiv) {
+    dayDiv.remove();
+    // Renumber remaining days
+    const container = document.getElementById("itineraryContainer");
+    if (container) {
+      const days = container.children;
+      for (let i = 0; i < days.length; i++) {
+        const daySpan = days[i].querySelector("span:first-child");
+        const textarea = days[i].querySelector("textarea");
+        if (daySpan && textarea) {
+          const newDayNum = i + 1;
+          daySpan.textContent = `Day ${newDayNum}:`;
+          textarea.name = `itineraries[${newDayNum}]`;
+          textarea.placeholder = `Enter detailed itinerary for day ${newDayNum}...`;
+          days[i].setAttribute("data-day", newDayNum);
+        }
+      }
+    }
+    updateDayCount();
+  }
+};
+
+// Function to add itinerary day
+window.addItineraryDayEdit = function () {
+  const container = document.getElementById("itineraryContainer");
+  if (!container) return;
+
+  const dayCount = container.children.length + 1;
+  const dayHtml = `
+    <div class="flex items-start gap-2 bg-white p-3 rounded-lg border-2 border-gray-200 hover:border-amber-300 transition-colors" data-day="${dayCount}">
+      <span class="text-xs font-bold text-gray-600 w-12 pt-2 flex-shrink-0">Day ${dayCount}:</span>
+      <textarea name="itineraries[${dayCount}]" rows="6" 
+                class="flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 resize-y min-h-[150px] whitespace-pre-wrap font-mono leading-relaxed"
+                placeholder="Enter detailed itinerary for day ${dayCount}..."></textarea>
+      <button type="button" onclick="removeItineraryDay(this)" class="text-red-500 hover:text-red-700 p-2 flex-shrink-0">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `;
+  container.insertAdjacentHTML("beforeend", dayHtml);
+  updateDayCount();
+};
+
+// =====================================================
+// INCLUSIONS HELPER FUNCTIONS
+// =====================================================
+
+// Add new inclusion
+window.addNewInclusion = function () {
+  const input = document.getElementById("new-inclusion-input");
+  if (input) {
+    input.classList.remove("hidden");
+    const textarea = document.getElementById("new-inclusion-text");
+    if (textarea) textarea.focus();
+  }
+};
+
+// Cancel new inclusion
+window.cancelNewInclusion = function () {
+  const input = document.getElementById("new-inclusion-input");
+  const textarea = document.getElementById("new-inclusion-text");
+  if (input) input.classList.add("hidden");
+  if (textarea) textarea.value = "";
+};
+
+// Save new inclusion
+window.saveNewInclusion = async function (packageId) {
+  const textarea = document.getElementById("new-inclusion-text");
+  if (!textarea) return;
+
+  const text = textarea.value.trim();
+  if (!text) {
+    showToast("Please enter inclusion text", "warning");
+    return;
+  }
+
+  try {
+    showLoading(true, "Adding inclusion...");
+
+    const { error } = await supabase.from("package_inclusions").insert([
+      {
+        package_id: packageId,
+        inclusion_text: text,
+        display_order: 999,
+      },
+    ]);
+
+    if (error) throw error;
+
+    await fetchDestinations();
+    showToast("✅ Inclusion added successfully!", "success");
+
+    // Refresh the modal
+    const modal = document.getElementById("editPackageModal");
+    if (modal) {
+      modal.remove();
+      await openEditPackageModal(packageId);
+    }
+  } catch (error) {
+    console.error("Error adding inclusion:", error);
+    showToast("❌ Failed to add inclusion: " + error.message, "error");
+  } finally {
+    showLoading(false);
+  }
+};
+
+// Delete single inclusion
+window.deletePackageInclusion = async function (id) {
+  showConfirmDialog("Delete this inclusion?", async () => {
+    try {
+      showLoading(true, "Deleting inclusion...");
+      const { error } = await supabase
+        .from("package_inclusions")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      await fetchDestinations();
+      showToast("✅ Inclusion deleted successfully!", "success");
+
+      // Refresh the modal
+      const modal = document.getElementById("editPackageModal");
+      if (modal) {
+        const packageId = modal.querySelector('[name="package_id"]')?.value;
+        if (packageId) {
+          modal.remove();
+          await openEditPackageModal(parseInt(packageId));
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting inclusion:", error);
+      showToast("❌ Failed to delete inclusion: " + error.message, "error");
+    } finally {
+      showLoading(false);
+    }
+  });
+};
+
+// =====================================================
+// EXCLUSIONS HELPER FUNCTIONS
+// =====================================================
+
+// Add new exclusion
+window.addNewExclusion = function () {
+  const input = document.getElementById("new-exclusion-input");
+  if (input) {
+    input.classList.remove("hidden");
+    const textarea = document.getElementById("new-exclusion-text");
+    if (textarea) textarea.focus();
+  }
+};
+
+// Cancel new exclusion
+window.cancelNewExclusion = function () {
+  const input = document.getElementById("new-exclusion-input");
+  const textarea = document.getElementById("new-exclusion-text");
+  if (input) input.classList.add("hidden");
+  if (textarea) textarea.value = "";
+};
+
+// Save new exclusion
+window.saveNewExclusion = async function (packageId) {
+  const textarea = document.getElementById("new-exclusion-text");
+  if (!textarea) return;
+
+  const text = textarea.value.trim();
+  if (!text) {
+    showToast("Please enter exclusion text", "warning");
+    return;
+  }
+
+  try {
+    showLoading(true, "Adding exclusion...");
+
+    const { error } = await supabase.from("package_exclusions").insert([
+      {
+        package_id: packageId,
+        exclusion_text: text,
+        display_order: 999,
+      },
+    ]);
+
+    if (error) throw error;
+
+    await fetchDestinations();
+    showToast("✅ Exclusion added successfully!", "success");
+
+    // Refresh the modal
+    const modal = document.getElementById("editPackageModal");
+    if (modal) {
+      modal.remove();
+      await openEditPackageModal(packageId);
+    }
+  } catch (error) {
+    console.error("Error adding exclusion:", error);
+    showToast("❌ Failed to add exclusion: " + error.message, "error");
+  } finally {
+    showLoading(false);
+  }
+};
+
+// Delete single exclusion
+window.deletePackageExclusion = async function (id) {
+  showConfirmDialog("Delete this exclusion?", async () => {
+    try {
+      showLoading(true, "Deleting exclusion...");
+      const { error } = await supabase
+        .from("package_exclusions")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      await fetchDestinations();
+      showToast("✅ Exclusion deleted successfully!", "success");
+
+      // Refresh the modal
+      const modal = document.getElementById("editPackageModal");
+      if (modal) {
+        const packageId = modal.querySelector('[name="package_id"]')?.value;
+        if (packageId) {
+          modal.remove();
+          await openEditPackageModal(parseInt(packageId));
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting exclusion:", error);
+      showToast("❌ Failed to delete exclusion: " + error.message, "error");
+    } finally {
+      showLoading(false);
+    }
+  });
+};
+
+// =====================================================
+// BULK SELECTION FUNCTIONS
+// =====================================================
+
+// Toggle all inclusion checkboxes
+window.toggleAllInclusions = function (selectAllCheckbox) {
+  const checkboxes = document.querySelectorAll(".inclusion-checkbox");
+  checkboxes.forEach((cb) => (cb.checked = selectAllCheckbox.checked));
+};
+
+// Toggle all exclusion checkboxes
+window.toggleAllExclusions = function (selectAllCheckbox) {
+  const checkboxes = document.querySelectorAll(".exclusion-checkbox");
+  checkboxes.forEach((cb) => (cb.checked = selectAllCheckbox.checked));
+};
+
+// Delete selected inclusions
+window.deleteSelectedInclusions = async function (packageId) {
+  const selectedCheckboxes = document.querySelectorAll(
+    ".inclusion-checkbox:checked",
+  );
+  const selectedIds = Array.from(selectedCheckboxes).map((cb) =>
+    parseInt(cb.value),
+  );
+
+  if (selectedIds.length === 0) {
+    showToast("No inclusions selected", "warning");
+    return;
+  }
+
+  showConfirmDialog(
+    `Delete ${selectedIds.length} selected inclusion(s)?`,
+    async () => {
+      try {
+        showLoading(true, "Deleting selected inclusions...");
+
+        const { error } = await supabase
+          .from("package_inclusions")
+          .delete()
+          .in("id", selectedIds);
+
+        if (error) throw error;
+
+        await fetchDestinations();
+        showToast(
+          `✅ ${selectedIds.length} inclusion(s) deleted successfully!`,
+          "success",
+        );
+
+        // Refresh the modal
+        const modal = document.getElementById("editPackageModal");
+        if (modal) {
+          modal.remove();
+          await openEditPackageModal(packageId);
+        }
+      } catch (error) {
+        console.error("Error deleting inclusions:", error);
+        showToast("❌ Failed to delete inclusions: " + error.message, "error");
+      } finally {
+        showLoading(false);
+      }
+    },
+  );
+};
+
+// Delete selected exclusions
+window.deleteSelectedExclusions = async function (packageId) {
+  const selectedCheckboxes = document.querySelectorAll(
+    ".exclusion-checkbox:checked",
+  );
+  const selectedIds = Array.from(selectedCheckboxes).map((cb) =>
+    parseInt(cb.value),
+  );
+
+  if (selectedIds.length === 0) {
+    showToast("No exclusions selected", "warning");
+    return;
+  }
+
+  showConfirmDialog(
+    `Delete ${selectedIds.length} selected exclusion(s)?`,
+    async () => {
+      try {
+        showLoading(true, "Deleting selected exclusions...");
+
+        const { error } = await supabase
+          .from("package_exclusions")
+          .delete()
+          .in("id", selectedIds);
+
+        if (error) throw error;
+
+        await fetchDestinations();
+        showToast(
+          `✅ ${selectedIds.length} exclusion(s) deleted successfully!`,
+          "success",
+        );
+
+        // Refresh the modal
+        const modal = document.getElementById("editPackageModal");
+        if (modal) {
+          modal.remove();
+          await openEditPackageModal(packageId);
+        }
+      } catch (error) {
+        console.error("Error deleting exclusions:", error);
+        showToast("❌ Failed to delete exclusions: " + error.message, "error");
+      } finally {
+        showLoading(false);
+      }
+    },
+  );
+};
+// Add this function to update the day count display
+window.updateDayCount = function () {
+  const container = document.getElementById("itineraryContainer");
+  if (!container) return;
+
+  const days = container.children.length;
+  const totalDaysSpan = document.getElementById("totalDays");
+  if (totalDaysSpan) {
+    totalDaysSpan.textContent = days;
+  }
+  console.log(`📅 Day count updated: ${days} days`);
+};
+
+// Update the removeItineraryDay function to call updateDayCount
+window.removeItineraryDay = function (button) {
+  const dayDiv = button.closest("[data-day]");
+  if (dayDiv) {
+    dayDiv.remove();
+    // Renumber remaining days
+    const container = document.getElementById("itineraryContainer");
+    if (container) {
+      const days = container.children;
+      for (let i = 0; i < days.length; i++) {
+        const daySpan = days[i].querySelector("span:first-child");
+        const textarea = days[i].querySelector("textarea");
+        if (daySpan && textarea) {
+          const newDayNum = i + 1;
+          daySpan.textContent = `Day ${newDayNum}:`;
+          textarea.name = `itineraries[${newDayNum}]`;
+          textarea.placeholder = `Enter detailed itinerary for day ${newDayNum}...`;
+          days[i].setAttribute("data-day", newDayNum);
+        }
+      }
+    }
+    window.updateDayCount(); // Call the function to update display
+  }
+};
+
+// Update the addItineraryDayEdit function to call updateDayCount
+window.addItineraryDayEdit = function () {
+  const container = document.getElementById("itineraryContainer");
+  if (!container) return;
+
+  const dayCount = container.children.length + 1;
+  const dayHtml = `
+    <div class="flex items-start gap-2 bg-white p-3 rounded-lg border-2 border-gray-200 hover:border-amber-300 transition-colors" data-day="${dayCount}">
+      <span class="text-xs font-bold text-gray-600 w-12 pt-2 flex-shrink-0">Day ${dayCount}:</span>
+      <textarea name="itineraries[${dayCount}]" rows="6" 
+                class="flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 resize-y min-h-[150px] whitespace-pre-wrap font-mono leading-relaxed"
+                placeholder="Enter detailed itinerary for day ${dayCount}..."></textarea>
+      <button type="button" onclick="removeItineraryDay(this)" class="text-red-500 hover:text-red-700 p-2 flex-shrink-0">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `;
+  container.insertAdjacentHTML("beforeend", dayHtml);
+  window.updateDayCount(); // Call the function to update display
+};
 // =====================================================
 // WINDOW EXPORTS
 // =====================================================
@@ -12657,3 +13428,4 @@ window.confirmDeleteDestination = deleteDestination;
 window.confirmDeletePackage = confirmDeletePackage;
 window.confirmDeletePackageHotelRate = deletePackageHotelRate;
 window.openAddMultipleToursToPackageModal = openAddMultipleToursToPackageModal;
+window.showRateInfo = showRateInfo;

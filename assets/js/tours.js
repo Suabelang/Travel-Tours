@@ -498,11 +498,8 @@ if (typeof window.DestinationsManager !== "undefined") {
         )
         .join("");
 
+      // UPDATED: Tinanggal ang close button sa itaas
       this.detailContent.innerHTML = `
-        <button class="modal-close-btn fixed top-4 right-4 w-12 h-12 bg-white rounded-full shadow-lg hover:bg-gray-100 transition z-50" 
-                onclick="destinationsManager.closeModal()">
-          <i class="fas fa-times text-teal-700 text-xl"></i>
-        </button>
         <div class="max-w-7xl mx-auto px-4 py-8">
           ${overviewHtml}
           ${galleryHtml}
@@ -635,7 +632,7 @@ if (typeof window.DestinationsManager !== "undefined") {
     }
 
     // ============================================
-    // RENDER OPTIONAL TOURS - NO VIEW DETAILS BUTTON
+    // RENDER OPTIONAL TOURS - IMPROVED VERSION
     // ============================================
     renderOptionalTours(pkg) {
       if (
@@ -657,109 +654,164 @@ if (typeof window.DestinationsManager !== "undefined") {
       }
 
       return `
-        <div class="bg-white p-6 rounded-xl border-2 border-gray-200">
-          <div class="flex items-center justify-between mb-4">
-            <h4 class="text-xl font-bold text-teal-700 flex items-center gap-2">
-              <i class="fas fa-compass"></i>
+        <div class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl border-2 border-purple-200 shadow-lg">
+          <div class="flex items-center justify-between mb-6">
+            <h4 class="text-2xl font-bold text-purple-700 flex items-center gap-3">
+              <i class="fas fa-compass bg-purple-700 text-white p-2 rounded-lg"></i>
               Optional Tours
             </h4>
-            <span class="bg-teal-700 text-white px-3 py-1 rounded-full text-sm font-medium">
-              ${validTours.length} tour(s)
+            <span class="bg-purple-700 text-white px-4 py-2 rounded-full text-sm font-bold shadow-md">
+              ${validTours.length} Tour${validTours.length > 1 ? "s" : ""} Available
             </span>
           </div>
           
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             ${validTours
               .map((item) => {
                 const tour = item.optional_tours;
                 const rates = tour.optional_tour_rates || [];
                 const firstRate = rates.length > 0 ? rates[0] : null;
 
+                // Generate rate display
                 let rateDisplay = "";
                 if (firstRate) {
                   const rateItems = [];
                   if (
                     firstRate.rate_solo &&
                     parseFloat(firstRate.rate_solo) > 0
-                  )
-                    rateItems.push(
-                      `Solo: ₱${Number(firstRate.rate_solo).toLocaleString()}`,
-                    );
+                  ) {
+                    rateItems.push({
+                      label: "Solo",
+                      value: firstRate.rate_solo,
+                      icon: "fa-user",
+                    });
+                  }
                   if (
                     firstRate.rate_2pax &&
                     parseFloat(firstRate.rate_2pax) > 0
-                  )
-                    rateItems.push(
-                      `2 Pax: ₱${Number(firstRate.rate_2pax).toLocaleString()}`,
-                    );
+                  ) {
+                    rateItems.push({
+                      label: "2 Pax",
+                      value: firstRate.rate_2pax,
+                      icon: "fa-users",
+                    });
+                  }
                   if (
                     firstRate.rate_3pax &&
                     parseFloat(firstRate.rate_3pax) > 0
-                  )
-                    rateItems.push(
-                      `3 Pax: ₱${Number(firstRate.rate_3pax).toLocaleString()}`,
-                    );
+                  ) {
+                    rateItems.push({
+                      label: "3 Pax",
+                      value: firstRate.rate_3pax,
+                      icon: "fa-users",
+                    });
+                  }
                   if (
                     firstRate.rate_4pax &&
                     parseFloat(firstRate.rate_4pax) > 0
-                  )
-                    rateItems.push(
-                      `4 Pax: ₱${Number(firstRate.rate_4pax).toLocaleString()}`,
-                    );
+                  ) {
+                    rateItems.push({
+                      label: "4 Pax",
+                      value: firstRate.rate_4pax,
+                      icon: "fa-users",
+                    });
+                  }
                   if (
                     firstRate.rate_5pax &&
                     parseFloat(firstRate.rate_5pax) > 0
-                  )
-                    rateItems.push(
-                      `5 Pax: ₱${Number(firstRate.rate_5pax).toLocaleString()}`,
-                    );
+                  ) {
+                    rateItems.push({
+                      label: "5 Pax",
+                      value: firstRate.rate_5pax,
+                      icon: "fa-users",
+                    });
+                  }
                   if (
                     firstRate.rate_child_4_9 &&
                     parseFloat(firstRate.rate_child_4_9) > 0
-                  )
-                    rateItems.push(
-                      `Child: ₱${Number(firstRate.rate_child_4_9).toLocaleString()}`,
-                    );
+                  ) {
+                    rateItems.push({
+                      label: "Child (4-9)",
+                      value: firstRate.rate_child_4_9,
+                      icon: "fa-child",
+                    });
+                  }
 
-                  rateDisplay =
-                    rateItems.length > 0
-                      ? `<p class="text-xs text-gray-500 mt-2">${rateItems.slice(0, 2).join(" • ")}${rateItems.length > 2 ? " • ..." : ""}</p>`
-                      : "";
+                  if (rateItems.length > 0) {
+                    rateDisplay = `
+                      <div class="bg-white rounded-lg p-3 border border-purple-100 mt-3">
+                        <p class="text-xs font-semibold text-purple-600 mb-2 flex items-center gap-1">
+                          <i class="fas fa-tag"></i> Rates:
+                        </p>
+                        <div class="grid grid-cols-2 gap-2">
+                          ${rateItems
+                            .slice(0, 4)
+                            .map(
+                              (item) => `
+                            <div class="flex items-center gap-1 text-xs bg-purple-50 p-1.5 rounded">
+                              <i class="fas ${item.icon} text-purple-500 w-4"></i>
+                              <span class="text-gray-600">${item.label}:</span>
+                              <span class="font-bold text-orange-500">₱${Number(item.value).toLocaleString()}</span>
+                            </div>
+                          `,
+                            )
+                            .join("")}
+                        </div>
+                        ${rateItems.length > 4 ? '<p class="text-xs text-gray-400 mt-1">+ more rates available...</p>' : ""}
+                      </div>
+                    `;
+                  }
                 }
 
+                // Generate preview text
                 let previewText = "";
                 if (tour.itinerary && tour.itinerary.length > 0) {
-                  previewText = tour.itinerary[0];
+                  previewText =
+                    tour.itinerary[0].substring(0, 100) +
+                    (tour.itinerary[0].length > 100 ? "..." : "");
                 } else if (tour.inclusions && tour.inclusions.length > 0) {
-                  previewText = `Includes: ${tour.inclusions.slice(0, 2).join(", ")}`;
+                  previewText = `✓ Includes: ${tour.inclusions.slice(0, 2).join(", ")}`;
                 }
 
                 return `
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition">
-                  <div class="flex items-start justify-between mb-3">
-                    <h5 class="font-bold text-gray-800 text-base">${tour.tour_name}</h5>
-                    ${
-                      tour.duration_hours
-                        ? `
-                      <span class="bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
-                        <i class="far fa-clock mr-1"></i>${tour.duration_hours}h
-                      </span>
-                    `
-                        : ""
-                    }
+                  <div class="bg-white rounded-xl overflow-hidden border-2 border-purple-100 hover:border-purple-300 hover:shadow-xl transition-all duration-300 group">
+                    <!-- Tour Image/Header -->
+                    <div class="relative h-40 bg-gradient-to-r from-purple-600 to-purple-800 overflow-hidden">
+                      ${
+                        tour.image_url
+                          ? `<img src="${tour.image_url}" alt="${tour.tour_name}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">`
+                          : `<div class="w-full h-full flex items-center justify-center">
+                             <i class="fas fa-map-marked-alt text-5xl text-white/30"></i>
+                           </div>`
+                      }
+                      <div class="absolute top-3 right-3">
+                        <span class="bg-white/90 backdrop-blur-sm text-purple-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+                          <i class="far fa-clock"></i>
+                          ${tour.duration_hours || "N/A"}h
+                        </span>
+                      </div>
+                      <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4">
+                        <h5 class="font-bold text-white text-lg group-hover:text-purple-200 transition">${tour.tour_name}</h5>
+                      </div>
+                    </div>
+                    
+                    <!-- Tour Content -->
+                    <div class="p-4">
+                      ${
+                        previewText
+                          ? `
+                        <div class="mb-3 text-sm text-gray-600 line-clamp-2 flex items-start gap-2">
+                          <i class="fas fa-info-circle text-purple-500 mt-0.5 flex-shrink-0"></i>
+                          <span>${previewText}</span>
+                        </div>
+                      `
+                          : ""
+                      }
+                      
+                      ${rateDisplay}
+                    </div>
                   </div>
-                  
-                  ${
-                    previewText
-                      ? `
-                    <p class="text-xs text-gray-600 mb-3 line-clamp-2">${previewText}</p>
-                  `
-                      : ""
-                  }
-                  
-                  ${rateDisplay}
-                </div>
-              `;
+                `;
               })
               .join("")}
           </div>
@@ -1288,169 +1340,178 @@ if (typeof window.DestinationsManager !== "undefined") {
       today,
     ) {
       return `
-    <div class="bg-white w-[95%] max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl">
-      <div class="bg-gradient-to-r from-orange-500 to-teal-700 text-white p-5 sticky top-0 z-10 rounded-t-2xl">
-        <div class="flex justify-between items-center">
-          <div>
-            <h2 class="text-2xl font-bold">${destination.name}</h2>
-            <p class="mt-1">${packageName}</p>
+        <div class="bg-white w-[95%] max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl">
+          <div class="bg-gradient-to-r from-orange-500 to-teal-700 text-white p-5 sticky top-0 z-10 rounded-t-2xl">
+            <div class="flex justify-between items-center">
+              <div>
+                <h2 class="text-2xl font-bold">${destination.name}</h2>
+                <p class="mt-1">${packageName}</p>
+              </div>
+              <button onclick="destinationsManager.closeBookingModal()" class="text-3xl hover:text-white/80">&times;</button>
+            </div>
           </div>
-          <button onclick="destinationsManager.closeBookingModal()" class="text-3xl hover:text-white/80">&times;</button>
+
+          <div class="p-6">
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+              <h3 class="text-teal-700 font-semibold mb-2 flex items-center gap-2">
+                <i class="fas fa-box"></i>
+                Package Summary
+              </h3>
+              <p><span class="font-medium">${pkg.package_name}</span> ${pkg.package_code ? `(${pkg.package_code})` : ""}</p>
+            </div>
+
+            <h3 class="text-teal-700 font-bold text-xl mb-4 flex items-center gap-2">
+              <i class="fas fa-hotel"></i>
+              Select Hotel Category
+            </h3>
+            ${hotelSelectionHtml}
+
+            ${
+              optionalToursHtml
+                ? `
+              <h3 class="text-teal-700 font-bold text-xl mt-8 mb-4 flex items-center gap-2">
+                <i class="fas fa-compass"></i>
+                Optional Tours
+              </h3>
+              ${optionalToursHtml}
+            `
+                : '<p class="text-gray-500 italic mt-4">No optional tours available for this package.</p>'
+            }
+
+            <!-- SELECTION SUMMARY CARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 my-6">
+              <div id="selectedCategorySummary" class="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                <h4 class="font-semibold text-orange-600 mb-2 flex items-center gap-1">
+                  <i class="fas fa-layer-group text-sm"></i>
+                  Selected Category
+                </h4>
+                <div id="selectedCategoryDisplay" class="font-medium">${hotelCategories[0]?.category_name || "None"}</div>
+              </div>
+              
+              <div id="selectedHotelSummary" class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h4 class="font-semibold text-blue-600 mb-2 flex items-center gap-1">
+                  <i class="fas fa-hotel text-sm"></i>
+                  Selected Hotel
+                </h4>
+                <div id="selectedHotelDisplay" class="font-medium">None</div>
+              </div>
+              
+              <div id="selectedPaxSummary" class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h4 class="font-semibold text-blue-600 mb-2 flex items-center gap-1">
+                  <i class="fas fa-users text-sm"></i>
+                  Selected Pax
+                </h4>
+                <div id="selectedPaxDisplay" class="font-medium">None</div>
+              </div>
+              
+              <div id="selectedExtraNightsSummary" class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 hidden">
+                <h4 class="font-semibold text-yellow-700 mb-2 flex items-center gap-1">
+                  <i class="fas fa-moon text-sm"></i>
+                  Extra Nights
+                </h4>
+                <div id="selectedExtraNightsDisplay"></div>
+              </div>
+              
+              <div id="selectedToursSummary" class="bg-purple-50 p-4 rounded-lg border border-purple-200 hidden">
+                <h4 class="font-semibold text-purple-700 mb-2 flex items-center gap-1">
+                  <i class="fas fa-compass text-sm"></i>
+                  Optional Tours
+                </h4>
+                <div id="selectedToursDisplay"></div>
+              </div>
+            </div>
+
+            <!-- YOUR INFORMATION SECTION -->
+            <div class="mb-6">
+              <h4 class="text-teal-700 font-semibold mb-4 flex items-center gap-2">
+                <i class="fas fa-user"></i>
+                Your Information
+              </h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                  <input type="text" id="fullName" placeholder="Enter your full name" 
+                         class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <input type="email" id="email" placeholder="your@email.com" 
+                         class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                  <input type="tel" id="phone" placeholder="09XXXXXXXXX" 
+                         class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Travel Date *</label>
+                  <input type="date" id="travelDate" min="${today}" 
+                         class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
+                <textarea id="requests" rows="2" placeholder="Any special requirements?" 
+                          class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200"></textarea>
+              </div>
+            </div>
+
+            <!-- PRICE SUMMARY SECTION -->
+            <div class="bg-green-50 p-5 rounded-xl border-2 border-green-200 mb-6">
+              <h4 class="text-green-700 font-bold text-lg mb-4 flex items-center gap-2">
+                <i class="fas fa-calculator"></i>
+                Price Summary
+              </h4>
+              <div class="space-y-2">
+                <div class="flex justify-between items-center py-1">
+                  <span class="text-gray-600">Hotel Base Price:</span>
+                  <span id="basePrice" class="font-semibold">₱0</span>
+                </div>
+                <div class="flex justify-between items-center py-1">
+                  <span class="text-gray-600">Extra Nights:</span>
+                  <span id="extraNightsPrice" class="font-semibold">₱0</span>
+                </div>
+                <div class="flex justify-between items-center py-1">
+                  <span class="text-gray-600">Optional Tours:</span>
+                  <span id="toursPrice" class="font-semibold">₱0</span>
+                </div>
+                <div class="border-t-2 border-green-300 my-2 pt-2 flex justify-between items-center font-bold text-lg">
+                  <span class="text-green-800">Total:</span>
+                  <span id="totalPrice" class="text-orange-600">₱0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- TERMS AND CONDITIONS -->
+            <div class="flex items-start gap-3 mb-6 bg-gray-50 p-4 rounded-lg">
+              <input type="checkbox" id="terms" class="w-5 h-5 accent-teal-700 mt-0.5 cursor-pointer">
+              <div class="flex-1">
+                <label for="terms" class="text-sm text-gray-600">
+                  I agree to the 
+                  <button type="button" onclick="destinationsManager.openTermsModal()" class="text-teal-700 font-semibold hover:underline focus:outline-none">
+                    terms and conditions
+                  </button>
+                </label>
+                <div id="termsError" class="text-red-500 text-xs mt-1 hidden">You must agree to the terms and conditions</div>
+              </div>
+            </div>
+
+            <!-- BUTTONS -->
+            <div class="flex gap-4">
+              <button onclick="destinationsManager.closeBookingModal()" class="flex-1 py-4 bg-white border-2 border-gray-200 rounded-lg font-semibold hover:bg-gray-50 transition">
+                Cancel
+              </button>
+              <button onclick="destinationsManager.submitBooking()" class="flex-1 py-4 bg-gradient-to-r from-orange-500 to-teal-700 text-white rounded-lg font-semibold hover:opacity-90 transition">
+                Confirm Booking
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div class="p-6">
-        <div class="bg-gray-50 p-4 rounded-lg mb-6">
-          <h3 class="text-teal-700 font-semibold mb-2 flex items-center gap-2">
-            <i class="fas fa-box"></i>
-            Package Summary
-          </h3>
-          <p><span class="font-medium">${pkg.package_name}</span> ${pkg.package_code ? `(${pkg.package_code})` : ""}</p>
-        </div>
-
-        <h3 class="text-teal-700 font-bold text-xl mb-4 flex items-center gap-2">
-          <i class="fas fa-hotel"></i>
-          Select Hotel Category
-        </h3>
-        ${hotelSelectionHtml}
-
-        ${
-          optionalToursHtml
-            ? `
-          <h3 class="text-teal-700 font-bold text-xl mt-8 mb-4 flex items-center gap-2">
-            <i class="fas fa-compass"></i>
-            Optional Tours
-          </h3>
-          ${optionalToursHtml}
-        `
-            : '<p class="text-gray-500 italic mt-4">No optional tours available for this package.</p>'
-        }
-
-        <!-- SELECTION SUMMARY CARDS -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 my-6">
-          <div id="selectedCategorySummary" class="bg-orange-50 p-4 rounded-lg border border-orange-200">
-            <h4 class="font-semibold text-orange-600 mb-2 flex items-center gap-1">
-              <i class="fas fa-layer-group text-sm"></i>
-              Selected Category
-            </h4>
-            <div id="selectedCategoryDisplay" class="font-medium">${hotelCategories[0]?.category_name || "None"}</div>
-          </div>
-          
-          <div id="selectedHotelSummary" class="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h4 class="font-semibold text-blue-600 mb-2 flex items-center gap-1">
-              <i class="fas fa-hotel text-sm"></i>
-              Selected Hotel
-            </h4>
-            <div id="selectedHotelDisplay" class="font-medium">None</div>
-          </div>
-          
-          <div id="selectedPaxSummary" class="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h4 class="font-semibold text-blue-600 mb-2 flex items-center gap-1">
-              <i class="fas fa-users text-sm"></i>
-              Selected Pax
-            </h4>
-            <div id="selectedPaxDisplay" class="font-medium">None</div>
-          </div>
-          
-          <div id="selectedExtraNightsSummary" class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 hidden">
-            <h4 class="font-semibold text-yellow-700 mb-2 flex items-center gap-1">
-              <i class="fas fa-moon text-sm"></i>
-              Extra Nights
-            </h4>
-            <div id="selectedExtraNightsDisplay"></div>
-          </div>
-          
-          <div id="selectedToursSummary" class="bg-purple-50 p-4 rounded-lg border border-purple-200 hidden">
-            <h4 class="font-semibold text-purple-700 mb-2 flex items-center gap-1">
-              <i class="fas fa-compass text-sm"></i>
-              Optional Tours
-            </h4>
-            <div id="selectedToursDisplay"></div>
-          </div>
-        </div>
-
-        <!-- YOUR INFORMATION SECTION (UNA NA NGAYON) -->
-        <div class="mb-6">
-          <h4 class="text-teal-700 font-semibold mb-4 flex items-center gap-2">
-            <i class="fas fa-user"></i>
-            Your Information
-          </h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-              <input type="text" id="fullName" placeholder="Enter your full name" 
-                     class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-              <input type="email" id="email" placeholder="your@email.com" 
-                     class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
-              <input type="tel" id="phone" placeholder="09XXXXXXXXX" 
-                     class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Travel Date *</label>
-              <input type="date" id="travelDate" min="${today}" 
-                     class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
-            <textarea id="requests" rows="2" placeholder="Any special requirements?" 
-                      class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200"></textarea>
-          </div>
-        </div>
-
-        <!-- PRICE SUMMARY SECTION (NASA IBABA NA NGAYON) -->
-        <div class="bg-green-50 p-5 rounded-xl border-2 border-green-200 mb-6">
-          <h4 class="text-green-700 font-bold text-lg mb-4 flex items-center gap-2">
-            <i class="fas fa-calculator"></i>
-            Price Summary
-          </h4>
-          <div class="space-y-2">
-            <div class="flex justify-between items-center py-1">
-              <span class="text-gray-600">Hotel Base Price:</span>
-              <span id="basePrice" class="font-semibold">₱0</span>
-            </div>
-            <div class="flex justify-between items-center py-1">
-              <span class="text-gray-600">Extra Nights:</span>
-              <span id="extraNightsPrice" class="font-semibold">₱0</span>
-            </div>
-            <div class="flex justify-between items-center py-1">
-              <span class="text-gray-600">Optional Tours:</span>
-              <span id="toursPrice" class="font-semibold">₱0</span>
-            </div>
-            <div class="border-t-2 border-green-300 my-2 pt-2 flex justify-between items-center font-bold text-lg">
-              <span class="text-green-800">Total:</span>
-              <span id="totalPrice" class="text-orange-600">₱0</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- TERMS AND CONDITIONS -->
-        <div class="flex items-center gap-3 mb-6 bg-gray-50 p-4 rounded-lg">
-          <input type="checkbox" id="terms" class="w-5 h-5 accent-teal-700">
-          <label for="terms" class="text-sm text-gray-600">I agree to the <a href="#" class="text-teal-700 font-semibold hover:underline">terms and conditions</a></label>
-        </div>
-
-        <!-- BUTTONS -->
-        <div class="flex gap-4">
-          <button onclick="destinationsManager.closeBookingModal()" class="flex-1 py-4 bg-white border-2 border-gray-200 rounded-lg font-semibold hover:bg-gray-50 transition">
-            Cancel
-          </button>
-          <button onclick="destinationsManager.submitBooking()" class="flex-1 py-4 bg-gradient-to-r from-orange-500 to-teal-700 text-white rounded-lg font-semibold hover:opacity-90 transition">
-            Confirm Booking
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
+      `;
     }
+
     // ============================================
     // ATTACH BOOKING EVENTS
     // ============================================
@@ -1729,7 +1790,7 @@ if (typeof window.DestinationsManager !== "undefined") {
     }
 
     // ============================================
-    // SUBMIT BOOKING
+    // SUBMIT BOOKING - WITH TERMS VALIDATION
     // ============================================
     async submitBooking() {
       console.log("🚀 Submitting booking...");
@@ -1739,15 +1800,15 @@ if (typeof window.DestinationsManager !== "undefined") {
       const phone = document.getElementById("phone")?.value.trim();
       const travelDate = document.getElementById("travelDate")?.value;
       const requests = document.getElementById("requests")?.value.trim();
-      const terms = document.getElementById("terms")?.checked;
 
-      if (!fullName || !email || !phone || !travelDate) {
-        alert("Please fill in all required fields");
+      // Validate terms first
+      if (!this.validateTerms()) {
+        alert("Please agree to the terms and conditions to proceed.");
         return;
       }
 
-      if (!terms) {
-        alert("Please agree to terms and conditions");
+      if (!fullName || !email || !phone || !travelDate) {
+        alert("Please fill in all required fields");
         return;
       }
 
@@ -1843,6 +1904,8 @@ if (typeof window.DestinationsManager !== "undefined") {
           special_requests: requests,
         },
         travel_date: travelDate,
+        terms_accepted: true,
+        terms_accepted_at: new Date().toISOString(),
         booking_details: {
           hotel_category_id: category.value,
           hotel_category_name: category.dataset.category,
@@ -1868,6 +1931,9 @@ if (typeof window.DestinationsManager !== "undefined") {
       };
 
       console.log("📦 Complete Booking Data:", bookingData);
+
+      // Here you would typically send this to your backend
+      // For now, show success message
       alert(
         "Booking submitted successfully! We'll contact you within 24 hours.",
       );
@@ -1985,171 +2051,387 @@ if (typeof window.DestinationsManager !== "undefined") {
     }
 
     // ============================================
-    // FORMATTING FUNCTIONS
+    // TERMS AND CONDITIONS FUNCTIONS
+    // ============================================
+
+    // Open Terms Modal
+    openTermsModal() {
+      // Remove existing modal if any
+      const existingModal = document.getElementById("termsModal");
+      if (existingModal) existingModal.remove();
+
+      const modal = document.createElement("div");
+      modal.id = "termsModal";
+      modal.className =
+        "fixed inset-0 bg-black/90 flex items-center justify-center z-[999999] p-4 overflow-y-auto";
+
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) this.closeTermsModal();
+      });
+
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl">
+          <!-- Header -->
+          <div class="bg-gradient-to-r from-teal-700 to-orange-500 text-white p-6 sticky top-0 z-10 rounded-t-2xl">
+            <div class="flex justify-between items-center">
+              <h2 class="text-2xl font-bold flex items-center gap-2">
+                <i class="fas fa-file-contract"></i>
+                Terms and Conditions
+              </h2>
+              <button onclick="destinationsManager.closeTermsModal()" class="text-3xl hover:text-white/80 transition">&times;</button>
+            </div>
+          </div>
+          
+          <!-- Content -->
+          <div class="p-8">
+            <div class="space-y-6 text-gray-700">
+              <div>
+                <h3 class="text-lg font-bold text-teal-700 mb-3">1. Booking and Payment</h3>
+                <p class="text-sm leading-relaxed">A 50% down payment is required to confirm your booking. The remaining balance must be settled at least 7 days before your travel date. Payments can be made via bank transfer, GCash, or credit card.</p>
+              </div>
+              
+              <div>
+                <h3 class="text-lg font-bold text-teal-700 mb-3">2. Cancellation Policy</h3>
+                <ul class="list-disc pl-5 space-y-2 text-sm">
+                  <li>Cancellations made 30 days or more before travel: Full refund minus processing fees</li>
+                  <li>Cancellations made 15-29 days before travel: 50% refund</li>
+                  <li>Cancellations made less than 15 days before travel: No refund</li>
+                  <li>No-shows: No refund</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h3 class="text-lg font-bold text-teal-700 mb-3">3. Travel Insurance</h3>
+                <p class="text-sm leading-relaxed">Travel insurance is highly recommended but not included in the package price. We are not responsible for any unforeseen circumstances including but not limited to flight cancellations, natural disasters, personal accidents, or lost belongings.</p>
+              </div>
+              
+              <div>
+                <h3 class="text-lg font-bold text-teal-700 mb-3">4. Itinerary Changes</h3>
+                <p class="text-sm leading-relaxed">We reserve the right to modify itineraries due to weather conditions, local events, or situations beyond our control. We will always strive to provide the best alternative arrangements.</p>
+              </div>
+              
+              <div>
+                <h3 class="text-lg font-bold text-teal-700 mb-3">5. Passenger Responsibility</h3>
+                <p class="text-sm leading-relaxed">All passengers are responsible for having valid travel documents (passport, visas, etc.) and arriving at meeting points on time. We are not liable for missed tours due to passenger delays.</p>
+              </div>
+              
+              <div>
+                <h3 class="text-lg font-bold text-teal-700 mb-3">6. Privacy Policy</h3>
+                <p class="text-sm leading-relaxed">Your personal information will only be used for booking purposes and will not be shared with third parties without your consent.</p>
+              </div>
+            </div>
+            
+            <div class="border-t border-gray-200 mt-8 pt-6 flex justify-end">
+              <button onclick="destinationsManager.closeTermsModal()" 
+                      class="px-6 py-2 bg-gradient-to-r from-teal-700 to-orange-500 text-white rounded-lg font-semibold hover:opacity-90 transition">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+    }
+
+    // Close Terms Modal
+    closeTermsModal() {
+      const modal = document.getElementById("termsModal");
+      if (modal) modal.remove();
+    }
+
+    // Validate Terms
+    validateTerms() {
+      const termsCheckbox = document.getElementById("terms");
+      const termsError = document.getElementById("termsError");
+
+      if (!termsCheckbox || !termsCheckbox.checked) {
+        if (termsError) {
+          termsError.classList.remove("hidden");
+          termsCheckbox.classList.add(
+            "border-red-500",
+            "ring-1",
+            "ring-red-500",
+          );
+
+          // Scroll to terms section
+          termsCheckbox.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return false;
+      }
+
+      // Clear error if checked
+      if (termsError) {
+        termsError.classList.add("hidden");
+        termsCheckbox.classList.remove(
+          "border-red-500",
+          "ring-1",
+          "ring-red-500",
+        );
+      }
+      return true;
+    }
+
+    // ============================================
+    // FORMAT INCLUSIONS - WITH ARRAY INDEXING
     // ============================================
     formatInclusions(inclusions) {
       if (!inclusions || inclusions.length === 0) {
         return '<p class="text-gray-500 italic">No inclusions specified</p>';
       }
 
+      // Ensure we're working with an array
       const items = Array.isArray(inclusions) ? inclusions : [inclusions];
 
       return `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          ${items
-            .map(
-              (item) => `
-            <div class="flex items-start gap-2 bg-green-50 p-3 rounded-lg border border-green-200">
-              <i class="fas fa-check-circle text-green-500 mt-1 flex-shrink-0"></i>
-              <span class="text-sm text-gray-700">${item}</span>
-            </div>
-          `,
-            )
-            .join("")}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      ${items
+        .map(
+          (item, index) => `
+        <div class="flex items-start gap-2 bg-green-50 p-3 rounded-lg border border-green-200 hover:bg-green-100 transition-colors group">
+          <div class="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold mr-1">
+            ${index + 1}
+          </div>
+          <i class="fas fa-check-circle text-green-500 mt-1 flex-shrink-0"></i>
+          <div class="flex-1">
+            <span class="text-sm text-gray-700">${item}</span>
+          </div>
         </div>
-      `;
+      `,
+        )
+        .join("")}
+    </div>
+  `;
     }
 
+    // ============================================
+    // FORMAT EXCLUSIONS - WITH ARRAY INDEXING
+    // ============================================
     formatExclusions(exclusions) {
       if (!exclusions || exclusions.length === 0) {
         return '<p class="text-gray-500 italic">No exclusions specified</p>';
       }
 
+      // Ensure we're working with an array
       const items = Array.isArray(exclusions) ? exclusions : [exclusions];
 
       return `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          ${items
-            .map(
-              (item) => `
-            <div class="flex items-start gap-2 bg-red-50 p-3 rounded-lg border border-red-200">
-              <i class="fas fa-times-circle text-red-500 mt-1 flex-shrink-0"></i>
-              <span class="text-sm text-gray-700">${item}</span>
-            </div>
-          `,
-            )
-            .join("")}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      ${items
+        .map(
+          (item, index) => `
+        <div class="flex items-start gap-2 bg-red-50 p-3 rounded-lg border border-red-200 hover:bg-red-100 transition-colors group">
+          <div class="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold mr-1">
+            ${index + 1}
+          </div>
+          <i class="fas fa-times-circle text-red-500 mt-1 flex-shrink-0"></i>
+          <div class="flex-1">
+            <span class="text-sm text-gray-700">${item}</span>
+          </div>
         </div>
-      `;
+      `,
+        )
+        .join("")}
+    </div>
+  `;
     }
+    // ============================================
+    // FORMAT EXCLUSIONS - WITH ARRAY INDEXING
+    // ============================================
+    formatExclusions(exclusions) {
+      if (!exclusions || exclusions.length === 0) {
+        return '<p class="text-gray-500 italic">No exclusions specified</p>';
+      }
 
+      // Ensure we're working with an array
+      const items = Array.isArray(exclusions) ? exclusions : [exclusions];
+
+      return `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      ${items
+        .map(
+          (item, index) => `
+        <div class="flex items-start gap-2 bg-red-50 p-3 rounded-lg border border-red-200 hover:bg-red-100 transition-colors group">
+          <i class="fas fa-times-circle text-red-500 mt-1 flex-shrink-0"></i>
+          <div class="flex-1">
+            <span class="text-sm text-gray-700">${item}</span>
+          </div>
+        </div>
+      `,
+        )
+        .join("")}
+    </div>
+  `;
+    }
+    // ============================================
+    // FORMAT TOUR ITINERARY - WITH ARRAY INDEXING
+    // ============================================
     formatTourItinerary(itinerary) {
       if (!itinerary || itinerary.length === 0) {
         return '<p class="text-gray-500 italic">No itinerary available</p>';
       }
 
-      const items = Array.isArray(itinerary)
-        ? itinerary
-        : itinerary.split("\n").filter((i) => i.trim());
+      // Ensure we're working with an array
+      const items = Array.isArray(itinerary) ? itinerary : [itinerary];
 
       return `
-        <div class="space-y-3">
-          ${items
-            .map((item, index) => {
-              const timeMatch = item.match(
-                /(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*[-–]\s*(.*)/i,
-              );
+    <div class="space-y-4">
+      ${items
+        .map((item, index) => {
+          // Check if item has time format (e.g., "07:00 AM - Breakfast")
+          const timeMatch = item.match(
+            /^(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*[-–]\s*(.*)/i,
+          );
 
-              if (timeMatch) {
-                const time = timeMatch[1];
-                const activity = timeMatch[2];
-                return `
-                <div class="flex items-start gap-3 bg-white p-3 rounded-lg shadow-sm">
-                  <div class="flex-shrink-0 w-16 text-sm font-bold text-orange-600">
-                    ${time}
-                  </div>
-                  <div class="flex-1">
-                    <p class="text-sm text-gray-700">${activity}</p>
-                  </div>
-                </div>
-              `;
-              } else {
-                return `
-                <div class="flex items-start gap-3">
-                  <div class="flex-shrink-0 w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
-                    <span class="text-xs font-bold text-orange-600">${index + 1}</span>
-                  </div>
-                  <p class="text-sm text-gray-700">${item}</p>
-                </div>
-              `;
-              }
-            })
-            .join("")}
-        </div>
-      `;
+          if (timeMatch) {
+            const time = timeMatch[1];
+            const activity = timeMatch[2];
+            return `
+            <div class="flex items-start gap-4 bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:bg-orange-50 transition-colors">
+              <div class="flex-shrink-0 w-20 text-sm font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full text-center border border-orange-200">
+                ${time}
+              </div>
+              <div class="flex-1">
+                <p class="text-sm text-gray-700">${activity}</p>
+              </div>
+            </div>
+          `;
+          } else {
+            // Regular itinerary item without time - show index number
+            return `
+            <div class="flex items-start gap-3 bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:bg-orange-50 transition-colors group">
+              <div class="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md group-hover:scale-110 transition-transform">
+                ${index + 1}
+              </div>
+              <div class="flex-1">
+                <p class="text-sm text-gray-700 leading-relaxed">${item}</p>
+              </div>
+            </div>
+          `;
+          }
+        })
+        .join("")}
+    </div>
+  `;
     }
-
+    // ============================================
+    // FORMAT PACKAGE ITINERARY - FIXED WITH PROPER SORTING
+    // ============================================
     formatPackageItinerary(itineraries) {
       if (!itineraries || itineraries.length === 0) {
         return '<p class="text-gray-500 italic">No itinerary available</p>';
       }
 
+      // SIGURADUHING SORTED BY DAY NUMBER
+      const sortedItineraries = [...itineraries].sort((a, b) => {
+        const dayA = a.day_number || 0;
+        const dayB = b.day_number || 0;
+        return dayA - dayB;
+      });
+
+      console.log("📅 Original itineraries:", itineraries);
+      console.log("📅 Sorted itineraries:", sortedItineraries);
+
       return `
-        <div class="relative">
-          <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-orange-500 to-teal-600"></div>
-          
-          <div class="space-y-6">
-            ${itineraries
-              .map((iti, index) => {
-                const dayNumber = iti.day_number || index + 1;
-                const title = iti.day_title || `Day ${dayNumber}`;
-                const description = iti.day_description
-                  ? Array.isArray(iti.day_description)
-                    ? iti.day_description
-                    : [iti.day_description]
-                  : [];
+    <div class="relative">
+      <!-- Vertical timeline line -->
+      <div class="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-orange-500 to-teal-600"></div>
+      
+      <div class="space-y-8">
+        ${sortedItineraries
+          .map((iti, index) => {
+            const dayNumber = iti.day_number || index + 1;
+            const title = iti.day_title || `Day ${dayNumber}`;
 
-                return `
-                <div class="relative pl-12">
-                  <div class="absolute left-0 top-0 w-8 h-8 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">
-                    ${dayNumber}
-                  </div>
-                  
-                  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                    <h5 class="font-bold text-teal-700 mb-3 flex items-center gap-2">
-                      <i class="fas fa-sun"></i>
-                      ${title}
-                    </h5>
-                    
-                    ${
-                      description.length > 0
-                        ? `
-                      <div class="space-y-3 mb-3">
-                        ${description
-                          .map(
-                            (desc) => `
-                          <div class="flex items-start gap-2">
-                            <i class="fas fa-clock text-orange-500 mt-1 text-sm"></i>
-                            <p class="text-sm text-gray-600">${desc}</p>
-                          </div>
-                        `,
-                          )
-                          .join("")}
+            // Log para makita kung ano ang actual na day_number
+            console.log(`📍 Day ${dayNumber}:`, iti);
+
+            // Ensure day_description is an array
+            let description = [];
+            if (iti.day_description) {
+              if (Array.isArray(iti.day_description)) {
+                description = iti.day_description;
+              } else if (typeof iti.day_description === "string") {
+                // Try to parse if it's a JSON string
+                try {
+                  const parsed = JSON.parse(iti.day_description);
+                  description = Array.isArray(parsed)
+                    ? parsed
+                    : [iti.day_description];
+                } catch (e) {
+                  // Split by newlines if present
+                  if (iti.day_description.includes("\n")) {
+                    description = iti.day_description
+                      .split("\n")
+                      .filter((line) => line.trim() !== "");
+                  } else {
+                    description = [iti.day_description];
+                  }
+                }
+              } else {
+                description = [String(iti.day_description)];
+              }
+            }
+
+            return `
+            <div class="relative pl-16">
+              <!-- Day number circle -->
+              <div class="absolute left-0 top-0 w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg border-4 border-white">
+                ${dayNumber}
+              </div>
+              
+              <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+                <h5 class="text-xl font-bold text-teal-700 mb-4 flex items-center gap-2">
+                  <i class="fas fa-sun text-orange-500"></i>
+                  ${title}
+                </h5>
+                
+                ${
+                  description.length > 0
+                    ? `
+                  <div class="space-y-3">
+                    ${description
+                      .map(
+                        (desc, descIndex) => `
+                      <div class="flex items-start gap-3 bg-gray-50 p-4 rounded-lg hover:bg-orange-50 transition-colors group">
+                        <!-- Index number badge -->
+                        <div class="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md group-hover:scale-110 transition-transform">
+                          ${descIndex + 1}
+                        </div>
+                        <!-- Description text with proper formatting -->
+                        <div class="flex-1">
+                          <p class="text-sm text-gray-700 leading-relaxed">
+                            ${String(desc).replace(/➢/g, '<span class="text-orange-500 font-bold mr-2">➢</span>')}
+                          </p>
+                        </div>
                       </div>
-                    `
-                        : ""
-                    }
-                    
-                    ${
-                      iti.meals_included
-                        ? `
-                      <div class="mt-3 flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg">
-                        <i class="fas fa-utensils"></i>
-                        <span>${iti.meals_included}</span>
-                      </div>
-                    `
-                        : ""
-                    }
+                    `,
+                      )
+                      .join("")}
                   </div>
-                </div>
-              `;
-              })
-              .join("")}
-          </div>
-        </div>
-      `;
+                `
+                    : ""
+                }
+                
+                ${
+                  iti.meals_included
+                    ? `
+                  <div class="mt-4 flex items-center gap-3 text-sm bg-green-50 p-3 rounded-lg border border-green-200">
+                    <i class="fas fa-utensils text-green-600"></i>
+                    <span class="text-green-700 font-medium">${iti.meals_included}</span>
+                  </div>
+                `
+                    : ""
+                }
+              </div>
+            </div>
+          `;
+          })
+          .join("")}
+      </div>
+    </div>
+  `;
     }
-
     formatTransportation(transportation) {
       if (!transportation || transportation.length === 0) return "";
 
@@ -3054,5 +3336,5 @@ if (typeof window.DestinationsManager !== "undefined") {
 }
 
 console.log(
-  "✅ Tours.js loaded - COMPLETE FIXED VERSION WITH PURE AUTO-PLAY CAROUSEL!",
+  "✅ Tours.js loaded - COMPLETE FIXED VERSION WITH UPDATED BOOKING FLOW AND IMPROVED OPTIONAL TOURS!",
 );

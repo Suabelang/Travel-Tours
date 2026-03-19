@@ -9,8 +9,6 @@ class CarouselManager {
     this.cards = [];
     this.autoPlayInterval = null;
     this.destinations = [];
-    this.initAttempts = 0;
-    this.maxInitAttempts = 20;
     this.isPlaying = false;
     this.initDone = false;
 
@@ -24,7 +22,7 @@ class CarouselManager {
     this.nextBtn = document.getElementById("nextBtn");
   }
 
-  async init(destinations) {
+  async init() {
     if (this.initDone) return;
 
     if (!this.container) {
@@ -32,18 +30,14 @@ class CarouselManager {
       return;
     }
 
-    if (!destinations || !destinations.length) {
-      console.error("No destinations provided to carousel");
-      return;
-    }
-
     await this.loadDestinationsWithImages();
 
     if (this.destinations.length === 0) {
-      this.destinations = destinations;
+      console.error("No destinations loaded");
+      return;
     }
 
-    this.render(this.destinations);
+    this.render();
     this.setupControls();
     this.startAutoPlay();
 
@@ -68,15 +62,16 @@ class CarouselManager {
       }
     } catch (error) {
       console.error("Error loading destinations:", error);
+      throw error; // Re-throw to indicate failure
     }
   }
 
-  render(destinations) {
+  render() {
     if (!this.container) return;
 
     const maxItems = window.CONFIG?.CAROUSEL?.MAX_ITEMS || 10;
 
-    this.container.innerHTML = destinations
+    this.container.innerHTML = this.destinations
       .slice(0, maxItems)
       .map((dest, index) => {
         const imageUrl = this.getDestinationImage(dest);
@@ -92,24 +87,18 @@ class CarouselManager {
         e.stopPropagation();
         const destinationId = card.getAttribute("data-id");
 
-        const tryShow = (retries = 0) => {
-          if (
-            window.destinationsManager &&
-            typeof window.destinationsManager.showDestinationModal ===
-              "function"
-          ) {
-            window.destinationsManager.showDestinationModal(
-              parseInt(destinationId),
-            );
-          } else if (retries < 10) {
-            setTimeout(() => tryShow(retries + 1), 100);
-          } else {
-            console.error(
-              "destinationsManager.showDestinationModal not available",
-            );
-          }
-        };
-        tryShow();
+        if (
+          window.destinationsManager &&
+          typeof window.destinationsManager.showDestinationModal === "function"
+        ) {
+          window.destinationsManager.showDestinationModal(
+            parseInt(destinationId),
+          );
+        } else {
+          console.error(
+            "destinationsManager.showDestinationModal not available",
+          );
+        }
       });
     });
 
@@ -119,103 +108,46 @@ class CarouselManager {
   }
 
   getDestinationImage(dest) {
-    if (!dest) return this.getDefaultImage();
+    if (!dest) {
+      console.error("No destination provided");
+      return "";
+    }
 
     if (dest.destination_images && dest.destination_images.length > 0) {
       const primaryImage = dest.destination_images.find(
         (img) => img.is_primary === true,
       );
-      if (primaryImage && primaryImage.url) {
-        return primaryImage.url;
-      }
+      if (primaryImage?.url) return primaryImage.url;
+
       const firstImage = dest.destination_images[0];
-      if (firstImage && firstImage.url) {
-        return firstImage.url;
-      }
+      if (firstImage?.url) return firstImage.url;
     }
 
     if (dest.image_url) {
-      if (dest.image_url.startsWith("http")) {
-        return dest.image_url;
-      }
       if (dest.image_url.startsWith("destinations/")) {
         const { data } = window.sns_supabase_client.storage
           .from("destination-images")
           .getPublicUrl(dest.image_url);
         return data.publicUrl;
       }
+      return dest.image_url; // Assume it's a full URL
     }
 
     if (dest.banner_image) {
-      if (dest.banner_image.startsWith("http")) {
-        return dest.banner_image;
-      }
       if (dest.banner_image.startsWith("destinations/")) {
         const { data } = window.sns_supabase_client.storage
           .from("destination-images")
           .getPublicUrl(dest.banner_image);
         return data.publicUrl;
       }
+      return dest.banner_image; // Assume it's a full URL
     }
 
-    if (dest.multiple_images && dest.multiple_images.length > 0) {
-      const firstImage = dest.multiple_images[0];
-      if (firstImage.startsWith("http")) {
-        return firstImage;
-      }
-      if (firstImage.startsWith("destinations/")) {
-        const { data } = window.sns_supabase_client.storage
-          .from("destination-images")
-          .getPublicUrl(firstImage);
-        return data.publicUrl;
-      }
-    }
-
-    return this.getUnsplashFallback(dest.name);
-  }
-
-  getUnsplashFallback(name) {
-    const images = {
-      Bacolod:
-        "https://images.unsplash.com/photo-1625034902529-1e6bd3b2921e?w=800&auto=format",
-      Palawan:
-        "https://images.unsplash.com/photo-1717992012486-b46c0e7c7bd2?w=800&auto=format",
-      Boracay:
-        "https://images.unsplash.com/photo-1504208434309-cb69f4fe52b0?w=800&auto=format",
-      Siargao:
-        "https://images.unsplash.com/photo-1590075894056-317510db35a6?w=800&auto=format",
-      Bohol:
-        "https://images.unsplash.com/photo-1518709766635-a24c6dfa6f4a?w=800&auto=format",
-      Cebu: "https://images.unsplash.com/photo-1565967511849-76a60a516170?w=800&auto=format",
-      Balabac:
-        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&auto=format",
-      Manila:
-        "https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=800&auto=format",
-      Davao:
-        "https://images.unsplash.com/photo-1590004950118-5a9d6c1b8c1f?w=800&auto=format",
-      Baguio:
-        "https://images.unsplash.com/photo-1590004950118-5a9d6c1b8c1f?w=800&auto=format",
-    };
-
-    if (!name) return this.getDefaultImage();
-
-    const lowerName = name.toLowerCase();
-    for (const [key, url] of Object.entries(images)) {
-      if (lowerName.includes(key.toLowerCase())) {
-        return url;
-      }
-    }
-
-    return this.getDefaultImage();
-  }
-
-  getDefaultImage() {
-    return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&auto=format";
+    console.error(`No image found for destination: ${dest.name}`);
+    return "";
   }
 
   createCardHTML(dest, index, imageUrl) {
-    const imageOnError = `this.onerror=null; this.src='${this.getDefaultImage()}';`;
-
     return `
       <div class="carousel-card ${index === 0 ? "active" : ""}" 
            data-id="${dest.id}"
@@ -230,7 +162,6 @@ class CarouselManager {
                alt="${dest.name}" 
                class="w-full h-full object-cover transition-transform hover:scale-110"
                loading="lazy"
-               onerror="${imageOnError}"
                onload="this.classList.add('loaded')" />
         </div>
         
@@ -318,46 +249,19 @@ class CarouselManager {
       this.autoPlayInterval = null;
     }
   }
-
-  forceRender() {
-    if (this.destinations.length > 0) {
-      this.render(this.destinations);
-      this.setupControls();
-      this.startAutoPlay();
-    }
-  }
 }
 
+// Initialize
 const carouselManager = new CarouselManager();
 window.carouselManager = carouselManager;
 
-async function initCarouselOnce() {
-  await carouselManager.loadDestinationsWithImages();
-
-  if (carouselManager.destinations.length > 0) {
-    carouselManager.render(carouselManager.destinations);
-    carouselManager.setupControls();
-    carouselManager.startAutoPlay();
-    carouselManager.initDone = true;
-    return true;
-  }
-
-  if (window.destinationsManager?.destinations?.length > 0) {
-    carouselManager.destinations = window.destinationsManager.destinations;
-    carouselManager.render(carouselManager.destinations);
-    carouselManager.setupControls();
-    carouselManager.startAutoPlay();
-    carouselManager.initDone = true;
-    return true;
-  }
-
-  return false;
-}
-
 document.addEventListener("DOMContentLoaded", function () {
-  setTimeout(initCarouselOnce, 1000);
+  carouselManager.init().catch((error) => {
+    console.error("Failed to initialize carousel:", error);
+  });
 });
 
+// Add loading animation styles
 const style = document.createElement("style");
 style.textContent = `
   .carousel-card img {

@@ -75,16 +75,6 @@
             circle at 80% 70%,
             rgba(139, 92, 246, 0.15) 0%,
             transparent 40%
-          ),
-          radial-gradient(
-            circle at 40% 80%,
-            rgba(249, 115, 22, 0.1) 0%,
-            transparent 30%
-          ),
-          radial-gradient(
-            circle at 90% 20%,
-            rgba(236, 72, 153, 0.1) 0%,
-            transparent 35%
           );
       }
 
@@ -133,7 +123,7 @@
         box-shadow: 0 8px 20px rgba(52, 211, 153, 0.2);
       }
 
-      /* Particle Container */
+      /* Particle Container - Minimal */
       #particles-container {
         position: fixed;
         top: 0;
@@ -150,150 +140,51 @@
         will-change: transform, opacity;
       }
 
+      /* Simplified particles - just stars and orbs */
       .star-particle {
         background: white;
         border-radius: 50%;
-        box-shadow:
-          0 0 10px white,
-          0 0 20px rgba(255, 255, 255, 0.5);
-        animation: twinkle 3s ease-in-out infinite;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        animation: twinkle 4s ease-in-out infinite;
       }
 
       @keyframes twinkle {
         0%,
         100% {
-          opacity: 0.2;
+          opacity: 0.1;
           transform: scale(1);
         }
         50% {
-          opacity: 1;
-          transform: scale(1.5);
-        }
-      }
-
-      .bubble-particle {
-        background: radial-gradient(
-          circle at 30% 30%,
-          rgba(255, 255, 255, 0.8),
-          rgba(255, 255, 255, 0.1)
-        );
-        border-radius: 50%;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        animation: bubble 8s ease-in-out infinite;
-      }
-
-      @keyframes bubble {
-        0% {
-          transform: translateY(100vh) scale(0.5);
-          opacity: 0;
-        }
-        20% {
-          opacity: 0.6;
-          transform: translateY(80vh) scale(1);
-        }
-        80% {
           opacity: 0.4;
-          transform: translateY(20vh) scale(1.2);
-        }
-        100% {
-          transform: translateY(-100px) scale(1.5);
-          opacity: 0;
-        }
-      }
-
-      .confetti-particle {
-        background: linear-gradient(45deg, #f97316, #e11d48, #8b5cf6, #34d399);
-        clip-path: polygon(
-          20% 0%,
-          80% 0%,
-          100% 20%,
-          100% 80%,
-          80% 100%,
-          20% 100%,
-          0% 80%,
-          0% 20%
-        );
-        animation: fall 6s linear infinite;
-      }
-
-      @keyframes fall {
-        0% {
-          transform: translateY(-100px) rotate(0deg);
-          opacity: 0;
-        }
-        20% {
-          opacity: 0.8;
-        }
-        80% {
-          opacity: 0.6;
-        }
-        100% {
-          transform: translateY(calc(100vh + 100px)) rotate(720deg);
-          opacity: 0;
-        }
-      }
-
-      .firefly-particle {
-        background: #fbbf24;
-        border-radius: 50%;
-        box-shadow:
-          0 0 20px #fbbf24,
-          0 0 40px #f59e0b;
-        animation: firefly 5s ease-in-out infinite;
-      }
-
-      @keyframes firefly {
-        0%,
-        100% {
-          transform: translate(0, 0) scale(1);
-          opacity: 0.3;
-        }
-        25% {
-          transform: translate(50px, -30px) scale(1.5);
-          opacity: 1;
-        }
-        50% {
-          transform: translate(-30px, 40px) scale(0.8);
-          opacity: 0.6;
-        }
-        75% {
-          transform: translate(40px, -20px) scale(1.2);
-          opacity: 0.8;
+          transform: scale(1.2);
         }
       }
 
       .orb-particle {
         background: radial-gradient(
           circle at center,
-          rgba(52, 211, 153, 0.8) 0%,
-          rgba(52, 211, 153, 0.3) 50%,
-          transparent 80%
+          rgba(52, 211, 153, 0.3),
+          transparent
         );
         border-radius: 50%;
-        filter: blur(5px);
-        animation:
-          glow 4s ease-in-out infinite,
-          float 20s linear infinite;
-      }
-
-      @keyframes glow {
-        0%,
-        100% {
-          opacity: 0.3;
-          filter: blur(5px);
-        }
-        50% {
-          opacity: 0.8;
-          filter: blur(8px);
-        }
+        filter: blur(8px);
+        animation: float 15s linear infinite;
       }
 
       @keyframes float {
         0% {
           transform: translateY(100vh) translateX(0);
+          opacity: 0;
+        }
+        20% {
+          opacity: 0.2;
+        }
+        80% {
+          opacity: 0.2;
         }
         100% {
-          transform: translateY(-100vh) translateX(100px);
+          transform: translateY(-100vh) translateX(50px);
+          opacity: 0;
         }
       }
 
@@ -311,17 +202,17 @@
       }
 
       .pulse {
-        animation: pulse 2s ease-in-out infinite;
+        animation: pulse 3s ease-in-out infinite;
       }
 
       @keyframes pulse {
         0%,
         100% {
-          opacity: 0.5;
+          opacity: 0.3;
           transform: scale(1);
         }
         50% {
-          opacity: 0.8;
+          opacity: 0.6;
           transform: scale(1.1);
         }
       }
@@ -348,26 +239,21 @@
         h1.text-4xl {
           font-size: 2rem;
         }
-
         .w-24.h-24 {
           width: 4rem;
           height: 4rem;
         }
-
         .text-4xl {
           font-size: 1.5rem;
         }
-
         .absolute.top-6.right-6 {
           top: 1rem;
           right: 1rem;
         }
-
         .px-6.py-3 {
           padding: 0.5rem 1rem;
           font-size: 0.8rem;
         }
-
         .min-h-screen {
           padding: 1rem;
         }
@@ -377,14 +263,12 @@
         .flex.justify-center.gap-4 {
           gap: 0.5rem;
         }
-
         .w-12.h-12 {
           width: 2.5rem;
           height: 2.5rem;
         }
       }
 
-      /* Touch targets */
       button,
       a,
       .glass-input {
@@ -398,7 +282,6 @@
         }
       }
 
-      /* Safe area for notched phones */
       @supports (padding: max(0px)) {
         body {
           padding-left: env(safe-area-inset-left);
@@ -406,13 +289,19 @@
           padding-bottom: env(safe-area-inset-bottom);
         }
       }
+
+      /* Fix for password toggle button */
+      .password-toggle-btn {
+        cursor: pointer;
+        z-index: 10;
+      }
     </style>
   </head>
   <body class="fade-in">
     <!-- Gradient Background -->
     <div class="gradient-bg"></div>
 
-    <!-- Particle Container -->
+    <!-- Particle Container - MINIMAL (15 particles lang) -->
     <div id="particles-container"></div>
 
     <!-- Back Button -->
@@ -494,10 +383,10 @@
             />
           </div>
 
-          <!-- Password -->
+          <!-- Password with working toggle icon -->
           <div class="relative group">
             <div
-              class="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-emerald-400 transition-colors"
+              class="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-emerald-400 transition-colors pointer-events-none"
             >
               <i class="fas fa-lock text-sm sm:text-base"></i>
             </div>
@@ -505,15 +394,17 @@
               type="password"
               id="login-password"
               required
-              class="glass-input w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-4 rounded-xl text-white placeholder-white/30 text-sm sm:text-base"
+              class="glass-input w-full pl-10 sm:pl-12 pr-12 py-3 sm:py-4 rounded-xl text-white placeholder-white/30 text-sm sm:text-base"
               placeholder="Password"
             />
             <button
               type="button"
               id="togglePassword"
-              class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-emerald-400 transition-colors"
+              class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-emerald-400 transition-colors focus:outline-none password-toggle-btn"
+              style="cursor: pointer; background: transparent; border: none"
+              aria-label="Toggle password visibility"
             >
-              <i class="fas fa-eye text-sm sm:text-base"></i>
+              <i class="fas fa-eye" id="toggleIcon" style="font-size: 1rem"></i>
             </button>
           </div>
 
@@ -575,29 +466,25 @@
             </div>
           </div>
 
-          <!-- Social Buttons -->
+          <!-- Social Buttons - Facebook and Gmail (both linked) -->
           <div class="flex justify-center gap-2 sm:gap-4">
-            <button
-              type="button"
-              class="relative group w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 hover:border-white/30 text-white/30 hover:text-white transition-all duration-300 overflow-hidden"
+            <!-- Gmail Link -->
+            <a
+              href="https://mail.google.com/"
+              target="_blank"
+              class="relative group w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 hover:border-white/30 text-white/30 hover:text-white transition-all duration-300 overflow-hidden flex items-center justify-center"
             >
               <span
                 class="absolute inset-0 bg-white/5 scale-0 group-hover:scale-100 rounded-full transition-transform duration-300"
               ></span>
               <i class="fab fa-google text-sm sm:text-base relative z-10"></i>
-            </button>
-            <button
-              type="button"
-              class="relative group w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 hover:border-white/30 text-white/30 hover:text-white transition-all duration-300 overflow-hidden"
-            >
-              <span
-                class="absolute inset-0 bg-white/5 scale-0 group-hover:scale-100 rounded-full transition-transform duration-300"
-              ></span>
-              <i class="fab fa-apple text-sm sm:text-base relative z-10"></i>
-            </button>
-            <button
-              type="button"
-              class="relative group w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 hover:border-white/30 text-white/30 hover:text-white transition-all duration-300 overflow-hidden"
+            </a>
+
+            <!-- Facebook Link -->
+            <a
+              href="https://www.facebook.com/profile.php?id=61573791132600"
+              target="_blank"
+              class="relative group w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 hover:border-white/30 text-white/30 hover:text-white transition-all duration-300 overflow-hidden flex items-center justify-center"
             >
               <span
                 class="absolute inset-0 bg-white/5 scale-0 group-hover:scale-100 rounded-full transition-transform duration-300"
@@ -605,7 +492,7 @@
               <i
                 class="fab fa-facebook-f text-sm sm:text-base relative z-10"
               ></i>
-            </button>
+            </a>
           </div>
         </form>
 
@@ -626,96 +513,90 @@
       </div>
     </div>
 
-    <!-- Particle Generation Script -->
+    <!-- Particle Generation Script - MINIMAL (15 particles total) -->
     <script>
       (function () {
-        function createMixedParticles() {
+        function createMinimalParticles() {
           const container = document.getElementById("particles-container");
           if (!container) return;
 
           container.innerHTML = "";
 
-          const particleTypes = [
-            {
-              class: "star-particle",
-              count: 30,
-              colors: ["white", "#fbbf24", "#34d399"],
-            },
-            {
-              class: "bubble-particle",
-              count: 20,
-              colors: ["rgba(255,255,255,0.3)"],
-            },
-            {
-              class: "confetti-particle",
-              count: 25,
-              colors: ["#f97316", "#e11d48", "#8b5cf6", "#34d399"],
-            },
-            { class: "firefly-particle", count: 15, colors: ["#fbbf24"] },
-            {
-              class: "orb-particle",
-              count: 20,
-              colors: ["#34d399", "#8b5cf6"],
-            },
-          ];
+          // 10 stars (static but twinkling)
+          for (let i = 0; i < 10; i++) {
+            const star = document.createElement("div");
+            star.className = "particle star-particle";
 
-          particleTypes.forEach((type) => {
-            for (let i = 0; i < type.count; i++) {
-              const particle = document.createElement("div");
-              particle.className = `particle ${type.class}`;
+            const size = Math.random() * 3 + 1;
+            star.style.width = size + "px";
+            star.style.height = size + "px";
+            star.style.left = Math.random() * 100 + "%";
+            star.style.top = Math.random() * 100 + "%";
 
-              const size = Math.random() * 20 + 2;
-              particle.style.width = size + "px";
-              particle.style.height = size + "px";
+            const duration = Math.random() * 3 + 2;
+            star.style.animationDuration = duration + "s";
+            star.style.animationDelay = Math.random() * 2 + "s";
 
-              particle.style.left = Math.random() * 100 + "%";
-              particle.style.top = Math.random() * 100 + "%";
+            container.appendChild(star);
+          }
 
-              if (type.colors && type.colors.length > 0) {
-                const color =
-                  type.colors[Math.floor(Math.random() * type.colors.length)];
-                particle.style.background = color;
-                particle.style.boxShadow = `0 0 20px ${color}`;
-              }
+          // 5 floating orbs (slow moving)
+          for (let i = 0; i < 5; i++) {
+            const orb = document.createElement("div");
+            orb.className = "particle orb-particle";
 
-              const duration = Math.random() * 10 + 5;
-              const delay = Math.random() * 5;
-              particle.style.animationDuration = duration + "s";
-              particle.style.animationDelay = delay + "s";
+            const size = Math.random() * 40 + 20;
+            orb.style.width = size + "px";
+            orb.style.height = size + "px";
+            orb.style.left = Math.random() * 100 + "%";
+            orb.style.bottom = "0";
 
-              container.appendChild(particle);
-            }
-          });
+            const duration = Math.random() * 10 + 15;
+            orb.style.animationDuration = duration + "s";
+            orb.style.animationDelay = Math.random() * 5 + "s";
+
+            container.appendChild(orb);
+          }
         }
 
         if (document.readyState === "loading") {
-          document.addEventListener("DOMContentLoaded", createMixedParticles);
+          document.addEventListener("DOMContentLoaded", createMinimalParticles);
         } else {
-          createMixedParticles();
+          createMinimalParticles();
         }
-
-        setTimeout(createMixedParticles, 100);
       })();
     </script>
 
-    <!-- Simple toggle password -->
+    <!-- SIMPLE AND DIRECT PASSWORD TOGGLE SCRIPT -->
     <script>
-      document
-        .getElementById("togglePassword")
-        .addEventListener("click", function () {
-          const password = document.getElementById("login-password");
-          const icon = this.querySelector("i");
+      // Simple and direct approach - guaranteed to work
+      document.addEventListener("DOMContentLoaded", function () {
+        // Get the elements
+        const toggleBtn = document.getElementById("togglePassword");
+        const passwordField = document.getElementById("login-password");
 
-          if (password.type === "password") {
-            password.type = "text";
-            icon.classList.remove("fa-eye");
-            icon.classList.add("fa-eye-slash");
-          } else {
-            password.type = "password";
-            icon.classList.remove("fa-eye-slash");
-            icon.classList.add("fa-eye");
-          }
-        });
+        if (toggleBtn && passwordField) {
+          // Remove any existing event listeners
+          const newToggleBtn = toggleBtn.cloneNode(true);
+          toggleBtn.parentNode.replaceChild(newToggleBtn, toggleBtn);
+
+          // Add click event to the new button
+          newToggleBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            // Toggle password type
+            if (passwordField.type === "password") {
+              passwordField.type = "text";
+              this.innerHTML =
+                '<i class="fas fa-eye-slash" style="font-size: 1rem;"></i>';
+            } else {
+              passwordField.type = "password";
+              this.innerHTML =
+                '<i class="fas fa-eye" style="font-size: 1rem;"></i>';
+            }
+          });
+        }
+      });
     </script>
 
     <script src="../assets/js/login.js"></script>

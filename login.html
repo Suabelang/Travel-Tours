@@ -6,6 +6,10 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
     />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23076653'>🌴</text></svg>"
+    />
     <title>SNS Travel · Sign In</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -13,10 +17,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23076653'>🌴</text></svg>"
-    />
+
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
 
@@ -123,7 +124,7 @@
         box-shadow: 0 8px 20px rgba(52, 211, 153, 0.2);
       }
 
-      /* Particle Container - Minimal */
+      /* Particle Container */
       #particles-container {
         position: fixed;
         top: 0;
@@ -132,6 +133,7 @@
         height: 100%;
         z-index: 1;
         pointer-events: none;
+        overflow: hidden;
       }
 
       .particle {
@@ -140,52 +142,85 @@
         will-change: transform, opacity;
       }
 
-      /* Simplified particles - just stars and orbs */
-      .star-particle {
-        background: white;
-        border-radius: 50%;
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-        animation: twinkle 4s ease-in-out infinite;
+      /* Geometric Particles */
+      .geo-particle {
+        opacity: 0.15;
+        filter: blur(1px);
+        animation: floatGeometric 20s linear infinite;
       }
 
-      @keyframes twinkle {
-        0%,
-        100% {
-          opacity: 0.1;
-          transform: scale(1);
-        }
-        50% {
-          opacity: 0.4;
-          transform: scale(1.2);
-        }
-      }
-
-      .orb-particle {
-        background: radial-gradient(
-          circle at center,
-          rgba(52, 211, 153, 0.3),
-          transparent
-        );
-        border-radius: 50%;
-        filter: blur(8px);
-        animation: float 15s linear infinite;
-      }
-
-      @keyframes float {
+      @keyframes floatGeometric {
         0% {
-          transform: translateY(100vh) translateX(0);
+          transform: translateY(100vh) rotate(0deg) scale(0.5);
           opacity: 0;
         }
-        20% {
+        10% {
           opacity: 0.2;
         }
-        80% {
+        90% {
           opacity: 0.2;
         }
         100% {
-          transform: translateY(-100vh) translateX(50px);
+          transform: translateY(-100vh) rotate(360deg) scale(1.2);
           opacity: 0;
         }
+      }
+
+      /* Different geometric shapes */
+      .triangle-particle {
+        width: 0;
+        height: 0;
+        border-left: 15px solid transparent;
+        border-right: 15px solid transparent;
+        border-bottom: 26px solid rgba(52, 211, 153, 0.3);
+        background: transparent;
+      }
+
+      .square-particle {
+        width: 25px;
+        height: 25px;
+        background: rgba(139, 92, 246, 0.2);
+        border-radius: 4px;
+        transform: rotate(45deg);
+      }
+
+      .circle-particle {
+        width: 20px;
+        height: 20px;
+        background: rgba(52, 211, 153, 0.2);
+        border-radius: 50%;
+      }
+
+      .hexagon-particle {
+        width: 25px;
+        height: 14px;
+        background: rgba(139, 92, 246, 0.2);
+        position: relative;
+      }
+      .hexagon-particle:before,
+      .hexagon-particle:after {
+        content: "";
+        position: absolute;
+        width: 0;
+        height: 0;
+        border-left: 12.5px solid transparent;
+        border-right: 12.5px solid transparent;
+      }
+      .hexagon-particle:before {
+        bottom: 100%;
+        border-bottom: 7px solid rgba(139, 92, 246, 0.2);
+      }
+      .hexagon-particle:after {
+        top: 100%;
+        width: 0;
+        border-top: 7px solid rgba(139, 92, 246, 0.2);
+      }
+
+      .diamond-particle {
+        width: 20px;
+        height: 20px;
+        background: rgba(52, 211, 153, 0.2);
+        transform: rotate(45deg) scale(0.8);
       }
 
       .compass-spin {
@@ -301,7 +336,7 @@
     <!-- Gradient Background -->
     <div class="gradient-bg"></div>
 
-    <!-- Particle Container - MINIMAL (15 particles lang) -->
+    <!-- Particle Container - Geometric Particles -->
     <div id="particles-container"></div>
 
     <!-- Back Button -->
@@ -466,25 +501,25 @@
             </div>
           </div>
 
-          <!-- Social Buttons - Facebook and Gmail (both linked) -->
+          <!-- Social Buttons - with message instead of direct links -->
           <div class="flex justify-center gap-2 sm:gap-4">
-            <!-- Gmail Link -->
-            <a
-              href="https://mail.google.com/"
-              target="_blank"
-              class="relative group w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 hover:border-white/30 text-white/30 hover:text-white transition-all duration-300 overflow-hidden flex items-center justify-center"
+            <!-- Gmail Button with message -->
+            <button
+              type="button"
+              id="gmailBtn"
+              class="relative group w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 hover:border-white/30 text-white/30 hover:text-white transition-all duration-300 overflow-hidden"
             >
               <span
                 class="absolute inset-0 bg-white/5 scale-0 group-hover:scale-100 rounded-full transition-transform duration-300"
               ></span>
               <i class="fab fa-google text-sm sm:text-base relative z-10"></i>
-            </a>
+            </button>
 
-            <!-- Facebook Link -->
-            <a
-              href="https://www.facebook.com/profile.php?id=61573791132600"
-              target="_blank"
-              class="relative group w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 hover:border-white/30 text-white/30 hover:text-white transition-all duration-300 overflow-hidden flex items-center justify-center"
+            <!-- Facebook Button with message -->
+            <button
+              type="button"
+              id="facebookBtn"
+              class="relative group w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/10 hover:border-white/30 text-white/30 hover:text-white transition-all duration-300 overflow-hidden"
             >
               <span
                 class="absolute inset-0 bg-white/5 scale-0 group-hover:scale-100 rounded-full transition-transform duration-300"
@@ -492,7 +527,7 @@
               <i
                 class="fab fa-facebook-f text-sm sm:text-base relative z-10"
               ></i>
-            </a>
+            </button>
           </div>
         </form>
 
@@ -502,6 +537,7 @@
           New to SNS?
           <a
             href="#"
+            id="contactLink"
             class="text-emerald-400 hover:text-emerald-300 transition-colors group"
           >
             Contact us
@@ -513,90 +549,370 @@
       </div>
     </div>
 
-    <!-- Particle Generation Script - MINIMAL (15 particles total) -->
+    <!-- Enhanced Neural Network Particles Script -->
     <script>
       (function () {
-        function createMinimalParticles() {
-          const container = document.getElementById("particles-container");
-          if (!container) return;
+        // Neural Network Particles Effect - ENHANCED VERSION with CLICK INTERACTION
+        const canvas = document.createElement("canvas");
+        canvas.id = "neural-canvas";
+        document.body.appendChild(canvas);
 
-          container.innerHTML = "";
+        const ctx = canvas.getContext("2d");
+        let width, height;
+        let particles = [];
+        let clickedParticle = null;
+        let clickTimer = null;
+        let mouseX = -1000,
+          mouseY = -1000;
 
-          // 10 stars (static but twinkling)
-          for (let i = 0; i < 10; i++) {
-            const star = document.createElement("div");
-            star.className = "particle star-particle";
+        const PARTICLE_COUNT = 70; // Medyo binawasan para di masyadong crowded
+        const CONNECTION_DISTANCE = 200; // Pinalaki para mas maraming connections
+        const CLICK_CONNECTION_DISTANCE = 300; // Mas malayo pag may click
 
-            const size = Math.random() * 3 + 1;
-            star.style.width = size + "px";
-            star.style.height = size + "px";
-            star.style.left = Math.random() * 100 + "%";
-            star.style.top = Math.random() * 100 + "%";
+        // MAS MABRILIANTENG KULAY - higher opacity and brightness
+        const COLORS = {
+          particles: [
+            "#34d399", // emerald - brighter
+            "#8b5cf6", // purple - brighter
+            "#f97316", // orange - brighter (instead of amber)
+            "#ec4899", // pink - brighter
+            "#3b82f6", // blue - brighter
+            "#06b6d4", // cyan - brighter
+          ],
+          glows: [
+            "rgba(52, 211, 153, 0.9)",
+            "rgba(139, 92, 246, 0.9)",
+            "rgba(249, 115, 22, 0.9)",
+            "rgba(236, 72, 153, 0.9)",
+            "rgba(59, 130, 246, 0.9)",
+            "rgba(6, 182, 212, 0.9)",
+          ],
+          connections: [
+            "rgba(52, 211, 153, 0.35)",
+            "rgba(139, 92, 246, 0.35)",
+            "rgba(249, 115, 22, 0.35)",
+            "rgba(236, 72, 153, 0.35)",
+            "rgba(59, 130, 246, 0.35)",
+            "rgba(6, 182, 212, 0.35)",
+          ],
+          clickConnections: [
+            "rgba(52, 211, 153, 0.8)",
+            "rgba(139, 92, 246, 0.8)",
+            "rgba(249, 115, 22, 0.8)",
+            "rgba(236, 72, 153, 0.8)",
+            "rgba(59, 130, 246, 0.8)",
+            "rgba(6, 182, 212, 0.8)",
+          ],
+        };
 
-            const duration = Math.random() * 3 + 2;
-            star.style.animationDuration = duration + "s";
-            star.style.animationDelay = Math.random() * 2 + "s";
+        function initCanvas() {
+          const container = document.getElementById("neural-canvas") || canvas;
+          width = window.innerWidth;
+          height = window.innerHeight;
 
-            container.appendChild(star);
-          }
+          container.style.position = "fixed";
+          container.style.top = "0";
+          container.style.left = "0";
+          container.style.width = "100%";
+          container.style.height = "100%";
+          container.style.pointerEvents = "auto"; // Important for clicks
+          container.style.zIndex = "1";
+          container.style.cursor = "pointer";
 
-          // 5 floating orbs (slow moving)
-          for (let i = 0; i < 5; i++) {
-            const orb = document.createElement("div");
-            orb.className = "particle orb-particle";
+          container.width = width;
+          container.height = height;
 
-            const size = Math.random() * 40 + 20;
-            orb.style.width = size + "px";
-            orb.style.height = size + "px";
-            orb.style.left = Math.random() * 100 + "%";
-            orb.style.bottom = "0";
+          initParticles();
 
-            const duration = Math.random() * 10 + 15;
-            orb.style.animationDuration = duration + "s";
-            orb.style.animationDelay = Math.random() * 5 + "s";
-
-            container.appendChild(orb);
-          }
-        }
-
-        if (document.readyState === "loading") {
-          document.addEventListener("DOMContentLoaded", createMinimalParticles);
-        } else {
-          createMinimalParticles();
-        }
-      })();
-    </script>
-
-    <!-- SIMPLE AND DIRECT PASSWORD TOGGLE SCRIPT -->
-    <script>
-      // Simple and direct approach - guaranteed to work
-      document.addEventListener("DOMContentLoaded", function () {
-        // Get the elements
-        const toggleBtn = document.getElementById("togglePassword");
-        const passwordField = document.getElementById("login-password");
-
-        if (toggleBtn && passwordField) {
-          // Remove any existing event listeners
-          const newToggleBtn = toggleBtn.cloneNode(true);
-          toggleBtn.parentNode.replaceChild(newToggleBtn, toggleBtn);
-
-          // Add click event to the new button
-          newToggleBtn.addEventListener("click", function (e) {
-            e.preventDefault();
-
-            // Toggle password type
-            if (passwordField.type === "password") {
-              passwordField.type = "text";
-              this.innerHTML =
-                '<i class="fas fa-eye-slash" style="font-size: 1rem;"></i>';
-            } else {
-              passwordField.type = "password";
-              this.innerHTML =
-                '<i class="fas fa-eye" style="font-size: 1rem;"></i>';
-            }
+          // Event listeners
+          container.addEventListener("click", handleCanvasClick);
+          container.addEventListener("mousemove", handleMouseMove);
+          container.addEventListener("mouseleave", () => {
+            mouseX = -1000;
+            mouseY = -1000;
           });
         }
-      });
+
+        function initParticles() {
+          particles = [];
+          for (let i = 0; i < PARTICLE_COUNT; i++) {
+            const colorIndex = Math.floor(
+              Math.random() * COLORS.particles.length,
+            );
+            const baseSize = Math.random() * 5 + 2.5; // 2.5 to 7.5px
+
+            particles.push({
+              x: Math.random() * width,
+              y: Math.random() * height,
+              vx: (Math.random() - 0.5) * 0.5,
+              vy: (Math.random() - 0.5) * 0.5,
+              size: baseSize,
+              baseSize: baseSize,
+              color: COLORS.particles[colorIndex],
+              glowColor: COLORS.glows[colorIndex],
+              colorIndex: colorIndex,
+              isClicked: false,
+              clickTime: 0,
+              pulsePhase: Math.random() * Math.PI * 2, // For subtle idle animation
+            });
+          }
+        }
+
+        function handleMouseMove(e) {
+          const rect = canvas.getBoundingClientRect();
+          mouseX = e.clientX - rect.left;
+          mouseY = e.clientY - rect.top;
+        }
+
+        function handleCanvasClick(e) {
+          const rect = canvas.getBoundingClientRect();
+          const clickX = e.clientX - rect.left;
+          const clickY = e.clientY - rect.top;
+
+          // Find closest particle
+          let minDist = 80; // Distance threshold for click
+          let closestParticle = null;
+
+          for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            const dx = p.x - clickX;
+            const dy = p.y - clickY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < minDist) {
+              minDist = dist;
+              closestParticle = p;
+            }
+          }
+
+          if (closestParticle) {
+            // Trigger click effect on particle
+            closestParticle.isClicked = true;
+            closestParticle.clickTime = Date.now();
+            closestParticle.size = closestParticle.baseSize * 3; // Lumaki
+
+            // Set as clicked particle for special connections
+            clickedParticle = closestParticle;
+
+            // Clear previous timer
+            if (clickTimer) clearTimeout(clickTimer);
+
+            // Reset after 1.2 seconds
+            clickTimer = setTimeout(() => {
+              if (closestParticle) {
+                closestParticle.isClicked = false;
+                closestParticle.size = closestParticle.baseSize;
+              }
+              clickedParticle = null;
+              clickTimer = null;
+            }, 1200);
+          }
+        }
+
+        function updateParticles() {
+          const now = Date.now();
+
+          for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+
+            // Idle pulse animation
+            if (!p.isClicked) {
+              const pulse = Math.sin(now * 0.003 + p.pulsePhase) * 0.2 + 0.8;
+              p.size = p.baseSize * pulse;
+            }
+
+            // Mouse repulsion
+            const dx = p.x - mouseX;
+            const dy = p.y - mouseY;
+            const distToMouse = Math.sqrt(dx * dx + dy * dy);
+
+            if (distToMouse < 120) {
+              const force = (120 - distToMouse) / 2000;
+              const angle = Math.atan2(dy, dx);
+              p.x += Math.cos(angle) * force * 8;
+              p.y += Math.sin(angle) * force * 8;
+            }
+
+            // Regular movement
+            p.x += p.vx;
+            p.y += p.vy;
+
+            // Wrap around edges with smooth transition
+            if (p.x < -50) p.x = width + 50;
+            if (p.x > width + 50) p.x = -50;
+            if (p.y < -50) p.y = height + 50;
+            if (p.y > height + 50) p.y = -50;
+          }
+        }
+
+        function drawConnections() {
+          // Draw all connections
+          for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+              const p1 = particles[i];
+              const p2 = particles[j];
+
+              const dx = p1.x - p2.x;
+              const dy = p1.y - p2.y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+
+              // Check if either particle is clicked
+              const isClickedNear =
+                clickedParticle &&
+                (p1 === clickedParticle ||
+                  p2 === clickedParticle ||
+                  distance < CLICK_CONNECTION_DISTANCE);
+
+              let connectionDist = isClickedNear
+                ? CLICK_CONNECTION_DISTANCE
+                : CONNECTION_DISTANCE;
+
+              if (distance < connectionDist) {
+                // Calculate opacity based on distance
+                let opacity;
+                let lineWidth;
+                let strokeColor;
+
+                if (
+                  isClickedNear &&
+                  (p1 === clickedParticle || p2 === clickedParticle)
+                ) {
+                  // Special highlight for clicked particle connections
+                  opacity = (1 - distance / connectionDist) * 0.9;
+                  lineWidth = 2.5;
+                  strokeColor =
+                    COLORS.clickConnections[p1.colorIndex] ||
+                    COLORS.clickConnections[0];
+                } else if (isClickedNear) {
+                  // Medium highlight for particles near clicked one
+                  opacity = (1 - distance / connectionDist) * 0.6;
+                  lineWidth = 1.8;
+                  strokeColor =
+                    COLORS.connections[p1.colorIndex] || COLORS.connections[0];
+                } else {
+                  // Normal connections
+                  opacity = (1 - distance / connectionDist) * 0.3;
+                  lineWidth = 1.2;
+                  strokeColor =
+                    COLORS.connections[p1.colorIndex] || COLORS.connections[0];
+                }
+
+                ctx.beginPath();
+                ctx.strokeStyle = strokeColor.replace(
+                  "0.35",
+                  opacity.toString(),
+                );
+                ctx.lineWidth = lineWidth;
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+              }
+            }
+          }
+        }
+
+        function drawParticles() {
+          for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+
+            // Outer glow
+            ctx.shadowColor = p.color;
+            ctx.shadowBlur = p.isClicked ? 30 : 20;
+
+            // Draw particle
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+
+            // Use gradient for more vibrant look
+            const gradient = ctx.createRadialGradient(
+              p.x - 2,
+              p.y - 2,
+              1,
+              p.x,
+              p.y,
+              p.size * 1.5,
+            );
+            gradient.addColorStop(0, p.color);
+            gradient.addColorStop(0.7, p.color);
+            gradient.addColorStop(1, "rgba(255, 255, 255, 0.8)");
+
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // Inner core (white center for extra brightness)
+            ctx.shadowBlur = p.isClicked ? 25 : 15;
+            ctx.beginPath();
+            ctx.arc(p.x - 1, p.y - 1, p.size * 0.4, 0, Math.PI * 2);
+            ctx.fillStyle = "white";
+            ctx.fill();
+
+            // Extra glow for clicked particles
+            if (p.isClicked) {
+              ctx.shadowBlur = 40;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, p.size * 1.5, 0, Math.PI * 2);
+              const glowGradient = ctx.createRadialGradient(
+                p.x,
+                p.y,
+                1,
+                p.x,
+                p.y,
+                p.size * 3,
+              );
+              glowGradient.addColorStop(0, p.glowColor);
+              glowGradient.addColorStop(1, "transparent");
+              ctx.fillStyle = glowGradient;
+              ctx.fill();
+            }
+          }
+
+          // Reset shadow
+          ctx.shadowBlur = 0;
+          ctx.shadowColor = "transparent";
+        }
+
+        function drawClickInstructions() {
+          // Draw subtle instruction text
+          ctx.font = "12px Inter, sans-serif";
+          ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+          ctx.textAlign = "right";
+          ctx.fillText("Click any particle", width - 20, height - 20);
+        }
+
+        function animate() {
+          if (!ctx) return;
+
+          // Clear with slight trail effect
+          ctx.fillStyle = "rgba(15, 23, 42, 0.15)"; // Dark blue with low opacity for trail
+          ctx.fillRect(0, 0, width, height);
+
+          updateParticles();
+          drawConnections();
+          drawParticles();
+          drawClickInstructions();
+
+          requestAnimationFrame(animate);
+        }
+
+        // Handle resize
+        window.addEventListener("resize", () => {
+          width = window.innerWidth;
+          height = window.innerHeight;
+
+          const container = document.getElementById("neural-canvas");
+          if (container) {
+            container.width = width;
+            container.height = height;
+          }
+
+          // Reinitialize particles for new size
+          initParticles();
+        });
+
+        // Start animation
+        initCanvas();
+        animate();
+      })();
     </script>
 
     <script src="../assets/js/login.js"></script>

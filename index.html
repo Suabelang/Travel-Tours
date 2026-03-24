@@ -2620,16 +2620,15 @@
     <!-- Notification -->
     <div id="notification" class="notification" style="display: none"></div>
 
-    <!-- ===== NAVBAR WITH VINTAGE LOGO ===== -->
     <!-- ===== NAVBAR WITH IMAGE LOGO ===== -->
     <nav class="tropical-nav-simple">
       <div class="nav-container">
         <!-- IMAGE-BASED LOGO - Option 3 -->
         <div class="flex items-center gap-2">
           <img
-            src="./assets/images/sssss.jpg"
+            src="./assets/images/llll.png"
             alt="S&S Travel"
-            class="h-12 w-auto"
+            class="h-16 w-auto"
           />
           <span class="text-xl font-bold text-white hidden sm:inline"
             >S&S Travel</span
@@ -3541,324 +3540,26 @@
 
       // ===== INITIALIZE AOS =====
       AOS.init({ duration: 800, once: true });
-    </script>
 
-    <!-- ===== ULTIMATE FIX - PARA TALAGANG GUMAANA ANG MGA BUTTONS ===== -->
-    <script>
-      (function ultimateFix() {
-        console.log("🔥🔥🔥 ULTIMATE FIX: Starting...");
+      // ===== SUCCESS MODAL FUNCTION =====
+      window.closeSuccessModal = function () {
+        const modal = document.getElementById("successModal");
+        if (modal) modal.classList.remove("active");
+      };
 
-        // ===== DIRECT FUNCTIONS PARA MAG-OPEN NG MODALS =====
-        window.openVisaModalDirect = function () {
-          console.log("🎯 DIRECT: Opening visa modal");
-
-          // Hide welcome screen and buttons
-          const welcome = document.getElementById("serviceWelcomeScreen");
-          const buttons = document.getElementById("serviceButtons");
-          if (welcome) welcome.style.display = "none";
-          if (buttons) buttons.style.display = "none";
-
-          // Show modal
-          const modal = document.getElementById("visaModal");
-          if (modal) {
-            modal.style.display = "flex";
-            modal.classList.add("active");
-            document.body.style.overflow = "hidden";
-
-            // Create country buttons
-            const grid = document.getElementById("visaCountryGrid");
-            if (grid && grid.children.length === 0) {
-              const countries = [
-                { code: "usa", flag: "🇺🇸", name: "USA" },
-                { code: "canada", flag: "🇨🇦", name: "Canada" },
-                { code: "japan", flag: "🇯🇵", name: "Japan" },
-                { code: "korea", flag: "🇰🇷", name: "Korea" },
-                { code: "australia", flag: "🇦🇺", name: "Australia" },
-                { code: "uk", flag: "🇬🇧", name: "UK" },
-                { code: "schengen", flag: "🇪🇺", name: "Schengen" },
-                { code: "china", flag: "🇨🇳", name: "China" },
-                { code: "thailand", flag: "🇹🇭", name: "Thailand" },
-              ];
-
-              grid.innerHTML = countries
-                .map(
-                  (c) => `
-                <div class="country-popup-btn" data-country="${c.code}">
-                  <span class="text-2xl block mb-1">${c.flag}</span>
-                  <span class="text-xs font-medium">${c.name}</span>
-                </div>
-              `,
-                )
-                .join("");
-            }
-          }
-        };
-
-        window.openFerryModalDirect = function () {
-          console.log("🎯 DIRECT: Opening ferry modal");
-
-          // Hide welcome screen and buttons
-          const welcome = document.getElementById("serviceWelcomeScreen");
-          const buttons = document.getElementById("serviceButtons");
-          if (welcome) welcome.style.display = "none";
-          if (buttons) buttons.style.display = "none";
-
-          // Show modal
-          const modal = document.getElementById("ferryModal");
-          if (modal) {
-            modal.style.display = "flex";
-            modal.classList.add("active");
-            document.body.style.overflow = "hidden";
-          }
-        };
-
-        window.closeVisaModalDirect = function () {
-          const modal = document.getElementById("visaModal");
-          const welcome = document.getElementById("serviceWelcomeScreen");
-          const buttons = document.getElementById("serviceButtons");
-
-          if (modal) {
-            modal.style.display = "none";
+      window.showSuccessModal = function (message) {
+        const modal = document.getElementById("successModal");
+        if (modal) {
+          const p = modal.querySelector("p");
+          if (p && message) p.textContent = message;
+          modal.classList.add("active");
+          setTimeout(() => {
             modal.classList.remove("active");
-          }
-          if (welcome) welcome.style.display = "block";
-          if (buttons) buttons.style.display = "grid";
-          document.body.style.overflow = "";
-        };
-
-        window.closeFerryModalDirect = function () {
-          const modal = document.getElementById("ferryModal");
-          const welcome = document.getElementById("serviceWelcomeScreen");
-          const buttons = document.getElementById("serviceButtons");
-
-          if (modal) {
-            modal.style.display = "none";
-            modal.classList.remove("active");
-          }
-          if (welcome) welcome.style.display = "block";
-          if (buttons) buttons.style.display = "grid";
-          document.body.style.overflow = "";
-        };
-
-        // ===== OVERRIDE GLOBAL FUNCTIONS =====
-        window.openVisaModal = window.openVisaModalDirect;
-        window.closeVisaModal = window.closeVisaModalDirect;
-        window.openFerryModal = window.openFerryModalDirect;
-        window.closeFerryModal = window.closeFerryModalDirect;
-
-        // ===== SELECT COUNTRY FUNCTION =====
-        window.selectCountry = function (btn) {
-          console.log("🎯 Selecting country:", btn.dataset.country);
-
-          // Remove selection from all
-          document.querySelectorAll(".country-popup-btn").forEach((b) => {
-            b.classList.remove("selected", "border-[#076653]", "bg-[#f0fdf4]");
-          });
-
-          // Add selection to clicked
-          btn.classList.add("selected", "border-[#076653]", "bg-[#f0fdf4]");
-
-          // Show requirements box
-          const box = document.getElementById("visaRequirementsBox");
-          if (box) box.style.display = "block";
-
-          // Update requirements
-          const country = btn.dataset.country;
-          const list = document.getElementById("visaRequirementsList");
-          const title = document.getElementById("visaSelectedCountry");
-
-          if (list && title) {
-            const countryName =
-              btn.querySelector("span:last-child").textContent;
-            title.querySelector("span").textContent =
-              countryName + " Requirements";
-
-            // Basic requirements
-            list.innerHTML = `
-              <li class="flex items-start gap-2 py-1">
-                <i class="fas fa-check-circle text-green-500 mt-1"></i>
-                <span>Valid Passport (6 months validity)</span>
-              </li>
-              <li class="flex items-start gap-2 py-1">
-                <i class="fas fa-check-circle text-green-500 mt-1"></i>
-                <span>Visa Application Form</span>
-              </li>
-              <li class="flex items-start gap-2 py-1">
-                <i class="fas fa-check-circle text-green-500 mt-1"></i>
-                <span>Passport Photos (2x2)</span>
-              </li>
-              <li class="flex items-start gap-2 py-1">
-                <i class="fas fa-check-circle text-green-500 mt-1"></i>
-                <span>Bank Certificate & Statement</span>
-              </li>
-              <li class="flex items-start gap-2 py-1">
-                <i class="fas fa-check-circle text-green-500 mt-1"></i>
-                <span>Certificate of Employment</span>
-              </li>
-            `;
-          }
-        };
-
-        // ===== ATTACH CLICK HANDLERS TO COUNTRY BUTTONS =====
-        function attachCountryClickHandlers() {
-          document
-            .querySelectorAll("#visaModal .country-popup-btn")
-            .forEach((btn) => {
-              btn.onclick = function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                window.selectCountry(this);
-              };
-            });
+          }, 5000);
         }
+      };
 
-        // ===== SETUP MODAL CLOSE BUTTONS =====
-        document
-          .getElementById("closeVisaModalBtn")
-          ?.addEventListener("click", function (e) {
-            e.preventDefault();
-            window.closeVisaModalDirect();
-          });
-
-        document
-          .getElementById("cancelVisaBtn")
-          ?.addEventListener("click", function (e) {
-            e.preventDefault();
-            window.closeVisaModalDirect();
-          });
-
-        document
-          .getElementById("closeFerryModalBtn")
-          ?.addEventListener("click", function (e) {
-            e.preventDefault();
-            window.closeFerryModalDirect();
-          });
-
-        document
-          .getElementById("cancelFerryBtn")
-          ?.addEventListener("click", function (e) {
-            e.preventDefault();
-            window.closeFerryModalDirect();
-          });
-
-        // ===== SETUP FORM SUBMISSIONS =====
-        document
-          .getElementById("visaModalForm")
-          ?.addEventListener("submit", function (e) {
-            e.preventDefault();
-
-            const selected = document.querySelector(
-              ".country-popup-btn.selected",
-            );
-            if (!selected) {
-              alert("Please select a country");
-              return;
-            }
-
-            alert("✅ Inquiry submitted! We'll contact you within 24 hours.");
-            window.closeVisaModalDirect();
-          });
-
-        document
-          .getElementById("ferryModalForm")
-          ?.addEventListener("submit", function (e) {
-            e.preventDefault();
-            alert(
-              "✅ Ferry inquiry submitted! We'll contact you within 24 hours.",
-            );
-            window.closeFerryModalDirect();
-          });
-
-        // ===== CLOSE MODALS WHEN CLICKING OUTSIDE =====
-        document
-          .getElementById("visaModal")
-          ?.addEventListener("click", function (e) {
-            if (e.target === this) {
-              window.closeVisaModalDirect();
-            }
-          });
-
-        document
-          .getElementById("ferryModal")
-          ?.addEventListener("click", function (e) {
-            if (e.target === this) {
-              window.closeFerryModalDirect();
-            }
-          });
-
-        // ===== ATTACH CLICK HANDLERS TO SERVICE CARDS AND BUTTONS =====
-        function attachServiceClickHandlers() {
-          console.log("🔧 Attaching service click handlers...");
-
-          // Visa card
-          const visaCard = document.getElementById("visaCard");
-          if (visaCard) {
-            visaCard.onclick = function (e) {
-              e.preventDefault();
-              e.stopPropagation();
-              window.openVisaModalDirect();
-            };
-          }
-
-          // Visa button
-          const visaButton = document.getElementById("visaButton");
-          if (visaButton) {
-            visaButton.onclick = function (e) {
-              e.preventDefault();
-              e.stopPropagation();
-              window.openVisaModalDirect();
-            };
-          }
-
-          // Ferry card
-          const ferryCard = document.getElementById("ferryCard");
-          if (ferryCard) {
-            ferryCard.onclick = function (e) {
-              e.preventDefault();
-              e.stopPropagation();
-              window.openFerryModalDirect();
-            };
-          }
-
-          // Ferry button
-          const ferryButton = document.getElementById("ferryButton");
-          if (ferryButton) {
-            ferryButton.onclick = function (e) {
-              e.preventDefault();
-              e.stopPropagation();
-              window.openFerryModalDirect();
-            };
-          }
-
-          console.log("✅ Service click handlers attached");
-        }
-
-        // ===== RUN EVERYTHING =====
-        function runAllFixes() {
-          attachServiceClickHandlers();
-          attachCountryClickHandlers();
-
-          // Re-attach after a delay for dynamically loaded content
-          setTimeout(attachCountryClickHandlers, 500);
-          setTimeout(attachServiceClickHandlers, 500);
-          setTimeout(attachCountryClickHandlers, 1000);
-          setTimeout(attachServiceClickHandlers, 1000);
-        }
-
-        // Run when DOM is ready
-        if (document.readyState === "loading") {
-          document.addEventListener("DOMContentLoaded", runAllFixes);
-        } else {
-          runAllFixes();
-        }
-
-        // Run again after everything loads
-        setTimeout(runAllFixes, 500);
-        setTimeout(runAllFixes, 1000);
-        setTimeout(runAllFixes, 2000);
-
-        console.log("🔥🔥🔥 Ultimate fix complete!");
-      })();
+      console.log("✅ index.html loaded - Visa & Ferry managers ready");
     </script>
   </body>
 </html>

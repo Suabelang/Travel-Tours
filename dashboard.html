@@ -1,211 +1,647 @@
 <!doctype html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SNS Travel · Admin Dashboard</title>
-    <!-- Tailwind CSS -->
+    <title>SNS Travel & Tours · Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome 6 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-     <link
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23076653'>🌴</text></svg>"
     />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: "#f0fdf4",
+                100: "#dcfce7",
+                200: "#bbf7d0",
+                300: "#86efac",
+                400: "#4ade80",
+                500: "#22c55e",
+                600: "#16a34a",
+                700: "#15803d",
+                800: "#166534",
+                900: "#14532d",
+              },
+              secondary: {
+                50: "#ecfdf5",
+                100: "#d1fae5",
+                200: "#a7f3d0",
+                300: "#6ee7b7",
+                400: "#34d399",
+                500: "#10b981",
+                600: "#059669",
+                700: "#047857",
+                800: "#065f46",
+                900: "#064e3b",
+              },
+            },
+          },
+        },
+      };
+    </script>
     <style>
-        * { font-family: system-ui, -apple-system, sans-serif; }
-        #userDropdown { display: none; position: absolute; right: 0; top: 100%; margin-top: 0.5rem; }
-        #userDropdown.show { display: block; }
-        /* Navigation active state */
-        .nav-active {
-            background-color: #059669 !important;
-            color: white !important;
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+      * {
+        font-family: "Inter", sans-serif;
+      }
+
+      .sidebar-item {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .sidebar-item::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 3px;
+        background: linear-gradient(135deg, #22c55e, #15803d);
+        transform: scaleY(0);
+        transition: transform 0.3s ease;
+      }
+
+      .sidebar-item:hover::before,
+      .sidebar-item.active::before {
+        transform: scaleY(1);
+      }
+
+      .sidebar-item:hover {
+        background: rgba(34, 197, 94, 0.1);
+        padding-left: 1.5rem;
+      }
+
+      .sidebar-item.active {
+        background: rgba(34, 197, 94, 0.15);
+        padding-left: 1.5rem;
+      }
+
+      .stat-card {
+        transition: all 0.3s ease;
+        border: 1px solid rgba(34, 197, 94, 0.1);
+      }
+
+      .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -12px rgba(34, 197, 94, 0.2);
+        border-color: rgba(34, 197, 94, 0.3);
+      }
+
+      .gradient-bg {
+        background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+      }
+
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #22c55e;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #15803d;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
         }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fadeInUp {
+        animation: fadeInUp 0.5s ease-out;
+      }
+
+      @keyframes modalEnter {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .modal-enter {
+        animation: modalEnter 0.3s ease-out;
+      }
     </style>
-</head>
-<body class="bg-gray-50">
-    <!-- Top Navigation Bar -->
-    <header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30">
-        <div class="px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <!-- Logo and Title -->
-                <div class="flex items-center gap-3">
-                    <div class="h-10 w-10 bg-gradient-to-br from-emerald-600 to-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg">
-                        <span class="font-bold">SNS</span>
-                    </div>
-                    <div>
-                        <h1 class="text-lg font-bold text-gray-800">SNS Travel</h1>
-                        <p class="text-xs text-gray-500">Admin Dashboard</p>
-                    </div>
-                </div>
-                    
-        <!-- Admin Dropdown -->
-                    <div class="relative" style="z-index: 9999;">
-                        <button id="userMenuBtn" class="flex items-center gap-2 p-2 pr-3 rounded-full hover:bg-gray-100 transition">
-                            <div class="h-8 w-8 bg-gradient-to-br from-emerald-600 to-emerald-500 rounded-full flex items-center justify-center text-white">
-                                <span class="text-sm font-bold">AD</span>
-                            </div>
-                            <span class="text-sm font-medium text-gray-700 hidden sm:inline">Admin</span>
-                            <i class="fas fa-chevron-down text-xs text-gray-500"></i>
-                        </button>
+  </head>
 
-                        <!-- Dropdown Menu - Only Navigation and Logout -->
-                        <div id="userDropdown" class="bg-white rounded-xl shadow-xl border border-gray-200 w-48">
-                            <!-- Navigation Links -->
-                            <div class="py-2">
-                                <a href="#" data-page="dashboard" class="dropdown-item nav-item flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50">
-                                    <i class="fas fa-grid-2 text-emerald-500 w-5"></i> Dashboard
-                                </a>
-                                <a href="#" data-page="destinations" class="dropdown-item nav-item flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50">
-                                    <i class="fas fa-map-pin text-emerald-500 w-5"></i> Destinations
-                                </a>
-                                <a href="#" data-page="bookings" class="dropdown-item nav-item flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50">
-                                    <i class="fas fa-calendar-check text-emerald-500 w-5"></i> Bookings
-                                </a>
-                            </div>
-                            
-                            <hr class="border-gray-200">
-                            
-                            <!-- Logout Only -->
-                            <div class="py-2">
-                                <a href="#" id="dropdownLogout" class="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                                    <i class="fas fa-sign-out-alt w-5"></i> Logout
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+  <body
+    class="bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 font-sans antialiased"
+  >
+    <div class="min-h-screen flex">
+      <!-- Sidebar Navigation -->
+      <aside
+        class="w-80 bg-white shadow-2xl border-r border-gray-100 flex flex-col"
+      >
+        <div class="p-6 flex-1">
+          <div
+            class="flex items-center space-x-3 mb-8 pb-6 border-b border-gray-100"
+          >
+            <div
+              class="w-12 h-12 gradient-bg rounded-2xl flex items-center justify-center shadow-lg"
+            >
+              <i class="fas fa-plane-departure text-white text-xl"></i>
             </div>
-        </div>
-    </header>
+            <div>
+              <h1
+                class="text-2xl font-bold tracking-tight bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent"
+              >
+                SNS Travel
+              </h1>
+              <p class="text-xs text-gray-500">& Tours</p>
+            </div>
+          </div>
 
-    <!-- Main Content -->
-    <main class="flex-1 p-4 sm:p-6 lg:p-8" id="mainContent">
-        <div class="flex items-center justify-center h-64">
+          <nav class="space-y-2">
+            <a
+              href="#"
+              data-page="dashboard"
+              class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group active"
+            >
+              <i class="fas fa-chart-pie w-5 text-primary-600"></i>
+              <span class="font-medium text-gray-700">Dashboard</span>
+            </a>
+            <a
+              href="#"
+              data-page="destinations"
+              class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group"
+            >
+              <i class="fas fa-map-marked-alt w-5 text-primary-600"></i>
+              <span class="font-medium text-gray-700">Destinations</span>
+            </a>
+            <a
+              href="#"
+              data-page="bookings"
+              class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group"
+            >
+              <i class="fas fa-calendar-check w-5 text-primary-600"></i>
+              <span class="font-medium text-gray-700">Bookings</span>
+            </a>
+          </nav>
+        </div>
+
+        <div class="p-6 border-t border-gray-100 bg-gray-50/30">
+          <div class="flex items-center space-x-3 mb-4">
+            <div
+              class="w-10 h-10 rounded-full gradient-bg flex items-center justify-center shadow-md"
+            >
+              <i class="fas fa-user text-white text-sm"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p
+                class="text-sm font-semibold text-gray-800 truncate"
+                id="user-name"
+              >
+                Loading...
+              </p>
+              <p class="text-xs text-gray-500 truncate" id="user-email">
+                Please wait...
+              </p>
+            </div>
+          </div>
+          <button
+            id="logout-btn"
+            class="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-white hover:bg-red-50 border border-gray-200 hover:border-red-200 text-gray-600 hover:text-red-600 rounded-lg transition-all duration-200 text-sm font-medium group"
+          >
+            <i
+              class="fas fa-sign-out-alt text-xs group-hover:translate-x-0.5 transition-transform"
+            ></i>
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <header
+          class="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-40"
+        >
+          <div class="px-8 py-5 flex items-center justify-between">
+            <div class="animate-fadeInUp">
+              <h2 class="text-2xl font-bold text-gray-800" id="page-title">
+                Dashboard
+              </h2>
+              <p class="text-sm text-gray-500 mt-1">
+                Welcome back! Here's what's happening today.
+              </p>
+            </div>
+
+            <div class="flex items-center space-x-4">
+              <div
+                class="hidden md:flex items-center text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100"
+              >
+                <i class="far fa-calendar-alt mr-2 text-primary-600"></i>
+                <span id="current-date" class="font-medium"></span>
+              </div>
+
+              <button
+                class="relative text-gray-500 hover:text-primary-600 transition-colors"
+              >
+                <i class="fas fa-bell text-xl"></i>
+                <span
+                  class="absolute -top-1 -right-1 w-2 h-2 bg-primary-500 rounded-full animate-pulse"
+                ></span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-8" id="main-content">
+          <div class="flex items-center justify-center h-64">
             <div class="text-center">
-                <div class="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent"></div>
-                <p class="mt-4 text-gray-600">Loading dashboard...</p>
+              <div
+                class="animate-spin rounded-full h-12 w-12 border-4 border-primary-200 border-t-primary-600 mx-auto"
+              ></div>
+              <p class="mt-4 text-gray-600 font-medium">Loading dashboard...</p>
             </div>
-        </div>
-    </main>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- SCRIPTS - MUST LOAD IN THIS ORDER WITH CACHE BUSTING -->
+    <!-- ============================================= -->
+
+    <!-- 1. Core Config (defines SupabaseService and global helpers) -->
+    <script src="../assets/js/config-admin.js?v=2"></script>
+
+    <!-- 2. Core Modules (destinations, etc.) -->
+    <script src="../assets/js/createDestination.js?v=2"></script>
+    <script src="../assets/js/editDestination.js?v=2"></script>
+    <script src="../assets/js/destinations.js?v=2"></script>
+    <script src="../assets/js/dashboard.js?v=2"></script>
+
+    <!-- 3. Booking Modules (in correct dependency order with cache busting) -->
+    <script src="../assets/js/booking-core.js?v=3"></script>
+    <script src="../assets/js/booking-email.js?v=3"></script>
+    <script src="../assets/js/booking-ui.js?v=3"></script>
+    <script src="../assets/js/booking-actions.js?v=3"></script>
+    <script src="../assets/js/bookings.js?v=3"></script>
 
     <script>
-        // SIMPLE DROPDOWN - ONLY NAVIGATION AND LOGOUT
-        document.addEventListener('DOMContentLoaded', function() {
-            const btn = document.getElementById('userMenuBtn');
-            const dropdown = document.getElementById('userDropdown');
-            
-            console.log('Button found:', btn);
-            console.log('Dropdown found:', dropdown);
-            
-            // Hide dropdown by default
-            dropdown.style.display = 'none';
-            
-            // Simple click handler
-            btn.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Button clicked');
-                
-                if (dropdown.style.display === 'none') {
-                    dropdown.style.display = 'block';
-                    console.log('Showing dropdown');
-                } else {
-                    dropdown.style.display = 'none';
-                    console.log('Hiding dropdown');
-                }
-            };
-            
-            // Close when clicking outside
-            document.onclick = function(e) {
-                if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
-                    dropdown.style.display = 'none';
-                }
-            };
-            
-            // Handle dropdown item clicks (navigation only)
-            document.querySelectorAll('.dropdown-item').forEach(item => {
-                item.onclick = function(e) {
-                    e.preventDefault();
-                    const page = this.dataset.page;
-                    console.log('Navigating to:', page);
-                    dropdown.style.display = 'none';
-                    
-                    // Update active states
-                    document.querySelectorAll('.dropdown-item').forEach(i => {
-                        i.classList.remove('bg-emerald-100', 'text-emerald-700');
-                    });
-                    this.classList.add('bg-emerald-100', 'text-emerald-700');
-                    
-                    // Call router if available
-                    if (window.navigateTo) {
-                        window.navigateTo(page);
-                    } else {
-                        // Fallback
-                        document.getElementById('mainContent').innerHTML = '<div class="p-8"><h2 class="text-2xl">' + page + ' page</h2></div>';
-                    }
-                };
+      // =============================================
+      // NAVIGATION CONTROLLER
+      // =============================================
+
+      const Navigation = {
+        currentPage: "dashboard",
+
+        init: function () {
+          console.log("🚀 Navigation initializing...");
+          console.log(
+            "✅ SupabaseService:",
+            typeof SupabaseService !== "undefined",
+          );
+          console.log("✅ Dashboard:", typeof Dashboard !== "undefined");
+          console.log("✅ Destinations:", typeof Destinations !== "undefined");
+          console.log(
+            "✅ initBookingsModule:",
+            typeof initBookingsModule !== "undefined",
+          );
+
+          this.bindSidebarNavigation();
+          this.loadUserInfo();
+          this.setupLogout();
+          this.setupNewBookingButton();
+          this.loadPage("dashboard");
+        },
+
+        bindSidebarNavigation: function () {
+          const sidebarItems = document.querySelectorAll(".sidebar-item");
+
+          sidebarItems.forEach((item) => {
+            item.addEventListener("click", (e) => {
+              e.preventDefault();
+              const page = item.dataset.page;
+
+              sidebarItems.forEach((i) => i.classList.remove("active"));
+              item.classList.add("active");
+
+              this.loadPage(page);
             });
-            
-            // Logout handler
-            document.getElementById('dropdownLogout').onclick = function(e) {
-                e.preventDefault();
-                if (confirm('Are you sure you want to logout?')) {
-                    window.location.href = 'login.html';
-                }
+          });
+        },
+
+        loadUserInfo: function () {
+          const userStr = sessionStorage.getItem("user");
+
+          if (userStr) {
+            try {
+              const user = JSON.parse(userStr);
+              const userNameElement = document.getElementById("user-name");
+              const userEmailElement = document.getElementById("user-email");
+
+              if (userNameElement)
+                userNameElement.textContent =
+                  user.name || user.email?.split("@")[0] || "Admin";
+              if (userEmailElement)
+                userEmailElement.textContent =
+                  user.email || "admin@travelb2b.com";
+            } catch (e) {
+              console.error("Error parsing user data:", e);
+              this.setDefaultUserInfo();
+            }
+          } else {
+            this.setDefaultUserInfo();
+          }
+        },
+
+        setDefaultUserInfo: function () {
+          const userNameElement = document.getElementById("user-name");
+          const userEmailElement = document.getElementById("user-email");
+          if (userNameElement) userNameElement.textContent = "Admin User";
+          if (userEmailElement)
+            userEmailElement.textContent = "admin@travelb2b.com";
+        },
+
+        setupLogout: function () {
+          const logoutBtn = document.getElementById("logout-btn");
+          if (logoutBtn) {
+            logoutBtn.addEventListener("click", () => {
+              if (confirm("Are you sure you want to log out?")) {
+                sessionStorage.clear();
+                this.showToast(
+                  "Logged out successfully! Redirecting...",
+                  "success",
+                );
+                setTimeout(() => {
+                  window.location.href = "./login.html";
+                }, 1500);
+              }
+            });
+          }
+        },
+
+        setupNewBookingButton: function () {
+          const newBookingBtn = document.getElementById("newBookingHeaderBtn");
+          if (newBookingBtn) {
+            newBookingBtn.addEventListener("click", () => {
+              if (typeof window.openCreateBookingModal !== "undefined") {
+                window.openCreateBookingModal();
+              } else {
+                this.showToast(
+                  "Booking module not ready yet. Please try again.",
+                  "warning",
+                );
+              }
+            });
+          }
+        },
+
+        loadPage: function (page) {
+          this.currentPage = page;
+
+          const titles = {
+            dashboard: "Dashboard",
+            destinations: "Destinations Management",
+            bookings: "Bookings Management",
+          };
+
+          const subtitles = {
+            dashboard: "Overview of your travel business performance",
+            destinations: "Manage your travel destinations and packages",
+            bookings: "View and manage customer bookings",
+          };
+
+          const pageTitle = document.getElementById("page-title");
+          const pageSubtitle = document.querySelector("header p");
+
+          if (pageTitle) pageTitle.textContent = titles[page] || "Dashboard";
+          if (pageSubtitle)
+            pageSubtitle.textContent = subtitles[page] || "Welcome back!";
+
+          switch (page) {
+            case "dashboard":
+              if (typeof Dashboard !== "undefined") {
+                Dashboard.load();
+              } else {
+                this.loadFallback("dashboard");
+              }
+              break;
+            case "destinations":
+              if (typeof Destinations !== "undefined") {
+                Destinations.load();
+              } else {
+                this.loadFallback("destinations");
+              }
+              break;
+            case "bookings":
+              this.loadBookingsPage();
+              break;
+          }
+        },
+
+        loadBookingsPage: function () {
+          const content = document.getElementById("main-content");
+
+          if (typeof initBookingsModule !== "undefined") {
+            content.innerHTML = `
+                        <div class="flex items-center justify-center h-64">
+                            <div class="text-center">
+                                <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-200 border-t-primary-600 mx-auto"></div>
+                                <p class="mt-4 text-gray-600 font-medium">Loading bookings...</p>
+                            </div>
+                        </div>
+                    `;
+            initBookingsModule().catch((error) => {
+              console.error("Bookings module error:", error);
+              content.innerHTML = `
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                                <div class="text-center py-12">
+                                    <div class="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <i class="fas fa-exclamation-triangle text-4xl text-red-600"></i>
+                                    </div>
+                                    <h3 class="text-2xl font-semibold text-gray-800 mb-2">Error Loading Bookings</h3>
+                                    <p class="text-gray-500 mb-6">${error.message || "Failed to load bookings module"}</p>
+                                    <button onclick="location.reload()" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+                                        Retry
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+            });
+          } else {
+            content.innerHTML = `
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                            <div class="text-center py-12">
+                                <i class="fas fa-calendar-check text-5xl text-gray-300 mb-4"></i>
+                                <h3 class="text-xl font-semibold text-gray-800 mb-2">Bookings Module</h3>
+                                <p class="text-gray-500">The bookings module is being loaded. Please wait...</p>
+                                <div class="mt-4">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+            // Try to load dynamically
+            const script = document.createElement("script");
+            script.src = "../assets/js/modules/bookings.js?v=3";
+            script.onload = () => {
+              if (typeof initBookingsModule !== "undefined") {
+                initBookingsModule();
+              }
             };
+            document.head.appendChild(script);
+          }
+        },
 
-            // Refresh button handler
-            const refreshBtn = document.getElementById('refreshBtn');
-            if (refreshBtn) {
-                refreshBtn.onclick = function(e) {
-                    e.preventDefault();
-                    if (window.refreshDashboard) {
-                        window.refreshDashboard();
-                    } else if (window.navigateTo && window.state?.currentPage) {
-                        window.navigateTo(window.state.currentPage);
-                    }
-                };
-            }
+        loadFallback: function (page) {
+          const content = document.getElementById("main-content");
+          if (page === "dashboard") {
+            content.innerHTML = `
+                        <div class="animate-fadeInUp">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                <div class="stat-card bg-white rounded-2xl p-6 shadow-sm">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center"><i class="fas fa-calendar-check text-primary-600 text-xl"></i></div>
+                                        <span class="text-2xl font-bold text-gray-800">0</span>
+                                    </div>
+                                    <h3 class="text-gray-600 font-medium">Total Bookings</h3>
+                                </div>
+                                <div class="stat-card bg-white rounded-2xl p-6 shadow-sm">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center"><i class="fas fa-chart-line text-emerald-600 text-xl"></i></div>
+                                        <span class="text-2xl font-bold text-gray-800">₱0</span>
+                                    </div>
+                                    <h3 class="text-gray-600 font-medium">Total Revenue</h3>
+                                </div>
+                                <div class="stat-card bg-white rounded-2xl p-6 shadow-sm">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center"><i class="fas fa-box text-blue-600 text-xl"></i></div>
+                                        <span class="text-2xl font-bold text-gray-800">0</span>
+                                    </div>
+                                    <h3 class="text-gray-600 font-medium">Active Packages</h3>
+                                </div>
+                                <div class="stat-card bg-white rounded-2xl p-6 shadow-sm">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center"><i class="fas fa-map-marked-alt text-amber-600 text-xl"></i></div>
+                                        <span class="text-2xl font-bold text-gray-800">0</span>
+                                    </div>
+                                    <h3 class="text-gray-600 font-medium">Destinations</h3>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-2xl p-8 shadow-sm text-center">
+                                <i class="fas fa-chart-line text-5xl text-gray-300 mb-4"></i>
+                                <h3 class="text-lg font-medium text-gray-600">Dashboard Ready</h3>
+                                <p class="text-sm text-gray-500">Connect to Supabase to see real data</p>
+                            </div>
+                        </div>
+                    `;
+          } else if (page === "destinations") {
+            content.innerHTML = `
+                        <div class="bg-white rounded-2xl p-8 shadow-sm text-center">
+                            <i class="fas fa-map-marked-alt text-5xl text-gray-300 mb-4"></i>
+                            <h3 class="text-lg font-medium text-gray-600">Destinations Module</h3>
+                            <p class="text-sm text-gray-500">Loading destinations data...</p>
+                            <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Retry</button>
+                        </div>
+                    `;
+          }
+        },
 
-            // Quick upload button handler
-            const quickUploadBtn = document.getElementById('quickUploadBtn');
-            if (quickUploadBtn) {
-                quickUploadBtn.onclick = function(e) {
-                    e.preventDefault();
-                    if (window.navigateTo) {
-                        window.navigateTo('destinations').then(() => {
-                            setTimeout(() => {
-                                const uploadBtn = document.querySelector('[onclick*="showImageUploadModal"]');
-                                if (uploadBtn) {
-                                    uploadBtn.click();
-                                } else {
-                                    if (window.showToast) {
-                                        window.showToast('Click on any destination card and use the camera icon to upload photos!', 'info');
-                                    }
-                                }
-                            }, 500);
-                        });
-                    }
-                };
-            }
+        showToast: function (message, type = "success") {
+          const toast = document.createElement("div");
+          toast.className = `fixed bottom-4 right-4 z-50 px-6 py-3 rounded-xl shadow-lg text-white ${
+            type === "success"
+              ? "bg-gradient-to-r from-primary-600 to-primary-700"
+              : type === "error"
+                ? "bg-gradient-to-r from-red-500 to-red-600"
+                : type === "warning"
+                  ? "bg-gradient-to-r from-yellow-500 to-yellow-600"
+                  : "bg-gradient-to-r from-blue-500 to-blue-600"
+          } transform transition-all duration-300 translate-x-full`;
+          toast.innerHTML = `<i class="fas ${type === "success" ? "fa-check-circle" : type === "error" ? "fa-exclamation-circle" : "fa-info-circle"} mr-2"></i>${message}`;
+          document.body.appendChild(toast);
 
-            // Notification button handler
-            const notificationBtn = document.getElementById('notificationBtn');
-            if (notificationBtn) {
-                notificationBtn.onclick = function(e) {
-                    e.preventDefault();
-                    if (window.showToast) {
-                        window.showToast('No new notifications', 'info');
-                    } else {
-                        alert('No new notifications');
-                    }
-                };
-            }
-        });
+          setTimeout(() => toast.classList.remove("translate-x-full"), 100);
+          setTimeout(() => {
+            toast.classList.add("translate-x-full");
+            setTimeout(() => toast.remove(), 300);
+          }, 3000);
+        },
+      };
+
+      // =============================================
+      // INITIALIZE DASHBOARD
+      // =============================================
+
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("📊 Dashboard initializing...");
+
+        // Check authentication
+        const user = sessionStorage.getItem("user");
+        if (!user) {
+          console.log("No user found, redirecting to login...");
+          window.location.href = "./login.html";
+          return;
+        }
+
+        // Update date display
+        const dateElement = document.getElementById("current-date");
+        if (dateElement) {
+          const options = {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          };
+          dateElement.textContent = new Date().toLocaleDateString(
+            "en-US",
+            options,
+          );
+        }
+
+        // Initialize Supabase
+        if (typeof SupabaseService !== "undefined") {
+          SupabaseService.init(
+            "https://rpapduavenpzwtptgopm.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYXBkdWF2ZW5wend0cHRnb3BtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NTI5NDUsImV4cCI6MjA4NjMyODk0NX0.IVTVByGm8LuykvYQ5wRzK4WBT1mA9Ew5fy6uTjokMbg",
+          )
+            .then((success) => {
+              if (success && SupabaseService.client) {
+                // Make supabase client globally available for bookings module
+                window.supabase = SupabaseService.client;
+                console.log("✅ Supabase client ready");
+              } else {
+                console.warn("⚠️ Supabase initialization had issues");
+              }
+              Navigation.init();
+            })
+            .catch((err) => {
+              console.error("Supabase init error:", err);
+              Navigation.init();
+            });
+        } else {
+          console.error("SupabaseService not defined");
+          Navigation.init();
+        }
+      });
     </script>
-    
-    <!-- Main JS -->
-    <script type="module" src="../assets/js/main_admin.js"></script>
-</body>
+  </body>
 </html>

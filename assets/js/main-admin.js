@@ -7,8 +7,8 @@ import {
   showToast,
   showLoading,
   hideLoading,
-} from "../js/config_admin.js";
-import { initNavigation, navigateTo } from "../js/router_admin.js";
+} from "../js/config-admin.js";
+import { initNavigation, navigateTo } from "./router_admin.js";
 
 async function initApp() {
   console.log("🚀 SNS Travel Admin Dashboard Starting...");

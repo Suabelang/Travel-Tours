@@ -1,7 +1,31 @@
 // ============================================
 // MAIN INITIALIZATION - COMPLETE VERSION
 // ============================================
+// ============================================
+// CONSOLE FILTER: Errors and Warnings Only
+// ============================================
+(function () {
+  // Check if production environment
+  if (
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1" &&
+    !window.location.hostname.includes("staging")
+  ) {
+    // Save original methods for errors and warnings
+    const originalWarn = console.warn;
+    const originalError = console.error;
 
+    // Disable all non-essential console methods
+    console.log = function () {};
+    console.info = function () {};
+    console.debug = function () {};
+    console.trace = function () {};
+
+    // Keep warnings and errors
+    console.warn = originalWarn;
+    console.error = originalError;
+  }
+})();
 // ✅ SIGURADUHING ISA LANG ANG DECLARATION
 if (typeof window.destinationsManager === "undefined") {
   var destinationsManager;

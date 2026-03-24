@@ -3,7 +3,7 @@
 // =====================================================
 
 // Import statements - adjust paths based on your structure
-import { supabase, state, showToast } from "./config_admin.js";
+import { supabase, state, showToast } from "./config-admin.js";
 
 // Configuration
 const REFRESH_INTERVAL = 5000; // Check every 5 seconds

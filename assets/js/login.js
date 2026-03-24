@@ -1,5 +1,5 @@
 // =====================================================
-// LOGIN.JS - PRODUCTION VERSION (NO TESTING CODE)
+// LOGIN.JS - UPDATED WITH ENHANCED FUNCTIONS (TOP RIGHT TOAST)
 // =====================================================
 
 // Supabase Configuration
@@ -16,7 +16,257 @@ const emailInput = document.getElementById("login-email");
 const rememberMe = document.getElementById("remember-me");
 const forgotLink = document.getElementById("forgotLink");
 
-// Load SweetAlert
+// ===== TOAST NOTIFICATION SYSTEM (TOP RIGHT) =====
+function showToast(message, type = "success") {
+  // Remove existing toasts
+  const existingToasts = document.querySelectorAll(".custom-toast");
+  existingToasts.forEach((toast) => toast.remove());
+
+  // Create toast container if not exists (for positioning)
+  let toastContainer = document.getElementById("toast-container");
+  if (!toastContainer) {
+    toastContainer = document.createElement("div");
+    toastContainer.id = "toast-container";
+    toastContainer.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    `;
+    document.body.appendChild(toastContainer);
+  }
+
+  // Create toast
+  const toast = document.createElement("div");
+  toast.className = `custom-toast transform transition-all duration-300 translate-x-full opacity-0`;
+
+  let bgColor, icon, borderColor;
+  switch (type) {
+    case "success":
+      bgColor = "bg-gradient-to-r from-green-500 to-green-600";
+      borderColor = "border-green-400";
+      icon = "fa-check-circle";
+      break;
+    case "error":
+      bgColor = "bg-gradient-to-r from-red-500 to-red-600";
+      borderColor = "border-red-400";
+      icon = "fa-exclamation-circle";
+      break;
+    case "info":
+      bgColor = "bg-gradient-to-r from-blue-500 to-blue-600";
+      borderColor = "border-blue-400";
+      icon = "fa-info-circle";
+      break;
+    case "warning":
+      bgColor = "bg-gradient-to-r from-yellow-500 to-yellow-600";
+      borderColor = "border-yellow-400";
+      icon = "fa-exclamation-triangle";
+      break;
+    default:
+      bgColor = "bg-gradient-to-r from-blue-500 to-blue-600";
+      borderColor = "border-blue-400";
+      icon = "fa-info-circle";
+  }
+
+  toast.style.cssText = `
+    min-width: 280px;
+    max-width: 380px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+    pointer-events: auto;
+    margin-bottom: 0;
+    overflow: hidden;
+    border-left: 4px solid;
+    border-left-color: ${type === "success" ? "#10b981" : type === "error" ? "#ef4444" : type === "warning" ? "#f59e0b" : "#3b82f6"};
+  `;
+
+  toast.innerHTML = `
+    <div class="flex items-start p-4">
+      <div class="flex-shrink-0">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center ${bgColor} text-white">
+          <i class="fas ${icon} text-sm"></i>
+        </div>
+      </div>
+      <div class="ml-3 flex-1">
+        <p class="text-sm font-medium text-gray-800 leading-relaxed">${message}</p>
+      </div>
+      <button class="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors" onclick="this.closest('.custom-toast').remove()">
+        <i class="fas fa-times text-xs"></i>
+      </button>
+    </div>
+    <div class="h-1 bg-gray-100 w-full">
+      <div class="h-full ${type === "success" ? "bg-green-500" : type === "error" ? "bg-red-500" : type === "warning" ? "bg-yellow-500" : "bg-blue-500"} animate-progress-bar" style="width: 100%; animation: progressBar 3s linear forwards;"></div>
+    </div>
+  `;
+
+  toastContainer.appendChild(toast);
+
+  // Animate in
+  setTimeout(() => {
+    toast.classList.remove("translate-x-full", "opacity-0");
+    toast.classList.add("translate-x-0", "opacity-100");
+  }, 10);
+
+  // Auto remove
+  setTimeout(() => {
+    toast.classList.remove("translate-x-0", "opacity-100");
+    toast.classList.add("translate-x-full", "opacity-0");
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Add animation styles if not exists
+if (!document.querySelector("#toast-styles")) {
+  const style = document.createElement("style");
+  style.id = "toast-styles";
+  style.textContent = `
+    @keyframes progressBar {
+      0% { width: 100%; }
+      100% { width: 0%; }
+    }
+    .animate-progress-bar {
+      animation: progressBar 3s linear forwards;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// ===== CAROUSEL INITIALIZATION =====
+function initCarousel() {
+  const slides = document.querySelectorAll(".carousel-slide");
+  const dots = document.querySelectorAll(".carousel-dot");
+  let currentSlide = 0;
+  let interval;
+
+  if (slides.length === 0) return;
+
+  function showSlide(index) {
+    slides.forEach((slide, i) => {
+      slide.style.opacity = i === index ? "1" : "0";
+    });
+
+    dots.forEach((dot, i) => {
+      if (i === index) {
+        dot.classList.remove("opacity-50");
+        dot.classList.add("opacity-100");
+      } else {
+        dot.classList.remove("opacity-100");
+        dot.classList.add("opacity-50");
+      }
+    });
+
+    currentSlide = index;
+  }
+
+  function nextSlide() {
+    const next = (currentSlide + 1) % slides.length;
+    showSlide(next);
+  }
+
+  // Add click handlers to dots
+  dots.forEach((dot, index) => {
+    dot.addEventListener("click", () => {
+      showSlide(index);
+      resetInterval();
+    });
+  });
+
+  function startInterval() {
+    if (interval) clearInterval(interval);
+    interval = setInterval(nextSlide, 5000);
+  }
+
+  function resetInterval() {
+    clearInterval(interval);
+    startInterval();
+  }
+
+  startInterval();
+
+  // Pause on hover
+  const container = document.querySelector(".carousel-container");
+  if (container) {
+    container.addEventListener("mouseenter", () => clearInterval(interval));
+    container.addEventListener("mouseleave", startInterval);
+  }
+}
+
+// ===== SOCIAL LOGIN SETUP =====
+function setupSocialLogins() {
+  const googleBtn = document.getElementById("google-login");
+  const facebookBtn = document.getElementById("facebook-login");
+  const appleBtn = document.getElementById("apple-login");
+
+  if (googleBtn) {
+    googleBtn.addEventListener("click", () => handleSocialLogin("google"));
+  }
+
+  if (facebookBtn) {
+    facebookBtn.addEventListener("click", () => handleSocialLogin("facebook"));
+  }
+
+  if (appleBtn) {
+    appleBtn.addEventListener("click", () => handleSocialLogin("apple"));
+  }
+}
+
+// ===== HANDLE SOCIAL LOGIN =====
+async function handleSocialLogin(provider) {
+  showToast(`Redirecting to ${provider} login...`, "info");
+
+  try {
+    const supabase = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY,
+    );
+    const redirectUrl = `${window.location.origin}/dashboard.html`;
+
+    if (provider === "google") {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: redirectUrl },
+      });
+      if (error) throw error;
+    } else if (provider === "facebook") {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "facebook",
+        options: { redirectTo: redirectUrl },
+      });
+      if (error) throw error;
+    } else {
+      showToast(`${provider} login is coming soon!`, "info");
+    }
+  } catch (error) {
+    console.error(`${provider} login error:`, error);
+    showToast(`Unable to login with ${provider}. Please try again.`, "error");
+  }
+}
+
+// ===== KEYBOARD SHORTCUT FOR ENTER KEY =====
+function setupKeyboardShortcut() {
+  document.addEventListener("keypress", function (event) {
+    if (event.key === "Enter") {
+      const loginFormEl = document.getElementById("loginForm");
+      const activeElement = document.activeElement;
+      if (
+        loginFormEl &&
+        activeElement &&
+        (activeElement.id === "login-email" ||
+          activeElement.id === "login-password")
+      ) {
+        event.preventDefault();
+        loginFormEl.dispatchEvent(new Event("submit"));
+      }
+    }
+  });
+}
+
+// ===== LOAD SWEETALERT =====
 function loadSweetAlert() {
   return new Promise((resolve) => {
     const script = document.createElement("script");
@@ -31,7 +281,7 @@ function loadSweetAlert() {
   });
 }
 
-// Generate secure token
+// ===== GENERATE SECURE TOKEN =====
 function generateSecureToken() {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
@@ -40,49 +290,7 @@ function generateSecureToken() {
   );
 }
 
-// Initialize
-document.addEventListener("DOMContentLoaded", async () => {
-  await loadSweetAlert();
-  loadRememberedEmail();
-  setupEventListeners();
-  clearExistingSession();
-});
-
-function clearExistingSession() {
-  localStorage.clear();
-  sessionStorage.clear();
-}
-
-function loadRememberedEmail() {
-  const remembered = localStorage.getItem("rememberedEmail");
-  if (remembered) {
-    try {
-      emailInput.value = atob(remembered);
-      rememberMe.checked = true;
-    } catch {
-      localStorage.removeItem("rememberedEmail");
-    }
-  }
-}
-
-function setupEventListeners() {
-  togglePassword.addEventListener("click", () => {
-    const type = passwordInput.type === "password" ? "text" : "password";
-    passwordInput.type = type;
-    togglePassword.innerHTML = `<i class="fas fa-eye${type === "password" ? "" : "-slash"}"></i>`;
-  });
-
-  loginForm.addEventListener("submit", handleLogin);
-
-  if (forgotLink) {
-    forgotLink.addEventListener("click", (e) => {
-      e.preventDefault();
-      handleForgotPassword();
-    });
-  }
-}
-
-// ===== FORGOT PASSWORD - PRODUCTION VERSION =====
+// ===== FORGOT PASSWORD HANDLER =====
 async function handleForgotPassword() {
   const { value: email } = await Swal.fire({
     title: "Reset Password",
@@ -129,6 +337,8 @@ async function handleForgotPassword() {
         html: `Check your inbox <strong>${email}</strong> for the password reset link.<br><br>📧 Don't forget to check your spam folder!`,
         confirmButtonColor: "#34d399",
       });
+
+      showToast(`Reset link sent to ${email}`, "success");
     } catch (error) {
       console.error("Forgot password error:", error);
 
@@ -145,11 +355,13 @@ async function handleForgotPassword() {
         text: errorMessage,
         confirmButtonColor: "#34d399",
       });
+
+      showToast(errorMessage, "error");
     }
   }
 }
 
-// ===== LOGIN - PRODUCTION VERSION =====
+// ===== LOGIN HANDLER =====
 async function handleLogin(e) {
   e.preventDefault();
 
@@ -157,20 +369,12 @@ async function handleLogin(e) {
   const password = passwordInput.value;
 
   if (!email || !password) {
-    Swal.fire({
-      icon: "error",
-      title: "Missing Information",
-      text: "Please fill in all fields",
-    });
+    showToast("Please fill in all fields", "error");
     return;
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    Swal.fire({
-      icon: "error",
-      title: "Invalid Email",
-      text: "Please enter a valid email address",
-    });
+    showToast("Please enter a valid email address", "error");
     return;
   }
 
@@ -195,17 +399,24 @@ async function handleLogin(e) {
     const dashboardToken = generateSecureToken();
     const expiresAt = Date.now() + 8 * 60 * 60 * 1000;
 
-    // Set localStorage
+    // Store user info
+    const userData = {
+      id: data.user.id,
+      email: data.user.email,
+      role: data.user.user_metadata?.role || "admin",
+      name: data.user.user_metadata?.name || email.split("@")[0],
+      lastLogin: new Date().toISOString(),
+    };
+
     localStorage.setItem("sns_admin_logged_in", "true");
     localStorage.setItem("sns_admin_email", email);
     localStorage.setItem("sns_admin_name", email.split("@")[0]);
     localStorage.setItem("sns_admin_token", sessionToken);
     localStorage.setItem("session_expires", expiresAt.toString());
     localStorage.setItem("last_activity", Date.now().toString());
-
-    // Store dashboard token in sessionStorage (not in URL)
     sessionStorage.setItem("dashboard_token", dashboardToken);
     sessionStorage.setItem("session_start", Date.now().toString());
+    sessionStorage.setItem("user", JSON.stringify(userData));
 
     localStorage.setItem(
       "userSession",
@@ -223,16 +434,15 @@ async function handleLogin(e) {
       localStorage.removeItem("rememberedEmail");
     }
 
-    await Swal.fire({
-      icon: "success",
-      title: "Welcome Back!",
-      text: `Successfully signed in as ${email}`,
-      timer: 1500,
-      showConfirmButton: false,
-    });
+    showToast(
+      `Welcome ${userData.name}! Redirecting to dashboard...`,
+      "success",
+    );
 
-    // Redirect to dashboard with CLEAN URL (no hash token)
-    window.location.href = "dashboard.html";
+    // Redirect after delay
+    setTimeout(() => {
+      window.location.href = "dashboard.html";
+    }, 1500);
   } catch (error) {
     console.error("Login error:", error);
 
@@ -243,15 +453,88 @@ async function handleLogin(e) {
       errorMessage = "The email or password is incorrect";
     }
 
-    Swal.fire({
-      icon: "error",
-      title: "Login Failed",
-      text: errorMessage,
-    });
+    showToast(errorMessage, "error");
 
     loginBtn.innerHTML = originalText;
     loginBtn.disabled = false;
   }
 }
 
-// WALANG TESTING CODE - PRODUCTION READY!
+// ===== LOAD REMEMBERED EMAIL =====
+function loadRememberedEmail() {
+  const remembered = localStorage.getItem("rememberedEmail");
+  if (remembered) {
+    try {
+      emailInput.value = atob(remembered);
+      rememberMe.checked = true;
+    } catch {
+      localStorage.removeItem("rememberedEmail");
+    }
+  }
+}
+
+// ===== CLEAR EXISTING SESSION =====
+function clearExistingSession() {
+  // Don't clear all localStorage because remembered email might be saved
+  // Only clear session-related items
+  const rememberedEmail = localStorage.getItem("rememberedEmail");
+  localStorage.clear();
+  sessionStorage.clear();
+  if (rememberedEmail) {
+    localStorage.setItem("rememberedEmail", rememberedEmail);
+  }
+}
+
+// ===== SETUP EVENT LISTENERS =====
+function setupEventListeners() {
+  if (togglePassword) {
+    togglePassword.addEventListener("click", () => {
+      const type = passwordInput.type === "password" ? "text" : "password";
+      passwordInput.type = type;
+      togglePassword.innerHTML = `<i class="fas fa-eye${type === "password" ? "" : "-slash"}"></i>`;
+    });
+  }
+
+  if (loginForm) {
+    loginForm.addEventListener("submit", handleLogin);
+  }
+
+  if (forgotLink) {
+    forgotLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      handleForgotPassword();
+    });
+  }
+
+  // Setup social logins
+  setupSocialLogins();
+
+  // Setup keyboard shortcut
+  setupKeyboardShortcut();
+}
+
+// ===== INITIALIZATION =====
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("🚀 Login page initializing...");
+
+  await loadSweetAlert();
+  loadRememberedEmail();
+  setupEventListeners();
+  clearExistingSession();
+
+  // Initialize carousel if elements exist
+  initCarousel();
+
+  console.log("✅ Login handler initialized successfully");
+});
+
+// Export for debugging (optional)
+window.loginHelpers = {
+  showToast,
+  handleSocialLogin,
+  initCarousel,
+};
+
+console.log(
+  "✅ Login.js loaded with enhanced functions (top right toast, carousel, social login)",
+);

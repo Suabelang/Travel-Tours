@@ -1,381 +1,176 @@
-// =====================================================
-// DASHBOARD MODULE - COMPLETE FIXED VERSION (NO AGENCY)
-// =====================================================
+// Dashboard Module
+const Dashboard = {
+  load: function () {
+    const content = document.getElementById("main-content");
+    content.innerHTML = `
+            <div class="space-y-6">
+                <!-- Welcome banner -->
+                <div class="bg-gradient-to-r from-primary-600 to-primary-800 rounded-2xl shadow-lg p-6 text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold mb-2">Welcome back, Admin! 👋</h2>
+                            <p class="text-primary-100">Here's what's happening with your B2B business today.</p>
+                        </div>
+                        <div class="hidden md:block">
+                            <i class="fas fa-chart-line text-6xl text-primary-300 opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
 
-import {
-  supabase,
-  state,
-  formatCurrency,
-  formatDate,
-  showToast,
-} from "../js/config_admin.js";
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="stat-card bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500 mb-1">Total Bookings</p>
+                                <h3 class="text-2xl font-bold text-gray-800" id="total-bookings">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-calendar-check text-2xl text-primary-600"></i>
+                            </div>
+                        </div>
+                    </div>
 
-// =====================================================
-// FETCH DASHBOARD STATS - USING CENTRAL STATE
-// =====================================================
-export async function fetchDashboardStats() {
-  try {
-    console.log("📊 Fetching dashboard stats...");
+                    <div class="stat-card bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500 mb-1">Revenue</p>
+                                <h3 class="text-2xl font-bold text-gray-800" id="total-revenue">₱0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-peso-sign text-2xl text-emerald-600"></i>
+                            </div>
+                        </div>
+                    </div>
 
-    // Try to get bookings from central state
-    if (!state.bookings || state.bookings.length === 0) {
-      try {
-        const { fetchBookings } = await import("./bookings.js");
-        await fetchBookings();
-      } catch (e) {
-        console.log("Could not fetch bookings");
-      }
+                    <div class="stat-card bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500 mb-1">Active Packages</p>
+                                <h3 class="text-2xl font-bold text-gray-800" id="active-packages">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-box text-2xl text-blue-600"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500 mb-1">Destinations</p>
+                                <h3 class="text-2xl font-bold text-gray-800" id="total-destinations">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-map-marked-alt text-2xl text-amber-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <h3 class="font-semibold text-gray-800 mb-4">Recent Bookings</h3>
+                        <div id="recent-bookings-list" class="space-y-4">
+                            <div class="text-center text-gray-500 py-4">Loading bookings...</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <h3 class="font-semibold text-gray-800 mb-4">Quick Actions</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button onclick="Navigation.loadPage('destinations')" class="p-4 bg-primary-50 rounded-xl text-center hover:bg-primary-100 transition-colors">
+                                <i class="fas fa-map-marked-alt text-2xl text-primary-600 mb-2"></i>
+                                <p class="text-sm font-medium text-gray-700">Manage Destinations</p>
+                            </button>
+                            <button class="p-4 bg-blue-50 rounded-xl text-center hover:bg-blue-100 transition-colors">
+                                <i class="fas fa-calendar-plus text-2xl text-blue-600 mb-2"></i>
+                                <p class="text-sm font-medium text-gray-700">New Booking</p>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+    this.fetchStats();
+    this.fetchRecentBookings();
+  },
+
+  async fetchStats() {
+    try {
+      const bookingsResult = await SupabaseService.query("b2b_bookings", {
+        select: "id,total_amount",
+      });
+      const packagesResult = await SupabaseService.query(
+        "destination_packages",
+        {
+          select: "id",
+          eq: { column: "is_active", value: true },
+        },
+      );
+      const destinationsResult = await SupabaseService.query("destinations", {
+        select: "id",
+      });
+
+      const totalBookings = bookingsResult.success
+        ? bookingsResult.data.length
+        : 0;
+      const totalRevenue = bookingsResult.success
+        ? bookingsResult.data.reduce((sum, b) => sum + (b.total_amount || 0), 0)
+        : 0;
+      const activePackages = packagesResult.success
+        ? packagesResult.data.length
+        : 0;
+      const totalDestinations = destinationsResult.success
+        ? destinationsResult.data.length
+        : 0;
+
+      document.getElementById("total-bookings").textContent = totalBookings;
+      document.getElementById("total-revenue").textContent =
+        "₱" + (totalRevenue / 1000).toFixed(1) + "K";
+      document.getElementById("active-packages").textContent = activePackages;
+      document.getElementById("total-destinations").textContent =
+        totalDestinations;
+    } catch (error) {
+      console.error("Error fetching stats:", error);
     }
+  },
 
-    // Use central state bookings for accurate counts
-    const bookings = state.bookings || [];
+  async fetchRecentBookings() {
+    try {
+      const result = await SupabaseService.query("b2b_bookings", {
+        select: "*",
+        order: { column: "created_at", ascending: false },
+        limit: 5,
+      });
 
-    // Calculate stats from central state
-    const totalBookings = bookings.length;
-    const pendingBookings = bookings.filter(
-      (b) => b.status === "pending",
-    ).length;
-    const confirmedBookings = bookings.filter(
-      (b) => b.status === "confirmed",
-    ).length;
-    const cancelledBookings = bookings.filter(
-      (b) => b.status === "cancelled",
-    ).length;
-    const paidBookings = bookings.filter(
-      (b) => b.payment_status === "paid",
-    ).length;
+      const listElement = document.getElementById("recent-bookings-list");
 
-    const totalRevenue = bookings
-      .filter((b) => b.status === "confirmed" && b.payment_status === "paid")
-      .reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
+      if (!result.success || !result.data || result.data.length === 0) {
+        listElement.innerHTML =
+          '<div class="text-center text-gray-500 py-4">No recent bookings</div>';
+        return;
+      }
 
-    // Get other stats from direct queries (REMOVED AGENCIES)
-    const [
-      { count: totalDestinations },
-      { count: totalPackages },
-      { count: totalOptionalTours },
-    ] = await Promise.all([
-      supabase
-        .from("destinations")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true),
-      supabase
-        .from("destination_packages")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true),
-      supabase
-        .from("optional_tours")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true),
-    ]);
-
-    // Get recent bookings with related data (REMOVED AGENCIES)
-    const { data: recentBookings } = await supabase
-      .from("b2b_bookings")
-      .select(
-        `
-                *,
-                destinations ( name ),
-                destination_packages ( package_name )
+      listElement.innerHTML = result.data
+        .map(
+          (booking) => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">${booking.agent_name || "Guest"}</p>
+                        <p class="text-xs text-gray-500">${booking.booking_reference || "REF-" + booking.id}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-sm font-semibold text-gray-800">₱${(booking.total_amount || 0).toLocaleString()}</span>
+                    </div>
+                </div>
             `,
-      )
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    // Update state with all stats
-    state.stats = {
-      totalDestinations: totalDestinations || 0,
-      totalPackages: totalPackages || 0,
-      totalBookings,
-      totalRevenue,
-      pendingBookings,
-      confirmedBookings,
-      cancelledBookings,
-      paidBookings,
-      totalOptionalTours: totalOptionalTours || 0,
-    };
-
-    state.recentBookings = recentBookings || [];
-
-    console.log("✅ Dashboard stats updated:", state.stats);
-    return true;
-  } catch (error) {
-    console.error("❌ Error fetching dashboard stats:", error);
-    showToast("Failed to load dashboard data", "error");
-    return false;
-  }
-}
-
-// =====================================================
-// RENDER DASHBOARD - WITH ACCURATE STATUS DISPLAY
-// =====================================================
-export async function renderDashboard() {
-  await fetchDashboardStats();
-
-  const confirmedBookings = state.stats.confirmedBookings || 0;
-  const pendingBookings = state.stats.pendingBookings || 0;
-  const cancelledBookings = state.stats.cancelledBookings || 0;
-  const paidBookings = state.stats.paidBookings || 0;
-  const totalOptionalTours = state.stats.totalOptionalTours || 0;
-
-  return `
-        <div class="space-y-6">
-            <!-- Header -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
-                        Welcome back, <span class="bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">Admin</span>
-                    </h1>
-                    <p class="text-sm text-gray-500 mt-1">
-                        Dashboard overview - ${state.stats.totalDestinations} destinations, ${state.stats.totalBookings} bookings, ${totalOptionalTours} tours
-                    </p>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="window.refreshDashboard()" class="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium flex items-center gap-1 hover:bg-emerald-200 transition">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Stats Cards - 4 cards layout -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                <!-- Destinations Card -->
-                <div class="dashboard-card bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 mb-1">Total Destinations</p>
-                            <h3 class="text-3xl font-bold text-gray-800">${state.stats.totalDestinations}</h3>
-                            <p class="text-xs text-emerald-600 mt-2">Active destinations</p>
-                        </div>
-                        <div class="h-14 w-14 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
-                            <i class="fas fa-map-pin text-2xl"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Packages Card -->
-                <div class="dashboard-card bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 mb-1">Active Packages</p>
-                            <h3 class="text-3xl font-bold text-gray-800">${state.stats.totalPackages}</h3>
-                            <p class="text-xs text-emerald-600 mt-2">Across all destinations</p>
-                        </div>
-                        <div class="h-14 w-14 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
-                            <i class="fas fa-box text-2xl"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Tours Card (Replaces Agencies) -->
-                <div class="dashboard-card bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 mb-1">Optional Tours</p>
-                            <h3 class="text-3xl font-bold text-gray-800">${totalOptionalTours}</h3>
-                            <p class="text-xs text-emerald-600 mt-2">Activities & excursions</p>
-                        </div>
-                        <div class="h-14 w-14 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600">
-                            <i class="fas fa-umbrella-beach text-2xl"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Bookings Card -->
-                <div class="dashboard-card bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 mb-1">Total Bookings</p>
-                            <h3 class="text-3xl font-bold text-gray-800">${state.stats.totalBookings}</h3>
-                            <div class="flex flex-wrap items-center gap-2 mt-2">
-                                <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                                    ${confirmedBookings} Confirmed
-                                </span>
-                                <span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
-                                    ${pendingBookings} Pending
-                                </span>
-                                <span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
-                                    ${cancelledBookings} Cancelled
-                                </span>
-                            </div>
-                        </div>
-                        <div class="h-14 w-14 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
-                            <i class="fas fa-calendar-check text-2xl"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Revenue & Paid Stats Row -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <!-- Revenue Card -->
-                <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 mb-1">Total Revenue</p>
-                            <h3 class="text-3xl font-bold text-gray-800">${formatCurrency(state.stats.totalRevenue)}</h3>
-                            <div class="flex items-center gap-2 mt-2">
-                                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                    <i class="fas fa-check-circle mr-1"></i> ${paidBookings} Paid Bookings
-                                </span>
-                            </div>
-                        </div>
-                        <div class="h-14 w-14 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
-                            <i class="fas fa-peso-sign text-2xl"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Quick Actions Card -->
-                <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                    <p class="text-sm text-gray-500 mb-3">Quick Actions</p>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="window.openCreateDestinationModal()" class="p-3 bg-emerald-50 rounded-lg text-emerald-700 hover:bg-emerald-100 transition flex flex-col items-center gap-1">
-                            <i class="fas fa-plus-circle"></i>
-                            <span class="text-xs">New Destination</span>
-                        </button>
-                        <button onclick="window.openCreateBookingModal()" class="p-3 bg-blue-50 rounded-lg text-blue-700 hover:bg-blue-100 transition flex flex-col items-center gap-1">
-                            <i class="fas fa-calendar-plus"></i>
-                            <span class="text-xs">New Booking</span>
-                        </button>
-                        <button onclick="window.navigateTo('destinations')" class="p-3 bg-purple-50 rounded-lg text-purple-700 hover:bg-purple-100 transition flex flex-col items-center gap-1">
-                            <i class="fas fa-map-pin"></i>
-                            <span class="text-xs">View Destinations</span>
-                        </button>
-                        <button onclick="window.navigateTo('bookings')" class="p-3 bg-amber-50 rounded-lg text-amber-700 hover:bg-amber-100 transition flex flex-col items-center gap-1">
-                            <i class="fas fa-list"></i>
-                            <span class="text-xs">All Bookings</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Recent Bookings Table -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                    <h3 class="font-semibold text-gray-800 flex items-center gap-2">
-                        <i class="fas fa-calendar-alt text-emerald-500"></i>
-                        Recent Bookings
-                    </h3>
-                    <button onclick="window.navigateTo('bookings')" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
-                        View All <i class="fas fa-arrow-right ml-1"></i>
-                    </button>
-                </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-50 text-left text-xs text-gray-500">
-                            <tr>
-                                <th class="px-6 py-3">Booking Ref</th>
-                                <th class="px-6 py-3">Customer</th>
-                                <th class="px-6 py-3">Destination</th>
-                                <th class="px-6 py-3">Package</th>
-                                <th class="px-6 py-3">Travel Date</th>
-                                <th class="px-6 py-3">Status</th>
-                                <th class="px-6 py-3">Payment</th>
-                                <th class="px-6 py-3">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            ${
-                              state.recentBookings.length > 0
-                                ? state.recentBookings
-                                    .map((booking) => {
-                                      const travelDate =
-                                        booking.travel_dates?.[0] || null;
-                                      const customerName =
-                                        booking.agent_name || "Direct Customer";
-                                      return `
-                                        <tr class="hover:bg-gray-50 transition cursor-pointer" onclick="window.viewBookingDetails(${booking.id})">
-                                            <td class="px-6 py-4 font-mono text-sm text-gray-900">${booking.booking_reference || "N/A"}</td>
-                                            <td class="px-6 py-4 text-sm text-gray-900">${customerName}</td>
-                                            <td class="px-6 py-4 text-sm text-gray-600">${booking.destinations?.name || "N/A"}</td>
-                                            <td class="px-6 py-4 text-sm text-gray-600">${booking.destination_packages?.package_name || "N/A"}</td>
-                                            <td class="px-6 py-4 text-sm text-gray-600">${formatDate(travelDate)}</td>
-                                            <td class="px-6 py-4">
-                                                <span class="px-2 py-1 text-xs font-medium rounded-full 
-                                                    ${
-                                                      booking.status ===
-                                                      "confirmed"
-                                                        ? "bg-green-100 text-green-700"
-                                                        : booking.status ===
-                                                            "pending"
-                                                          ? "bg-yellow-100 text-yellow-700"
-                                                          : "bg-red-100 text-red-700"
-                                                    }">
-                                                    ${(booking.status || "pending").toUpperCase()}
-                                                </span>
-                                            </td>
-                                            <td class="px-6 py-4">
-                                                <span class="px-2 py-1 text-xs font-medium rounded-full 
-                                                    ${
-                                                      booking.payment_status ===
-                                                      "paid"
-                                                        ? "bg-green-100 text-green-700"
-                                                        : booking.payment_status ===
-                                                            "partial"
-                                                          ? "bg-blue-100 text-blue-700"
-                                                          : "bg-gray-100 text-gray-700"
-                                                    }">
-                                                    ${(booking.payment_status || "unpaid").toUpperCase()}
-                                                </span>
-                                            </td>
-                                            <td class="px-6 py-4 text-sm font-medium text-gray-900">${formatCurrency(booking.total_amount)}</td>
-                                        </tr>
-                                    `;
-                                    })
-                                    .join("")
-                                : `
-                                <tr>
-                                    <td colspan="8" class="px-6 py-8 text-center text-gray-500">
-                                        <i class="fas fa-inbox text-3xl mb-2 opacity-50"></i>
-                                        <p>No recent bookings</p>
-                                    </td>
-                                </tr>
-                            `
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// =====================================================
-// REFRESH DASHBOARD - UPDATED FUNCTION
-// =====================================================
-export async function refreshDashboard() {
-  console.log("🔄 Refreshing dashboard...");
-  showToast("Refreshing dashboard...", "info");
-
-  // Refresh bookings first
-  try {
-    const { fetchBookings } = await import("./bookings.js");
-    await fetchBookings();
-  } catch (e) {
-    console.log("Could not fetch bookings");
-  }
-
-  // Then refresh dashboard stats
-  await fetchDashboardStats();
-
-  // Update the UI
-  const mainContent = document.getElementById("mainContent");
-  if (mainContent) {
-    mainContent.innerHTML = await renderDashboard();
-  }
-
-  showToast("✅ Dashboard updated!", "success");
-  console.log("✅ Dashboard refreshed");
-}
-
-// Make refresh function available globally
-window.refreshDashboard = refreshDashboard;
-
-// =====================================================
-// INITIALIZE DASHBOARD
-// =====================================================
-export async function initDashboard() {
-  await refreshDashboard();
-}
+        )
+        .join("");
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+    }
+  },
+};

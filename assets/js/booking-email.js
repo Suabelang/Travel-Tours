@@ -1,11 +1,86 @@
 // assets/js/modules/bookings/booking-email.js
-// Enhanced email functions with all booking details
+// Enhanced email functions with ALL booking details and payment info
 
 console.log("📧 Booking Email loaded - Enhanced");
 
 // Ensure supabase is available
 if (typeof supabase === "undefined" && typeof window.supabase !== "undefined") {
   var supabase = window.supabase;
+}
+
+// Hardcoded Payment Information
+const PAYMENT_INFO = {
+  banks: [
+    {
+      name: "BDO",
+      accountName: "PINOY TRAVEL BIZ GROUP INC.",
+      branch: "JAS ANTIPOLO",
+      accountNumber: "001080129756",
+      swiftCode: "BNORPHMMXXX",
+    },
+    {
+      name: "Security Bank",
+      accountName: "PINOY TRAVEL BIZ GROUP INC.",
+      branch: "UST BRANCH",
+      accountNumber: "0000071352913",
+      swiftCode: null,
+    },
+    {
+      name: "BPI",
+      accountName: "PINOY TRAVEL BIZ GROUP INC.",
+      branch: "MASANGKAY",
+      accountNumber: "4100 009647",
+      swiftCode: "BOPIPHMM",
+    },
+  ],
+  creditCardFee: "4.5% + ₱200 on Total Bill",
+  contactNumbers: ["09171672200", "09178662022", "09176501100"],
+  note: "After payment, immediately forward the Proof of Payment or the Deposit Slip for verification",
+};
+
+// Get payment info HTML
+function getPaymentInfoHTML() {
+  let banksHtml = "";
+  PAYMENT_INFO.banks.forEach((bank) => {
+    banksHtml += `
+            <div style="margin-bottom: 15px;">
+                <h4 style="margin: 0 0 8px 0; color: #2c3e50;">🏦 ${bank.name}</h4>
+                <p style="margin: 0 0 5px 0;"><strong>Account Name:</strong> ${bank.accountName}</p>
+                <p style="margin: 0 0 5px 0;"><strong>Branch:</strong> ${bank.branch}</p>
+                <p style="margin: 0 0 5px 0;"><strong>Account Number:</strong> ${bank.accountNumber}</p>
+                ${bank.swiftCode ? `<p style="margin: 0 0 5px 0;"><strong>SWIFT Code:</strong> ${bank.swiftCode}</p>` : ""}
+            </div>
+        `;
+  });
+
+  return `
+        <div class="payment-info" style="background: #fff3e0; border: 1px solid #ffd966; border-radius: 12px; padding: 20px; margin: 20px 0;">
+            <h3 style="margin: 0 0 15px 0; color: #b45f06; border-left: 4px solid #f39c12; padding-left: 12px;">💰 Mode of Payments</h3>
+            ${banksHtml}
+            <div style="background: #fef9e6; padding: 12px; border-radius: 8px; margin: 15px 0;">
+                <p style="margin: 0; font-size: 13px;"><strong>💳 Credit Cards/Online Payments:</strong> Processing Fee: ${PAYMENT_INFO.creditCardFee}</p>
+            </div>
+            <div style="background: #e8f5e9; padding: 12px; border-radius: 8px; margin: 15px 0;">
+                <p style="margin: 0; font-size: 13px;"><strong>📝 Note:</strong> ${PAYMENT_INFO.note}</p>
+            </div>
+            <div style="margin-top: 15px;">
+                <h4 style="margin: 0 0 8px 0; color: #2c3e50;">📞 Contact Us:</h4>
+                <p style="margin: 0;">${PAYMENT_INFO.contactNumbers.join(" | ")}</p>
+            </div>
+        </div>
+    `;
+}
+
+// Confidential Note HTML
+function getConfidentialNoteHTML() {
+  return `
+        <div style="background: #fef2e0; border-left: 4px solid #e67e22; padding: 12px 16px; margin: 20px 0; border-radius: 8px;">
+            <p style="margin: 0; font-size: 11px; color: #e67e22;">
+                <strong>🔒 CONFIDENTIAL:</strong> This page is confidential between PINOY ONLINE TRAVEL BIZ and your agency. 
+                Please DO NOT send this to your client. Unauthorized sharing may result in revocation of access and termination of portal account.
+            </p>
+        </div>
+    `;
 }
 
 // Send email via edge function
@@ -55,6 +130,34 @@ window.sendEmail = async function ({
   }
 };
 
+// Get pax type label from booking data
+function getPaxTypeLabel(booking) {
+  // First check if we have selected_pax_type stored
+  if (booking.selected_pax_type) {
+    return booking.selected_pax_type;
+  }
+  // Check from selected_rate_details
+  if (booking.selected_rate_details) {
+    if (booking.selected_rate_details.includes("Solo")) return "Solo (1 pax)";
+    if (booking.selected_rate_details.includes("2 Pax")) return "2 Pax";
+    if (booking.selected_rate_details.includes("3 Pax")) return "3 Pax";
+    if (booking.selected_rate_details.includes("4 Pax")) return "4 Pax";
+    if (booking.selected_rate_details.includes("5 Pax")) return "5 Pax";
+    if (booking.selected_rate_details.includes("6 Pax")) return "6 Pax";
+    if (booking.selected_rate_details.includes("7 Pax")) return "7 Pax";
+    if (booking.selected_rate_details.includes("8 Pax")) return "8 Pax";
+    if (booking.selected_rate_details.includes("9 Pax")) return "9 Pax";
+    if (booking.selected_rate_details.includes("10 Pax")) return "10 Pax";
+    if (booking.selected_rate_details.includes("11 Pax")) return "11 Pax";
+    if (booking.selected_rate_details.includes("12 Pax")) return "12 Pax";
+    if (booking.selected_rate_details.includes("Child")) return "Child";
+  }
+  // Fallback to hotel_pax_count
+  const count = booking.hotel_pax_count || 1;
+  if (count === 1) return "Solo (1 pax)";
+  return `${count} Pax`;
+}
+
 // Generate comprehensive approval email HTML with ALL details
 function generateApprovalEmailHTML(booking) {
   const travelDates =
@@ -66,39 +169,39 @@ function generateApprovalEmailHTML(booking) {
           day: "numeric",
         }),
       )
-      .join(" - ") || "Not specified";
+      .join(" → ") || "Not specified";
 
-  const totalAmount = Number(booking.total_amount || 0).toLocaleString();
-  const nights = booking.travel_dates?.length
-    ? booking.travel_dates.length - 1
-    : 0;
+  // Get pax type label
+  const paxLabel = getPaxTypeLabel(booking);
 
-  // Format hotel rate display
-  let hotelRateDisplay = "";
-  if (booking.hotel_Rates_Selected) {
-    hotelRateDisplay = `
-            <div class="detail-item">
-                <strong>Hotel Rate:</strong> ₱${Number(booking.hotel_Rates_Selected).toLocaleString()}
+  // Calculate totals
+  const hotelTotal =
+    (booking.hotel_Rates_Selected || 0) + (booking.hotel_extra_night_rate || 0);
+  const optionalTotal = booking.optional_tour_total_amount || 0;
+  const subtotal = hotelTotal + optionalTotal;
+  const grandTotal =
+    subtotal + (booking.additional_fee || 0) - (booking.discount_amount || 0);
+
+  // Format additional fees and discounts
+  let additionalFeeDisplay = "";
+  if (booking.additional_fee && booking.additional_fee > 0) {
+    additionalFeeDisplay = `
+            <div class="price-row">
+                <span>Additional Fee:</span>
+                <span>₱${Number(booking.additional_fee).toLocaleString()}</span>
             </div>
+            ${booking.additional_fee_description ? `<div style="font-size: 12px; color: #6b7280; margin-top: -5px; margin-bottom: 5px; text-align: right;">(${escapeHtml(booking.additional_fee_description)})</div>` : ""}
         `;
   }
 
-  // Format optional tour display
-  let optionalTourDisplay = "";
-  if (booking.optional_tour_name) {
-    const tourTotal = Number(
-      booking.optional_tour_total_amount || 0,
-    ).toLocaleString();
-    optionalTourDisplay = `
-            <div class="section">
-                <h3>🏝️ Optional Tour</h3>
-                <div class="detail-grid">
-                    <div><strong>Tour Name:</strong><br>${booking.optional_tour_name}</div>
-                    <div><strong>Number of Pax:</strong><br>${booking.optional_tour_pax_count || 1}</div>
-                    <div><strong>Tour Rate:</strong><br>₱${Number(booking.optional_tour_rate_selected || 0).toLocaleString()} per pax</div>
-                    <div><strong>Tour Total:</strong><br>₱${tourTotal}</div>
-                </div>
+  let discountDisplay = "";
+  if (booking.discount_amount && booking.discount_amount > 0) {
+    discountDisplay = `
+            <div class="price-row">
+                <span>Discount:</span>
+                <span>-₱${Number(booking.discount_amount).toLocaleString()}</span>
             </div>
+            ${booking.discount_description ? `<div style="font-size: 12px; color: #6b7280; margin-top: -5px; margin-bottom: 5px; text-align: right;">(${escapeHtml(booking.discount_description)})</div>` : ""}
         `;
   }
 
@@ -107,56 +210,288 @@ function generateApprovalEmailHTML(booking) {
         <html>
         <head>
             <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Booking Confirmation - ${booking.booking_reference}</title>
             <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; margin: 0; padding: 0; }
-                .container { max-width: 600px; margin: 20px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-                .header { background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 30px; text-align: center; }
-                .header h1 { margin: 0; font-size: 28px; }
-                .content { padding: 30px; background: #f9fafb; }
-                .booking-ref { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px solid #e5e7eb; }
-                .booking-ref .value { font-size: 24px; font-weight: bold; color: #059669; letter-spacing: 1px; }
-                .section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e5e7eb; }
-                .section h3 { margin: 0 0 15px; color: #374151; border-bottom: 2px solid #059669; padding-bottom: 8px; }
-                .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-                .detail-item { margin-bottom: 10px; }
-                .total { background: #ecfdf5; padding: 20px; border-radius: 8px; text-align: right; }
-                .total .amount { font-size: 24px; font-weight: bold; color: #059669; }
-                .footer { background: #f3f4f6; padding: 20px; text-align: center; color: #6b7280; font-size: 12px; }
+                body { 
+                    font-family: 'Segoe UI', Arial, sans-serif; 
+                    line-height: 1.6; 
+                    color: #333; 
+                    background: #f5f5f5; 
+                    margin: 0; 
+                    padding: 0; 
+                }
+                .container { 
+                    max-width: 650px; 
+                    margin: 20px auto; 
+                    background: #fff; 
+                    border-radius: 16px; 
+                    overflow: hidden; 
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.12); 
+                }
+                .header { 
+                    background: linear-gradient(135deg, #059669 0%, #10b981 100%); 
+                    color: white; 
+                    padding: 32px; 
+                    text-align: center; 
+                }
+                .header h1 { 
+                    margin: 0; 
+                    font-size: 28px; 
+                    letter-spacing: -0.5px;
+                }
+                .header p {
+                    margin: 8px 0 0;
+                    opacity: 0.9;
+                }
+                .content { 
+                    padding: 32px; 
+                    background: #ffffff; 
+                }
+                .booking-ref { 
+                    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+                    padding: 20px; 
+                    border-radius: 12px; 
+                    margin-bottom: 24px; 
+                    text-align: center; 
+                    border: 1px solid #d1fae5;
+                }
+                .booking-ref .label { 
+                    font-size: 12px; 
+                    text-transform: uppercase; 
+                    letter-spacing: 1px; 
+                    color: #065f46; 
+                    margin-bottom: 5px;
+                }
+                .booking-ref .value { 
+                    font-size: 26px; 
+                    font-weight: bold; 
+                    color: #059669; 
+                    letter-spacing: 1px; 
+                    font-family: monospace;
+                }
+                .greeting {
+                    font-size: 16px;
+                    margin-bottom: 20px;
+                }
+                .section { 
+                    background: #f9fafb; 
+                    padding: 20px; 
+                    border-radius: 12px; 
+                    margin-bottom: 20px; 
+                    border: 1px solid #e5e7eb;
+                }
+                .section h3 { 
+                    margin: 0 0 16px; 
+                    color: #1f2937; 
+                    border-left: 4px solid #059669; 
+                    padding-left: 12px;
+                    font-size: 16px;
+                }
+                .detail-grid { 
+                    display: grid; 
+                    grid-template-columns: 1fr 1fr; 
+                    gap: 16px; 
+                }
+                .detail-item { 
+                    margin-bottom: 12px; 
+                }
+                .detail-item strong {
+                    display: block;
+                    font-size: 12px;
+                    color: #6b7280;
+                    margin-bottom: 4px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .detail-item span {
+                    font-size: 15px;
+                    font-weight: 500;
+                    color: #1f2937;
+                }
+                .detail-box {
+                    background: white;
+                    padding: 12px 16px;
+                    border-radius: 8px;
+                    border: 1px solid #e5e7eb;
+                }
+                .price-breakdown {
+                    background: #f9fafb;
+                    padding: 16px;
+                    border-radius: 12px;
+                    margin: 16px 0;
+                }
+                .price-row {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 8px 0;
+                    border-bottom: 1px solid #e5e7eb;
+                }
+                .total-amount {
+                    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+                    padding: 20px;
+                    border-radius: 12px;
+                    text-align: center;
+                    margin: 20px 0;
+                }
+                .total-amount .label {
+                    color: white;
+                    font-size: 14px;
+                    opacity: 0.9;
+                    margin-bottom: 8px;
+                }
+                .total-amount .amount {
+                    font-size: 32px;
+                    font-weight: bold;
+                    color: white;
+                }
+                .footer { 
+                    background: #f9fafb; 
+                    padding: 24px; 
+                    text-align: center; 
+                    color: #6b7280; 
+                    font-size: 12px; 
+                    border-top: 1px solid #e5e7eb;
+                }
+                .contact-info {
+                    margin-top: 16px;
+                    padding-top: 16px;
+                    border-top: 1px solid #e5e7eb;
+                }
+                @media (max-width: 480px) {
+                    .detail-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>✅ Booking Confirmed!</h1>
+                    <h1>✈️ Booking Confirmed!</h1>
                     <p>Your travel adventure awaits</p>
                 </div>
                 <div class="content">
+                    ${getConfidentialNoteHTML()}
+                    
                     <div class="booking-ref">
+                        <div class="label">Booking Reference</div>
                         <div class="value">${booking.booking_reference}</div>
                     </div>
-                    <p>Dear <strong>${booking.client_name || "Valued Customer"}</strong>,</p>
-                    <p>Great news! Your booking with <strong>SNS Travel & Tours</strong> has been confirmed.</p>
+                    
+                    <div class="greeting">
+                        Dear <strong>${escapeHtml(booking.client_name) || "Valued Customer"}</strong>,
+                    </div>
+                    
+                    <p>Great news! Your booking with <strong>SNS Travel & Tours</strong> has been confirmed. Please review your travel details below.</p>
                     
                     <div class="section">
                         <h3>📍 Trip Details</h3>
                         <div class="detail-grid">
-                            <div><strong>Destination:</strong><br>${booking.destinations?.name || booking.category_name || "N/A"}</div>
-                            <div><strong>Package:</strong><br>${booking.package_Name || booking.destination_packages?.package_name || "N/A"}</div>
-                            <div><strong>Hotel Category:</strong><br>${booking.hotel_Name || booking.hotel_categories?.category_name || "N/A"}</div>
-                            <div><strong>Travel Dates:</strong><br>${travelDates}</div>
-                            <div><strong>Duration:</strong><br>${nights} night(s)</div>
-                            ${hotelRateDisplay}
+                            <div class="detail-item">
+                                <strong>Destination</strong>
+                                <span>${escapeHtml(booking.destinations?.name || booking.category_name) || "N/A"}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Package</strong>
+                                <span>${escapeHtml(booking.package_Name || booking.destination_packages?.package_name) || "N/A"}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Hotel Category</strong>
+                                <span>${escapeHtml(booking.hotel_Name || booking.hotel_categories?.category_name) || "N/A"}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Travel Dates</strong>
+                                <span>${travelDates}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Number of Pax</strong>
+                                <span>${paxLabel}</span>
+                            </div>
                         </div>
                     </div>
                     
-                    ${optionalTourDisplay}
+                    ${
+                      booking.selected_rate_details
+                        ? `
+                    <div class="section">
+                        <h3>📋 Selected Rate Details</h3>
+                        <div class="detail-box">
+                            ${escapeHtml(booking.selected_rate_details)}
+                        </div>
+                    </div>
+                    `
+                        : ""
+                    }
+                    
+                    <div class="section">
+                        <h3>💰 Price Breakdown</h3>
+                        <div class="price-breakdown">
+                            ${
+                              booking.hotel_Rates_Selected
+                                ? `
+                            <div class="price-row">
+                                <span>Hotel Rate:</span>
+                                <span>₱${Number(booking.hotel_Rates_Selected).toLocaleString()}</span>
+                            </div>
+                            `
+                                : ""
+                            }
+                            ${
+                              booking.hotel_extra_night_rate &&
+                              booking.hotel_extra_night_rate > 0
+                                ? `
+                            <div class="price-row">
+                                <span>Extra Night Fee:</span>
+                                <span>₱${Number(booking.hotel_extra_night_rate).toLocaleString()}</span>
+                            </div>
+                            `
+                                : ""
+                            }
+                            ${
+                              booking.optional_tour_total_amount &&
+                              booking.optional_tour_total_amount > 0
+                                ? `
+                            <div class="price-row">
+                                <span>Optional Tour:</span>
+                                <span>₱${Number(booking.optional_tour_total_amount).toLocaleString()}</span>
+                            </div>
+                            `
+                                : ""
+                            }
+                            ${additionalFeeDisplay}
+                            ${discountDisplay}
+                        </div>
+                        <div class="total-amount">
+                            <div class="label">Total Amount</div>
+                            <div class="amount">₱${grandTotal.toLocaleString()}</div>
+                        </div>
+                    </div>
+                    
+                    ${
+                      booking.optional_tour_name
+                        ? `
+                    <div class="section">
+                        <h3>🏝️ Optional Tour</h3>
+                        <div class="detail-grid">
+                            <div><strong>Tour Name:</strong><br>${escapeHtml(booking.optional_tour_name)}</div>
+                            <div><strong>Number of Pax:</strong><br>${paxLabel}</div>
+                            <div><strong>Rate per Pax:</strong><br>₱${Number(booking.optional_tour_rate_selected || 0).toLocaleString()}</div>
+                            <div><strong>Tour Total:</strong><br>₱${Number(booking.optional_tour_total_amount || 0).toLocaleString()}</div>
+                        </div>
+                    </div>
+                    `
+                        : ""
+                    }
                     
                     ${
                       booking.special_requests
                         ? `
                     <div class="section">
                         <h3>📝 Special Requests</h3>
-                        <p>${booking.special_requests}</p>
+                        <div class="detail-box">
+                            ${escapeHtml(booking.special_requests)}
+                        </div>
                     </div>
                     `
                         : ""
@@ -167,26 +502,21 @@ function generateApprovalEmailHTML(booking) {
                         ? `
                     <div class="section">
                         <h3>🔄 Flexible Booking</h3>
-                        <p>This booking is flexible with travel dates.</p>
+                        <p>This booking is flexible with travel dates. Please contact us for any changes.</p>
                     </div>
                     `
                         : ""
                     }
                     
-                    <div class="section">
-                        <h3>💰 Payment Summary</h3>
-                        <div class="total">
-                            <div>Total Amount</div>
-                            <div class="amount">₱${totalAmount}</div>
-                        </div>
-                    </div>
+                    ${getPaymentInfoHTML()}
                     
-                    <p>Thank you for choosing SNS Travel & Tours!</p>
-                    <p>📞 Need help? Contact us: +63 (2) 1234 5678<br>📧 bookings@snstravel.com</p>
+                    <div class="contact-info">
+                        <p>✨ Thank you for choosing SNS Travel & Tours! We look forward to making your journey unforgettable.</p>
+                    </div>
                 </div>
                 <div class="footer">
-                    <p>KASSCO BUILDING, RIZAL AVENUE COR. CAVITE AND LICO STREETS, SANTA CRUZ, MANILA, 1014 METRO MANILA</p>
                     <p>© ${new Date().getFullYear()} SNS Travel & Tours. All rights reserved.</p>
+                    <p>This is a system-generated email. Please do not reply to this message.</p>
                 </div>
             </div>
         </body>
@@ -194,48 +524,79 @@ function generateApprovalEmailHTML(booking) {
     `;
 }
 
-// Generate comprehensive payment confirmation HTML
+// Generate payment confirmation HTML
 function generatePaymentConfirmationHTML(booking) {
-  const totalAmount = Number(booking.total_amount || 0).toLocaleString();
+  const grandTotal = (booking.total_amount || 0).toLocaleString();
+  const travelDates =
+    booking.travel_dates
+      ?.map((d) =>
+        new Date(d).toLocaleDateString("en-PH", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+      )
+      .join(" → ") || "Not specified";
+
+  const paxLabel = getPaxTypeLabel(booking);
 
   return `
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Payment Confirmation - ${booking.booking_reference}</title>
             <style>
-                body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
-                .container { max-width: 600px; margin: 20px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-                .header { background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 30px; text-align: center; }
-                .content { padding: 30px; background: #f9fafb; }
-                .amount-box { background: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; border: 2px dashed #059669; }
-                .amount { font-size: 32px; font-weight: bold; color: #059669; }
-                .footer { background: #f3f4f6; padding: 20px; text-align: center; color: #6b7280; font-size: 12px; }
-                .details { background: white; padding: 15px; border-radius: 8px; margin-top: 20px; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+                .container { max-width: 600px; margin: 20px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+                .header { background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 32px; text-align: center; }
+                .content { padding: 32px; background: #ffffff; }
+                .amount-box { background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); padding: 24px; border-radius: 12px; text-align: center; margin: 20px 0; border: 1px solid #d1fae5; }
+                .amount { font-size: 36px; font-weight: bold; color: #059669; }
+                .booking-ref { background: #f9fafb; padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+                .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+                .footer { background: #f9fafb; padding: 24px; text-align: center; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="header">
                     <h2>💰 Payment Confirmed!</h2>
+                    <p>Thank you for your payment</p>
                 </div>
                 <div class="content">
-                    <p>Dear <strong>${booking.client_name || "Valued Customer"}</strong>,</p>
-                    <p>We have received your payment for booking <strong>${booking.booking_reference}</strong>.</p>
+                    ${getConfidentialNoteHTML()}
+                    
+                    <p>Dear <strong>${escapeHtml(booking.client_name) || "Valued Customer"}</strong>,</p>
+                    <p>We have successfully received your payment for the following booking:</p>
+                    
+                    <div class="booking-ref">
+                        <strong>Booking Reference:</strong><br>
+                        <span style="font-size: 20px; font-weight: bold; color: #059669;">${booking.booking_reference}</span>
+                    </div>
+                    
                     <div class="amount-box">
-                        <div>Amount Paid</div>
-                        <div class="amount">₱${totalAmount}</div>
-                        <div style="font-size: 14px; margin-top: 10px;">${new Date().toLocaleDateString("en-PH")}</div>
+                        <div style="font-size: 14px; color: #065f46; margin-bottom: 8px;">Amount Paid</div>
+                        <div class="amount">₱${grandTotal}</div>
+                        <div style="font-size: 12px; margin-top: 8px;">${new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}</div>
                     </div>
-                    <div class="details">
-                        <p><strong>Booking Reference:</strong> ${booking.booking_reference}</p>
-                        <p><strong>Destination:</strong> ${booking.destinations?.name || booking.category_name || "N/A"}</p>
-                        <p><strong>Package:</strong> ${booking.package_Name || booking.destination_packages?.package_name || "N/A"}</p>
+                    
+                    <div class="details-grid">
+                        <div><strong>Destination:</strong><br>${escapeHtml(booking.destinations?.name || booking.category_name) || "N/A"}</div>
+                        <div><strong>Package:</strong><br>${escapeHtml(booking.package_Name || booking.destination_packages?.package_name) || "N/A"}</div>
+                        <div><strong>Travel Dates:</strong><br>${travelDates}</div>
+                        <div><strong>Number of Pax:</strong><br>${paxLabel}</div>
                     </div>
-                    <p>Your booking is now fully confirmed. Thank you for choosing SNS Travel & Tours!</p>
+                    
+                    <p>Your booking is now fully confirmed. We've attached the itinerary for your reference.</p>
+                    <p>Safe travels and enjoy your journey with SNS Travel & Tours!</p>
+                    
+                    ${getPaymentInfoHTML()}
                 </div>
                 <div class="footer">
                     <p>SNS Travel & Tours - Your Trusted Travel Partner</p>
+                    <p>✈️ Book with confidence | 🌏 Travel with joy</p>
                 </div>
             </div>
         </body>
@@ -243,50 +604,56 @@ function generatePaymentConfirmationHTML(booking) {
     `;
 }
 
-// Generate comprehensive rejection email HTML
+// Generate rejection email HTML
 function generateRejectionEmailHTML(booking, reason) {
+  const paxLabel = getPaxTypeLabel(booking);
+
   return `
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Booking Update - ${booking.booking_reference}</title>
             <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; margin: 0; padding: 0; }
-                .container { max-width: 600px; margin: 20px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-                .header { background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color: white; padding: 30px; text-align: center; }
-                .header h1 { margin: 0; font-size: 28px; }
-                .content { padding: 30px; background: #f9fafb; }
-                .reason-box { background: #fee2e2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626; }
-                .footer { background: #f3f4f6; padding: 20px; text-align: center; color: #6b7280; font-size: 12px; }
-                .booking-ref { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px solid #e5e7eb; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+                .container { max-width: 600px; margin: 20px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+                .header { background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color: white; padding: 32px; text-align: center; }
+                .content { padding: 32px; background: #ffffff; }
+                .reason-box { background: #fee2e2; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #dc2626; }
+                .booking-ref { background: #f9fafb; padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+                .footer { background: #f9fafb; padding: 24px; text-align: center; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>❌ Booking Update</h1>
+                    <h2>❌ Booking Update</h2>
                     <p>Important information about your booking</p>
                 </div>
                 <div class="content">
+                    ${getConfidentialNoteHTML()}
+                    
                     <div class="booking-ref">
                         <strong>Booking Reference:</strong><br>
                         <span style="font-size: 20px; font-weight: bold;">${booking.booking_reference}</span>
                     </div>
                     
-                    <p>Dear <strong>${booking.client_name || "Valued Customer"}</strong>,</p>
+                    <p>Dear <strong>${escapeHtml(booking.client_name) || "Valued Customer"}</strong>,</p>
                     
                     <p>Thank you for choosing SNS Travel & Tours. After reviewing your booking request, we regret to inform you that we are unable to proceed with your booking at this time.</p>
                     
                     <div class="reason-box">
                         <strong>📝 Reason:</strong><br>
-                        ${reason}
+                        ${escapeHtml(reason)}
                     </div>
                     
                     <p><strong>Booking Details:</strong></p>
                     <ul>
-                        <li>Destination: ${booking.destinations?.name || booking.category_name || "N/A"}</li>
-                        <li>Package: ${booking.package_Name || booking.destination_packages?.package_name || "N/A"}</li>
+                        <li>Destination: ${escapeHtml(booking.destinations?.name || booking.category_name) || "N/A"}</li>
+                        <li>Package: ${escapeHtml(booking.package_Name || booking.destination_packages?.package_name) || "N/A"}</li>
                         <li>Travel Dates: ${booking.travel_dates?.map((d) => new Date(d).toLocaleDateString()).join(" - ") || "N/A"}</li>
+                        <li>Number of Pax: ${paxLabel}</li>
                     </ul>
                     
                     <p><strong>What you can do:</strong></p>
@@ -298,8 +665,7 @@ function generateRejectionEmailHTML(booking, reason) {
                     
                     <p>We apologize for any inconvenience this may cause and appreciate your understanding.</p>
                     
-                    <p>📞 Contact us: +63 (2) 1234 5678<br>
-                    📧 bookings@snstravel.com</p>
+                    <p>📞 Contact us: ${PAYMENT_INFO.contactNumbers.join(" | ")}</p>
                 </div>
                 <div class="footer">
                     <p>SNS Travel & Tours - Your Trusted Travel Partner</p>
@@ -308,6 +674,17 @@ function generateRejectionEmailHTML(booking, reason) {
         </body>
         </html>
     `;
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+  if (!text) return "";
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // Send approval email
@@ -333,7 +710,7 @@ window.sendApprovalEmail = async function (bookingId) {
     });
 
     if (result.success) {
-      await window.updateBookingStatus(bookingId, "confirmed");
+      await window.updateBookingStatusAndAmount(bookingId, "confirmed");
       console.log(`✅ Booking ${bookingId} confirmed and email sent`);
     }
 
@@ -371,7 +748,7 @@ window.sendRejectionEmail = async function (bookingId, reason) {
     });
 
     if (result.success) {
-      await window.updateBookingStatus(bookingId, "cancelled");
+      await window.updateBookingStatusAndAmount(bookingId, "cancelled");
       console.log(`✅ Booking ${bookingId} cancelled and rejection email sent`);
     }
 
@@ -423,4 +800,6 @@ window.sendPaymentConfirmation = async function (bookingId) {
   }
 };
 
-console.log("✅ Booking email loaded - Enhanced");
+console.log(
+  "✅ Booking email loaded - Enhanced with payment info and all details",
+);

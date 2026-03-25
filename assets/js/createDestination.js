@@ -104,12 +104,11 @@ const CreateDestination = {
         destinationHotelCategories = destination.hotelCategories;
       if (destination.hotels) destinationHotels = destination.hotels;
 
-      // STEP 1: Load optional tours for THIS destination ONLY
+      // Load optional tours for THIS destination ONLY
       console.log(
         `Loading optional tours for destination ID: ${destination.id}`,
       );
 
-      // Method 1: Using SupabaseService.query with eq filter
       const toursResult = await SupabaseService.query(
         "optional_tour_categories",
         {
@@ -123,39 +122,32 @@ const CreateDestination = {
         console.log(
           `✅ Loaded ${destinationOptionalTours.length} optional tours for destination ${destination.id}`,
         );
-        console.log(
-          "Tour details:",
-          destinationOptionalTours.map((t) => ({
-            id: t.id,
-            name: t.name,
-            destination_id: t.destination_id,
-          })),
-        );
+
+        // Load rates for each optional tour
+        for (let tour of destinationOptionalTours) {
+          const ratesResult = await SupabaseService.query(
+            "optional_tour_rates",
+            {
+              eq: { column: "tour_id", value: tour.id },
+            },
+          );
+          if (
+            ratesResult.success &&
+            ratesResult.data &&
+            ratesResult.data.length > 0
+          ) {
+            tour.rates = ratesResult.data[0];
+            console.log(`✅ Loaded rates for tour: ${tour.name}`);
+          } else {
+            tour.rates = null;
+            console.log(`⚠️ No rates found for tour: ${tour.name}`);
+          }
+        }
       } else {
         console.error("Failed to load optional tours:", toursResult.error);
-        destinationOptionalTours = [];
       }
 
-      // Alternative: If the above doesn't work, use direct Supabase query
-      if (destinationOptionalTours.length === 0) {
-        console.log("Trying alternative query method...");
-        const { data: directTours, error: directError } = await supabase
-          .from("optional_tour_categories")
-          .select("*")
-          .eq("destination_id", destination.id)
-          .order("display_order", { ascending: true });
-
-        if (!directError && directTours) {
-          destinationOptionalTours = directTours;
-          console.log(
-            `✅ Alternative query loaded ${directTours.length} tours`,
-          );
-        } else {
-          console.error("Alternative query failed:", directError);
-        }
-      }
-
-      // STEP 2: Load package-optional tour links for existing packages
+      // Load package-optional tour links
       if (destinationPackages && destinationPackages.length > 0) {
         console.log(
           `Found ${destinationPackages.length} packages to load links for`,
@@ -163,9 +155,6 @@ const CreateDestination = {
 
         for (let pkg of destinationPackages) {
           if (pkg.id) {
-            console.log(
-              `Loading links for package ${pkg.id} (${pkg.package_name})`,
-            );
             const linksResult = await SupabaseService.query(
               "package_optional_tours",
               {
@@ -173,15 +162,9 @@ const CreateDestination = {
               },
             );
             if (linksResult.success && linksResult.data) {
-              // Only include links for tours that belong to this destination
-              const validLinks = linksResult.data.filter((link) =>
-                destinationOptionalTours.some(
-                  (tour) => tour.id === link.optional_tour_id,
-                ),
-              );
-              packageOptionalTours.push(...validLinks);
+              packageOptionalTours.push(...linksResult.data);
               console.log(
-                `  → Found ${validLinks.length} valid links for package ${pkg.id}`,
+                `  → Found ${linksResult.data.length} links for package ${pkg.id}`,
               );
             }
           }
@@ -217,19 +200,9 @@ const CreateDestination = {
         }
       }
     } else {
-      console.log("Creating new destination - no tours to load");
+      console.log("Creating new destination");
       destinationOptionalTours = [];
     }
-
-    console.log("Final data to pass to modal:");
-    console.log("- Destination ID:", destination?.id);
-    console.log("- Optional Tours count:", destinationOptionalTours.length);
-    console.log(
-      "- Optional Tours:",
-      destinationOptionalTours.map((t) => t.name),
-    );
-    console.log("- Packages count:", destinationPackages.length);
-    console.log("- Package-Tour Links count:", packageOptionalTours.length);
 
     const content = this.generateModalContent(destination, isEdit, {
       destinationImages,
@@ -240,7 +213,7 @@ const CreateDestination = {
       destinationInclusions,
       destinationExclusions,
       destinationItineraries,
-      destinationOptionalTours, // Tours specific to this destination
+      destinationOptionalTours,
       packageOptionalTours,
     });
 
@@ -250,6 +223,7 @@ const CreateDestination = {
 
     this.showModal(title, content, saveFunction);
   },
+
   deleteOptionalTour: function (tourId, tourName, tourSection) {
     if (!confirm(`⚠️ Delete "${tourName}"? This cannot be undone!`)) return;
 
@@ -347,13 +321,12 @@ const CreateDestination = {
       }
       console.log("✅ Images saved");
 
-      // STEP 3: SAVE HOTEL CATEGORIES - PRESERVE IDs
+      // STEP 3: SAVE HOTEL CATEGORIES
       const categoryIdMap = new Map();
       const categorySections = document.querySelectorAll(
         "#hotel-categories-container > .bg-purple-50",
       );
 
-      // Get existing categories
       let existingCategories = [];
       const existingResult = await SupabaseService.query("hotel_categories", {
         eq: { column: "destination_id", value: destinationId },
@@ -382,7 +355,6 @@ const CreateDestination = {
             'input[name="hotel_category_has_breakfast[]"]',
           );
 
-          // Get existing ID from the DOM
           const existingIdAttr = section.getAttribute("data-category-id");
           let existingId = null;
           if (
@@ -406,7 +378,6 @@ const CreateDestination = {
           };
 
           if (categoryId) {
-            // Update existing category
             await SupabaseService.update(
               "hotel_categories",
               categoryId,
@@ -417,7 +388,6 @@ const CreateDestination = {
             );
             keptCategoryIds.push(categoryId);
           } else {
-            // Insert new category
             categoryData.created_at = new Date().toISOString();
             const result = await SupabaseService.insert(
               "hotel_categories",
@@ -436,7 +406,6 @@ const CreateDestination = {
         }
       }
 
-      // Delete categories removed from form
       const categoriesToDelete = existingCategories.filter(
         (cat) => !keptCategoryIds.includes(cat.id),
       );
@@ -523,7 +492,6 @@ const CreateDestination = {
         }
       }
 
-      // Delete hotels removed from form
       const hotelsToDelete = existingHotels.filter(
         (hotel) => !keptHotelIds.includes(hotel.id),
       );
@@ -632,14 +600,22 @@ const CreateDestination = {
         }
 
         if (packageId) {
-          // SAVE PACKAGE HOTEL RATES
+          // SAVE PACKAGE HOTEL RATES - Delete all existing rates first
           await SupabaseService.delete("package_hotel_rates", {
             package_id: packageId,
           });
+          console.log(`🗑️ Deleted existing rates for package ${packageId}`);
 
+          // Get all rate sets
           const rateSets = section.querySelectorAll(
             ".border.border-blue-200.rounded-lg.p-4.bg-white",
           );
+          console.log(
+            `Processing ${rateSets.length} rate sets for package ${packageId}`,
+          );
+
+          let insertedCount = 0;
+
           for (let rateSet of rateSets) {
             const categorySelect = rateSet.querySelector(
               'select[name^="rate_hotel_category_"]',
@@ -655,6 +631,14 @@ const CreateDestination = {
               categoryIndex >= 0
             ) {
               hotelCategoryId = categoryIdMap.get(categoryIndex);
+              console.log(
+                `Rate set ${insertedCount + 1}: Category index ${categoryIndex} -> Category ID ${hotelCategoryId}`,
+              );
+            } else {
+              console.log(
+                `⚠️ Rate set ${insertedCount + 1}: No valid category selected, skipping`,
+              );
+              continue;
             }
 
             const rateData = {
@@ -786,11 +770,25 @@ const CreateDestination = {
               updated_at: new Date().toISOString(),
             };
 
-            await SupabaseService.insert("package_hotel_rates", rateData);
+            const result = await SupabaseService.insert(
+              "package_hotel_rates",
+              rateData,
+            );
+            if (result.success) {
+              insertedCount++;
+              console.log(
+                `✅ Inserted rate set ${insertedCount} for package ${packageId}, category ${hotelCategoryId}`,
+              );
+            } else {
+              console.error(`❌ Failed to insert rate set:`, result.error);
+            }
           }
-          console.log(`✅ Rates saved for package ${packageId}`);
 
-          // SAVE PACKAGE INCLUSIONS (NO updated_at)
+          console.log(
+            `✅ Successfully saved ${insertedCount} rate sets for package ${packageId}`,
+          );
+
+          // SAVE PACKAGE INCLUSIONS
           let existingInclusions = [];
           const incResult = await SupabaseService.query("package_inclusions", {
             eq: { column: "package_id", value: packageId },
@@ -864,7 +862,7 @@ const CreateDestination = {
           }
           console.log(`✅ Inclusions saved for package ${packageId}`);
 
-          // SAVE PACKAGE EXCLUSIONS (NO updated_at)
+          // SAVE PACKAGE EXCLUSIONS
           let existingExclusions = [];
           const excResult = await SupabaseService.query("package_exclusions", {
             eq: { column: "package_id", value: packageId },
@@ -938,7 +936,7 @@ const CreateDestination = {
           }
           console.log(`✅ Exclusions saved for package ${packageId}`);
 
-          // SAVE PACKAGE ITINERARIES (HAS updated_at)
+          // SAVE PACKAGE ITINERARIES
           let existingItineraries = [];
           const itiResult = await SupabaseService.query("package_itineraries", {
             eq: { column: "package_id", value: packageId },
@@ -1025,7 +1023,7 @@ const CreateDestination = {
           }
           console.log(`✅ Itineraries saved for package ${packageId}`);
 
-          // SAVE PACKAGE OPTIONAL TOURS (Link tours to package)
+          // SAVE PACKAGE OPTIONAL TOURS
           const tourCheckboxes = section.querySelectorAll(
             `input[name^="package_optional_tours_${uniqueId}"]:checked`,
           );
@@ -1033,12 +1031,10 @@ const CreateDestination = {
             parseInt(cb.value),
           );
 
-          // Delete existing package-optional tour links for this package
           await SupabaseService.delete("package_optional_tours", {
             package_id: packageId,
           });
 
-          // Insert new links
           let displayOrder = 0;
           for (let tourId of selectedTourIds) {
             if (tourId && !isNaN(tourId)) {
@@ -1095,7 +1091,7 @@ const CreateDestination = {
         window.toursToDelete = [];
       }
 
-      // STEP 7: SAVE OPTIONAL TOURS (Now with destination_id)
+      // STEP 7: SAVE OPTIONAL TOURS
       const tourSections = document.querySelectorAll(
         "#optional-tours-container > .bg-pink-50",
       );
@@ -1139,12 +1135,11 @@ const CreateDestination = {
           description: descInput ? descInput.value || null : null,
           display_order: orderInput ? parseInt(orderInput.value) || 0 : 0,
           is_active: activeCheck ? activeCheck.checked : true,
-          destination_id: destinationId, // CRITICAL: Always set the destination_id
+          destination_id: destinationId,
           updated_at: new Date().toISOString(),
         };
 
         if (tourId) {
-          // Update existing tour - make sure to preserve destination_id
           await SupabaseService.update(
             "optional_tour_categories",
             tourId,
@@ -1155,7 +1150,6 @@ const CreateDestination = {
           );
           keptTourIds.push(tourId);
         } else {
-          // Insert new tour
           tourData.created_at = new Date().toISOString();
           const result = await SupabaseService.insert(
             "optional_tour_categories",
@@ -1175,7 +1169,6 @@ const CreateDestination = {
         }
 
         if (tourId) {
-          // Save rates for this tour (keep existing code)
           const tourIdx =
             tourSection.getAttribute("data-tour-index") ||
             Array.from(tourSections).indexOf(tourSection);
@@ -1251,7 +1244,6 @@ const CreateDestination = {
         }
       }
 
-      // Delete tours removed from form (only those belonging to this destination)
       const toursToDelete = existingTours.filter(
         (tour) => !keptTourIds.includes(tour.id),
       );
@@ -1267,6 +1259,7 @@ const CreateDestination = {
           `🗑️ Deleted tour: ${tour.name} (ID: ${tour.id}) from destination ${destinationId}`,
         );
       }
+
       console.log("🎉 ALL DATA SAVED SUCCESSFULLY!");
       this.closeModal();
       if (typeof Destinations !== "undefined") Destinations.loadDestinations();
@@ -1306,19 +1299,6 @@ const CreateDestination = {
     const destinationOptionalTours = data.destinationOptionalTours || [];
     const packageOptionalTours = data.packageOptionalTours || [];
 
-    console.log("📦 generateModalContent - Data received:", {
-      destinationId: dest.id,
-      destinationOptionalToursCount: destinationOptionalTours.length,
-      destinationOptionalTours: destinationOptionalTours.map((t) => ({
-        id: t.id,
-        name: t.name,
-        destination_id: t.destination_id,
-      })),
-      packagesCount: packages.length,
-      packageOptionalToursCount: packageOptionalTours.length,
-    });
-
-    // Generate package fields with destination-specific tours
     const packageFieldsHtml = this.generatePackageFields(
       packages,
       packageRates,
@@ -1326,87 +1306,86 @@ const CreateDestination = {
       exclusions,
       itineraries,
       hotelCategories,
-      destinationOptionalTours, // Pass only tours for this destination
+      destinationOptionalTours,
       packageOptionalTours,
     );
 
-    // Check if we have any tours to show
     const hasTours =
       destinationOptionalTours && destinationOptionalTours.length > 0;
     const toursWarningHtml =
       !hasTours && isEdit
         ? `
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-            <div class="flex items-center">
-                <i class="fas fa-exclamation-triangle text-yellow-600 mr-3"></i>
-                <div>
-                    <p class="text-sm text-yellow-800 font-medium">No optional tours found for this destination</p>
-                    <p class="text-xs text-yellow-600">You can create optional tours for this destination in the "Optional Tours for this Destination" section below.</p>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 mr-3"></i>
+                    <div>
+                        <p class="text-sm text-yellow-800 font-medium">No optional tours found for this destination</p>
+                        <p class="text-xs text-yellow-600">You can create optional tours for this destination in the "Optional Tours for this Destination" section below.</p>
+                    </div>
                 </div>
             </div>
-        </div>
-    `
+        `
         : "";
 
     return `
-        <form id="entity-form" class="space-y-6">
-            <!-- Destination Information -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center mb-4">
-                    <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
-                        <i class="fas fa-map-marker-alt text-primary-600"></i>
+            <form id="entity-form" class="space-y-6">
+                <!-- Destination Information -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-map-marker-alt text-primary-600"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold text-gray-800">Destination Information</h4>
                     </div>
-                    <h4 class="text-lg font-semibold text-gray-800">Destination Information</h4>
-                </div>
-                <div class="space-y-4">
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Destination Name <span class="text-red-500">*</span></label><input type="text" name="destination_name" value="${this.escapeHtml(dest.name || "")}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="e.g., Palawan, Boracay, Cebu"></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Category</label><div class="grid grid-cols-2 gap-4"><div><select name="category_type" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"><option value="local">Local</option><option value="international">International</option></select></div><div><select name="tour_category" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"><option value="Land Tours">Land Tours</option><option value="Domestic">Domestic</option><option value="Promo">Promo</option></select></div></div></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Destination Images</label><div id="images-container" class="space-y-3">${this.generateImageFields(images)}</div><button type="button" onclick="CreateDestination.addImageField()" class="mt-2 px-3 py-1 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 text-sm"><i class="fas fa-plus mr-1"></i>Add Another Image</button></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Destination Description</label><textarea name="destination_description" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Describe the destination...">${this.escapeHtml(dest.description || "")}</textarea></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Airport Name</label><input type="text" name="airport_name" value="${this.escapeHtml(dest.airport_name || "")}" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="e.g., Ninoy Aquino International Airport"></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Country</label><input type="text" name="country" value="${this.escapeHtml(dest.country || "Philippines")}" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"></div>
-                    <div class="flex items-center"><label class="flex items-center cursor-pointer"><input type="checkbox" name="destination_is_active" ${dest.is_active !== false ? "checked" : ""} class="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"><span class="ml-2 text-sm text-gray-700">Active</span></label></div>
-                </div>
-            </div>
-
-            <!-- Hotel Categories -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center mb-4"><div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3"><i class="fas fa-layer-group text-primary-600"></i></div><h4 class="text-lg font-semibold text-gray-800">Hotel Categories</h4></div>
-                <div id="hotel-categories-container" class="space-y-4">${this.generateHotelCategoryFields(hotelCategories)}</div>
-                <button type="button" onclick="CreateDestination.addHotelCategoryField()" class="mt-4 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 text-sm font-medium"><i class="fas fa-plus mr-2"></i>Add Hotel Category</button>
-            </div>
-
-            <!-- Hotels -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center mb-4"><div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3"><i class="fas fa-hotel text-primary-600"></i></div><h4 class="text-lg font-semibold text-gray-800">Hotels</h4><p class="text-sm text-gray-500 ml-2">(Assign to a hotel category above)</p></div>
-                <div id="hotels-container" class="space-y-4">${this.generateHotelFields(hotels, hotelCategories)}</div>
-                <button type="button" onclick="CreateDestination.addHotelField()" class="mt-4 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 text-sm font-medium"><i class="fas fa-plus mr-2"></i>Add Hotel</button>
-            </div>
-
-            <!-- Packages -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center mb-4"><div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3"><i class="fas fa-box text-primary-600"></i></div><h4 class="text-lg font-semibold text-gray-800">Packages</h4></div>
-                ${toursWarningHtml}
-                <div id="packages-container" class="space-y-6">${packageFieldsHtml}</div>
-                <button type="button" onclick="CreateDestination.addPackageField()" class="mt-4 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 text-sm font-medium"><i class="fas fa-plus mr-2"></i>Add Package</button>
-            </div>
-
-            <!-- Optional Tours Management (Destination Specific) -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center mb-4">
-                    <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
-                        <i class="fas fa-umbrella-beach text-primary-600"></i>
+                    <div class="space-y-4">
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Destination Name <span class="text-red-500">*</span></label><input type="text" name="destination_name" value="${this.escapeHtml(dest.name || "")}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="e.g., Palawan, Boracay, Cebu"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Category</label><div class="grid grid-cols-2 gap-4"><div><select name="category_type" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"><option value="local">Local</option><option value="international">International</option></select></div><div><select name="tour_category" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"><option value="Land Tours">Land Tours</option><option value="Domestic">Domestic</option><option value="Promo">Promo</option></select></div></div></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Destination Images</label><div id="images-container" class="space-y-3">${this.generateImageFields(images)}</div><button type="button" onclick="CreateDestination.addImageField()" class="mt-2 px-3 py-1 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 text-sm"><i class="fas fa-plus mr-1"></i>Add Another Image</button></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Destination Description</label><textarea name="destination_description" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Describe the destination...">${this.escapeHtml(dest.description || "")}</textarea></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Airport Name</label><input type="text" name="airport_name" value="${this.escapeHtml(dest.airport_name || "")}" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="e.g., Ninoy Aquino International Airport"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Country</label><input type="text" name="country" value="${this.escapeHtml(dest.country || "Philippines")}" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"></div>
+                        <div class="flex items-center"><label class="flex items-center cursor-pointer"><input type="checkbox" name="destination_is_active" ${dest.is_active !== false ? "checked" : ""} class="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"><span class="ml-2 text-sm text-gray-700">Active</span></label></div>
                     </div>
-                    <h4 class="text-lg font-semibold text-gray-800">Optional Tours for this Destination</h4>
-                    <p class="text-sm text-gray-500 ml-2">(Tours that can be assigned to packages in this destination)</p>
                 </div>
-                <div id="optional-tours-container" class="space-y-6">${this.generateOptionalTourFields(destinationOptionalTours, [])}</div>
-                <button type="button" onclick="CreateDestination.addOptionalTourField()" class="mt-4 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 text-sm font-medium"><i class="fas fa-plus mr-2"></i>Add Optional Tour</button>
-            </div>
 
-            <input type="hidden" name="destination_id" value="${dest.id || ""}">
-        </form>
-    `;
+                <!-- Hotel Categories -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center mb-4"><div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3"><i class="fas fa-layer-group text-primary-600"></i></div><h4 class="text-lg font-semibold text-gray-800">Hotel Categories</h4></div>
+                    <div id="hotel-categories-container" class="space-y-4">${this.generateHotelCategoryFields(hotelCategories)}</div>
+                    <button type="button" onclick="CreateDestination.addHotelCategoryField()" class="mt-4 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 text-sm font-medium"><i class="fas fa-plus mr-2"></i>Add Hotel Category</button>
+                </div>
+
+                <!-- Hotels -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center mb-4"><div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3"><i class="fas fa-hotel text-primary-600"></i></div><h4 class="text-lg font-semibold text-gray-800">Hotels</h4><p class="text-sm text-gray-500 ml-2">(Assign to a hotel category above)</p></div>
+                    <div id="hotels-container" class="space-y-4">${this.generateHotelFields(hotels, hotelCategories)}</div>
+                    <button type="button" onclick="CreateDestination.addHotelField()" class="mt-4 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 text-sm font-medium"><i class="fas fa-plus mr-2"></i>Add Hotel</button>
+                </div>
+
+                <!-- Packages -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center mb-4"><div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3"><i class="fas fa-box text-primary-600"></i></div><h4 class="text-lg font-semibold text-gray-800">Packages</h4></div>
+                    ${toursWarningHtml}
+                    <div id="packages-container" class="space-y-6">${packageFieldsHtml}</div>
+                    <button type="button" onclick="CreateDestination.addPackageField()" class="mt-4 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 text-sm font-medium"><i class="fas fa-plus mr-2"></i>Add Package</button>
+                </div>
+
+                <!-- Optional Tours Management (Destination Specific) -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-umbrella-beach text-primary-600"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold text-gray-800">Optional Tours for this Destination</h4>
+                        <p class="text-sm text-gray-500 ml-2">(Tours that can be assigned to packages in this destination)</p>
+                    </div>
+                    <div id="optional-tours-container" class="space-y-6">${this.generateOptionalTourFields(destinationOptionalTours, [])}</div>
+                    <button type="button" onclick="CreateDestination.addOptionalTourField()" class="mt-4 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 text-sm font-medium"><i class="fas fa-plus mr-2"></i>Add Optional Tour</button>
+                </div>
+
+                <input type="hidden" name="destination_id" value="${dest.id || ""}">
+            </form>
+        `;
   },
 
   generateImageFields: function (images) {
@@ -1430,7 +1409,6 @@ const CreateDestination = {
   generateHotelCategoryFields: function (categories) {
     let html = "";
     categories.forEach(function (cat, idx) {
-      // IMPORTANT: Set data-category-id to the actual ID
       html += `<div class="bg-purple-50 p-4 rounded-lg border border-purple-200" data-category-id="${cat.id || ""}" data-category-index="${idx}">
                         <div class="flex justify-between items-center mb-3">
                             <h5 class="font-medium text-purple-800">Category ${idx + 1}</h5>
@@ -1532,7 +1510,6 @@ const CreateDestination = {
     allOptionalTours,
     packageOptionalTours,
   ) {
-    // allOptionalTours contains ALL global tours
     const tours = allOptionalTours || [];
     const links = packageOptionalTours || [];
 
@@ -1540,12 +1517,6 @@ const CreateDestination = {
       "🔍 generatePackageFields - All tours available:",
       tours.length,
     );
-    console.log(
-      "🔍 generatePackageFields - Tours:",
-      tours.map((t) => ({ id: t.id, name: t.name })),
-    );
-    console.log("🔍 generatePackageFields - Packages:", packages.length);
-    console.log("🔍 generatePackageFields - Links:", links.length);
 
     let html = "";
     const self = this;
@@ -1555,7 +1526,6 @@ const CreateDestination = {
     packagesToRender.forEach(function (pkg, pkgIdx) {
       const uniqueId = pkg.id ? pkg.id : Date.now() + pkgIdx;
 
-      // Get tours already linked to this package
       const linkedTourIds = [];
       if (pkg.id && links && links.length > 0) {
         const linked = links.filter((link) => link.package_id === pkg.id);
@@ -1564,10 +1534,6 @@ const CreateDestination = {
             linkedTourIds.push(link.optional_tour_id);
           }
         });
-        console.log(
-          `Package ${pkg.id} (${pkg.package_name}) has ${linkedTourIds.length} linked tours:`,
-          linkedTourIds,
-        );
       }
 
       const pkgInclusions = inclusions.filter(function (inc) {
@@ -1583,7 +1549,6 @@ const CreateDestination = {
         return rate.package_id === pkg.id;
       });
 
-      // Generate selector with ALL tours
       const optionalTourSelectorHtml = self.generateOptionalTourSelector(
         uniqueId,
         tours,
@@ -1592,52 +1557,52 @@ const CreateDestination = {
       );
 
       html += `<div class="bg-blue-50 p-4 rounded-lg border border-blue-200" data-unique-id="${uniqueId}" data-package-index="${pkgIdx}" data-package-id="${pkg.id || ""}">
-                    <div class="flex justify-between items-center mb-3">
-                        <h5 class="font-medium text-blue-800">Package ${pkgIdx + 1}: ${self.escapeHtml(pkg.package_name || "")}</h5>
-                        <button type="button" onclick="this.closest('.bg-blue-50').remove()" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
-                    </div>
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><label class="block text-xs font-medium text-gray-500 mb-1">Package Name</label><input type="text" name="package_name[]" value="${self.escapeHtml(pkg.package_name || "")}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Package Name" required></div>
-                            <div><label class="block text-xs font-medium text-gray-500 mb-1">Package Code</label><input type="text" name="package_code[]" value="${self.escapeHtml(pkg.package_code || "")}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Package Code"></div>
-                            <div><label class="block text-xs font-medium text-gray-500 mb-1">Status</label><select name="package_is_active[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"><option value="true" ${pkg.is_active !== false ? "selected" : ""}>Active</option><option value="false" ${pkg.is_active === false ? "selected" : ""}>Inactive</option></select></div>
-                            <div><label class="block text-xs font-medium text-gray-500 mb-1">Base Price (₱)</label><input type="number" name="package_base_price[]" value="${pkg.base_price || 0}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Base Price"></div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h5 class="font-medium text-blue-800">Package ${pkgIdx + 1}: ${self.escapeHtml(pkg.package_name || "")}</h5>
+                            <button type="button" onclick="this.closest('.bg-blue-50').remove()" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
                         </div>
-                        
-                        <!-- OPTIONAL TOURS SELECTION -->
-                        <div class="border-t border-blue-200 pt-4">
-                            <h6 class="font-medium text-blue-700 mb-3">🏖️ Optional Tours for This Package</h6>
-                            <div class="bg-white p-3 rounded-lg border border-blue-100">
-                                ${optionalTourSelectorHtml}
-                                <p class="text-xs text-gray-400 mt-1">Select optional tours that are available with this package</p>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="block text-xs font-medium text-gray-500 mb-1">Package Name</label><input type="text" name="package_name[]" value="${self.escapeHtml(pkg.package_name || "")}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Package Name" required></div>
+                                <div><label class="block text-xs font-medium text-gray-500 mb-1">Package Code</label><input type="text" name="package_code[]" value="${self.escapeHtml(pkg.package_code || "")}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Package Code"></div>
+                                <div><label class="block text-xs font-medium text-gray-500 mb-1">Status</label><select name="package_is_active[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"><option value="true" ${pkg.is_active !== false ? "selected" : ""}>Active</option><option value="false" ${pkg.is_active === false ? "selected" : ""}>Inactive</option></select></div>
+                                <div><label class="block text-xs font-medium text-gray-500 mb-1">Base Price (₱)</label><input type="number" name="package_base_price[]" value="${pkg.base_price || 0}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Base Price"></div>
+                            </div>
+                            
+                            <div class="border-t border-blue-200 pt-4">
+                                <h6 class="font-medium text-blue-700 mb-3">🏖️ Optional Tours for This Package</h6>
+                                <div class="bg-white p-3 rounded-lg border border-blue-100">
+                                    ${optionalTourSelectorHtml}
+                                    <p class="text-xs text-gray-400 mt-1">Select optional tours that are available with this package</p>
+                                </div>
+                            </div>
+                            
+                            <div class="border-t border-blue-200 pt-4">
+                                <h6 class="font-medium text-blue-700 mb-3">💰 Package Hotel Rates</h6>
+                                <div class="rates-container-${uniqueId} space-y-4">${self.generateRateFields(uniqueId, pkgRates, hotelCategories)}</div>
+                                <button type="button" onclick="CreateDestination.addRateField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs"><i class="fas fa-plus mr-1"></i> Add Rate Set</button>
+                            </div>
+                            <div class="border-t border-blue-200 pt-4">
+                                <h6 class="font-medium text-blue-700 mb-3">📅 Package Itineraries</h6>
+                                <div class="itineraries-container-${uniqueId} space-y-3">${self.generateItineraryFields(uniqueId, pkgItineraries)}</div>
+                                <button type="button" onclick="CreateDestination.addItineraryField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs"><i class="fas fa-plus mr-1"></i> Add Itinerary Day</button>
+                            </div>
+                            <div class="border-t border-blue-200 pt-4">
+                                <h6 class="font-medium text-blue-700 mb-3">✅ Package Inclusions</h6>
+                                <div class="inclusions-container-${uniqueId} space-y-2">${self.generateInclusionFields(uniqueId, pkgInclusions)}</div>
+                                <button type="button" onclick="CreateDestination.addInclusionField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs"><i class="fas fa-plus mr-1"></i> Add Inclusion</button>
+                            </div>
+                            <div class="border-t border-blue-200 pt-4">
+                                <h6 class="font-medium text-blue-700 mb-3">❌ Package Exclusions</h6>
+                                <div class="exclusions-container-${uniqueId} space-y-2">${self.generateExclusionFields(uniqueId, pkgExclusions)}</div>
+                                <button type="button" onclick="CreateDestination.addExclusionField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs"><i class="fas fa-plus mr-1"></i> Add Exclusion</button>
                             </div>
                         </div>
-                        
-                        <div class="border-t border-blue-200 pt-4">
-                            <h6 class="font-medium text-blue-700 mb-3">💰 Package Hotel Rates</h6>
-                            <div class="rates-container-${uniqueId} space-y-4">${self.generateRateFields(uniqueId, pkgRates, hotelCategories)}</div>
-                            <button type="button" onclick="CreateDestination.addRateField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs"><i class="fas fa-plus mr-1"></i> Add Rate Set</button>
-                        </div>
-                        <div class="border-t border-blue-200 pt-4">
-                            <h6 class="font-medium text-blue-700 mb-3">📅 Package Itineraries</h6>
-                            <div class="itineraries-container-${uniqueId} space-y-3">${self.generateItineraryFields(uniqueId, pkgItineraries)}</div>
-                            <button type="button" onclick="CreateDestination.addItineraryField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs"><i class="fas fa-plus mr-1"></i> Add Itinerary Day</button>
-                        </div>
-                        <div class="border-t border-blue-200 pt-4">
-                            <h6 class="font-medium text-blue-700 mb-3">✅ Package Inclusions</h6>
-                            <div class="inclusions-container-${uniqueId} space-y-2">${self.generateInclusionFields(uniqueId, pkgInclusions)}</div>
-                            <button type="button" onclick="CreateDestination.addInclusionField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs"><i class="fas fa-plus mr-1"></i> Add Inclusion</button>
-                        </div>
-                        <div class="border-t border-blue-200 pt-4">
-                            <h6 class="font-medium text-blue-700 mb-3">❌ Package Exclusions</h6>
-                            <div class="exclusions-container-${uniqueId} space-y-2">${self.generateExclusionFields(uniqueId, pkgExclusions)}</div>
-                            <button type="button" onclick="CreateDestination.addExclusionField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs"><i class="fas fa-plus mr-1"></i> Add Exclusion</button>
-                        </div>
-                    </div>
-                </div>`;
+                    </div>`;
     });
     return html;
   },
+
   generateOptionalTourSelector: function (
     uniqueId,
     optionalTours,
@@ -1645,28 +1610,28 @@ const CreateDestination = {
   ) {
     if (!optionalTours || optionalTours.length === 0) {
       return `<div class="text-center py-4 text-gray-500">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    No optional tours available. Create optional tours first.
-                </div>`;
+                        <i class="fas fa-info-circle mr-2"></i>
+                        No optional tours available. Create optional tours first.
+                    </div>`;
     }
 
     let html = `<div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Optional Tours:</label>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-200 rounded-lg">`;
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Select Optional Tours:</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-200 rounded-lg">`;
 
     optionalTours.forEach(function (tour) {
       const isChecked = linkedTourIds.includes(tour.id) ? "checked" : "";
       html += `<label class="flex items-start p-2 hover:bg-gray-50 rounded cursor-pointer">
-                    <input type="checkbox" name="package_optional_tours_${uniqueId}[]" value="${tour.id}" ${isChecked} class="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
-                    <div class="ml-3">
-                        <span class="text-sm font-medium text-gray-700">${CreateDestination.escapeHtml(tour.name)}</span>
-                        ${tour.description ? `<p class="text-xs text-gray-500">${CreateDestination.escapeHtml(tour.description.substring(0, 100))}</p>` : ""}
-                    </div>
-                </label>`;
+                        <input type="checkbox" name="package_optional_tours_${uniqueId}[]" value="${tour.id}" ${isChecked} class="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <div class="ml-3">
+                            <span class="text-sm font-medium text-gray-700">${CreateDestination.escapeHtml(tour.name)}</span>
+                            ${tour.description ? `<p class="text-xs text-gray-500">${CreateDestination.escapeHtml(tour.description.substring(0, 100))}</p>` : ""}
+                        </div>
+                    </label>`;
     });
 
     html += `</div>
-            </div>`;
+                </div>`;
 
     return html;
   },
@@ -1678,7 +1643,6 @@ const CreateDestination = {
     div.className = "bg-blue-50 p-4 rounded-lg border border-blue-200";
     div.setAttribute("data-unique-id", uniqueId);
 
-    // Get all optional tours from the container (these are already filtered by destination)
     const optionalTourSections = document.querySelectorAll(
       "#optional-tours-container > .bg-pink-50",
     );
@@ -1686,14 +1650,14 @@ const CreateDestination = {
 
     if (optionalTourSections.length === 0) {
       optionalToursHtml = `<div class="text-center py-4 text-gray-500 bg-gray-50 rounded-lg">
-                                <i class="fas fa-info-circle mr-2"></i>
-                                No optional tours available for this destination. 
-                                <a href="#" onclick="document.getElementById('optional-tours-container').scrollIntoView({behavior: 'smooth'}); return false;" class="text-primary-600 underline">Create optional tours first</a>.
-                            </div>`;
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    No optional tours available for this destination. 
+                                    <a href="#" onclick="document.getElementById('optional-tours-container').scrollIntoView({behavior: 'smooth'}); return false;" class="text-primary-600 underline">Create optional tours first</a>.
+                                </div>`;
     } else {
       optionalToursHtml = `<div class="space-y-2">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Select Optional Tours:</label>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-200 rounded-lg bg-white">`;
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Optional Tours:</label>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-200 rounded-lg bg-white">`;
 
       optionalTourSections.forEach((tourSection, idx) => {
         const tourName =
@@ -1704,74 +1668,73 @@ const CreateDestination = {
           tourSection.querySelector('textarea[name="tour_description[]"]')
             ?.value || "";
 
-        // Only include tours that have valid IDs (already saved)
         if (tourId && tourId !== "new") {
           optionalToursHtml += `<label class="flex items-start p-2 hover:bg-gray-50 rounded cursor-pointer border border-transparent hover:border-gray-200">
-                                        <input type="checkbox" name="package_optional_tours_${uniqueId}[]" value="${tourId}" class="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
-                                        <div class="ml-3">
-                                            <span class="text-sm font-medium text-gray-700">${CreateDestination.escapeHtml(tourName)}</span>
-                                            ${tourDescription ? `<p class="text-xs text-gray-500">${CreateDestination.escapeHtml(tourDescription.substring(0, 100))}</p>` : ""}
-                                        </div>
-                                    </label>`;
+                                            <input type="checkbox" name="package_optional_tours_${uniqueId}[]" value="${tourId}" class="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                                            <div class="ml-3">
+                                                <span class="text-sm font-medium text-gray-700">${CreateDestination.escapeHtml(tourName)}</span>
+                                                ${tourDescription ? `<p class="text-xs text-gray-500">${CreateDestination.escapeHtml(tourDescription.substring(0, 100))}</p>` : ""}
+                                            </div>
+                                        </label>`;
         } else {
-          // For new tours that haven't been saved yet, still show them but with a warning
           optionalToursHtml += `<label class="flex items-start p-2 hover:bg-gray-50 rounded cursor-pointer border border-yellow-200 bg-yellow-50">
-                                        <input type="checkbox" name="package_optional_tours_${uniqueId}[]" value="temp_${idx}" class="mt-1 h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded" disabled>
-                                        <div class="ml-3">
-                                            <span class="text-sm font-medium text-gray-700">${CreateDestination.escapeHtml(tourName)}</span>
-                                            <span class="text-xs text-yellow-600 block">⚠️ Save this tour first before assigning to packages</span>
-                                        </div>
-                                    </label>`;
+                                            <input type="checkbox" name="package_optional_tours_${uniqueId}[]" value="temp_${idx}" class="mt-1 h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded" disabled>
+                                            <div class="ml-3">
+                                                <span class="text-sm font-medium text-gray-700">${CreateDestination.escapeHtml(tourName)}</span>
+                                                <span class="text-xs text-yellow-600 block">⚠️ Save this tour first before assigning to packages</span>
+                                            </div>
+                                        </label>`;
         }
       });
 
       optionalToursHtml += `</div>
-                            <p class="text-xs text-gray-400 mt-2">Select optional tours that are available with this package</p>
-                            </div>`;
+                                <p class="text-xs text-gray-400 mt-2">Select optional tours that are available with this package</p>
+                                </div>`;
     }
 
     div.innerHTML = `<div class="flex justify-between items-center mb-3">
-                        <h5 class="font-medium text-blue-800">New Package</h5>
-                        <button type="button" onclick="this.closest('.bg-blue-50').remove()" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
-                    </div>
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><input type="text" name="package_name[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Package Name" required></div>
-                            <div><input type="text" name="package_code[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Package Code"></div>
-                            <div><select name="package_is_active[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="true">Active</option><option value="false">Inactive</option></select></div>
-                            <div><input type="number" name="package_base_price[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Base Price" value="0"></div>
+                            <h5 class="font-medium text-blue-800">New Package</h5>
+                            <button type="button" onclick="this.closest('.bg-blue-50').remove()" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
                         </div>
-                        
-                        <div class="border-t border-blue-200 pt-4">
-                            <h6 class="font-medium text-blue-700 mb-3">🏖️ Optional Tours for This Package</h6>
-                            <div class="bg-white p-3 rounded-lg border border-blue-100">
-                                ${optionalToursHtml}
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><input type="text" name="package_name[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Package Name" required></div>
+                                <div><input type="text" name="package_code[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Package Code"></div>
+                                <div><select name="package_is_active[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="true">Active</option><option value="false">Inactive</option></select></div>
+                                <div><input type="number" name="package_base_price[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Base Price" value="0"></div>
                             </div>
-                        </div>
-                        
-                        <div class="border-t border-blue-200 pt-4">
-                            <h6 class="font-medium text-blue-700 mb-3">💰 Package Hotel Rates</h6>
-                            <div class="rates-container-${uniqueId} space-y-4"></div>
-                            <button type="button" onclick="CreateDestination.addRateField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs">+ Add Rate Set</button>
-                        </div>
-                        <div class="border-t border-blue-200 pt-4">
-                            <h6 class="font-medium text-blue-700 mb-3">📅 Package Itineraries</h6>
-                            <div class="itineraries-container-${uniqueId} space-y-3"></div>
-                            <button type="button" onclick="CreateDestination.addItineraryField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs">+ Add Itinerary Day</button>
-                        </div>
-                        <div class="border-t border-blue-200 pt-4">
-                            <h6 class="font-medium text-blue-700 mb-3">✅ Package Inclusions</h6>
-                            <div class="inclusions-container-${uniqueId} space-y-2"></div>
-                            <button type="button" onclick="CreateDestination.addInclusionField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs">+ Add Inclusion</button>
-                        </div>
-                        <div class="border-t border-blue-200 pt-4">
-                            <h6 class="font-medium text-blue-700 mb-3">❌ Package Exclusions</h6>
-                            <div class="exclusions-container-${uniqueId} space-y-2"></div>
-                            <button type="button" onclick="CreateDestination.addExclusionField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs">+ Add Exclusion</button>
-                        </div>
-                    </div>`;
+                            
+                            <div class="border-t border-blue-200 pt-4">
+                                <h6 class="font-medium text-blue-700 mb-3">🏖️ Optional Tours for This Package</h6>
+                                <div class="bg-white p-3 rounded-lg border border-blue-100">
+                                    ${optionalToursHtml}
+                                </div>
+                            </div>
+                            
+                            <div class="border-t border-blue-200 pt-4">
+                                <h6 class="font-medium text-blue-700 mb-3">💰 Package Hotel Rates</h6>
+                                <div class="rates-container-${uniqueId} space-y-4"></div>
+                                <button type="button" onclick="CreateDestination.addRateField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs">+ Add Rate Set</button>
+                            </div>
+                            <div class="border-t border-blue-200 pt-4">
+                                <h6 class="font-medium text-blue-700 mb-3">📅 Package Itineraries</h6>
+                                <div class="itineraries-container-${uniqueId} space-y-3"></div>
+                                <button type="button" onclick="CreateDestination.addItineraryField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs">+ Add Itinerary Day</button>
+                            </div>
+                            <div class="border-t border-blue-200 pt-4">
+                                <h6 class="font-medium text-blue-700 mb-3">✅ Package Inclusions</h6>
+                                <div class="inclusions-container-${uniqueId} space-y-2"></div>
+                                <button type="button" onclick="CreateDestination.addInclusionField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs">+ Add Inclusion</button>
+                            </div>
+                            <div class="border-t border-blue-200 pt-4">
+                                <h6 class="font-medium text-blue-700 mb-3">❌ Package Exclusions</h6>
+                                <div class="exclusions-container-${uniqueId} space-y-2"></div>
+                                <button type="button" onclick="CreateDestination.addExclusionField(${uniqueId})" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs">+ Add Exclusion</button>
+                            </div>
+                        </div>`;
     container.appendChild(div);
   },
+
   generateRateFields: function (uniqueId, rates, hotelCategories) {
     let html = "";
     const self = this;
@@ -1785,10 +1748,12 @@ const CreateDestination = {
         if (foundIndex !== -1) selectedCategoryIndex = foundIndex;
       }
 
-      html += `<div class="border border-blue-200 rounded-lg p-4 bg-white">
+      html += `<div class="border border-blue-200 rounded-lg p-4 bg-white mb-3">
                         <div class="flex justify-between items-center mb-3">
                             <span class="text-sm font-medium text-blue-800">Rate Set ${rateIdx + 1}</span>
-                            <button type="button" onclick="this.closest('.border').remove()" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                            <button type="button" onclick="this.closest('.border').remove()" class="text-red-500 hover:text-red-700">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                         <div class="space-y-4">
                             <div>
@@ -1801,61 +1766,61 @@ const CreateDestination = {
       });
 
       html += `</select>
-                        <p class="text-xs text-gray-400 mt-1">Select which hotel category this rate applies to</p>
-                    </div>
-                    <div>
-                        <h6 class="text-xs font-semibold text-gray-600 mb-2">REGULAR RATES</h6>
-                        <div class="grid grid-cols-4 gap-2">
-                            <div><label class="block text-xs text-gray-500 mb-1">Season</label><input type="text" name="rate_season_${uniqueId}_${rateIdx}" value="${rate.season || "Regular"}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">Duration</label><input type="text" name="rate_duration_${uniqueId}_${rateIdx}" value="${rate.duration || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">Validity Date</label><input type="date" name="rate_validity_${uniqueId}_${rateIdx}" value="${rate.validity_date || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                            <p class="text-xs text-gray-400 mt-1">Select which hotel category this rate applies to</p>
                         </div>
-                        <div class="grid grid-cols-4 gap-2 mt-2">
-                            <div><label class="block text-xs text-gray-500 mb-1">Solo</label><input type="number" name="rate_solo_${uniqueId}_${rateIdx}" value="${rate.rate_solo || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">2 Pax</label><input type="number" name="rate_2pax_${uniqueId}_${rateIdx}" value="${rate.rate_2pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">3 Pax</label><input type="number" name="rate_3pax_${uniqueId}_${rateIdx}" value="${rate.rate_3pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">4 Pax</label><input type="number" name="rate_4pax_${uniqueId}_${rateIdx}" value="${rate.rate_4pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">5 Pax</label><input type="number" name="rate_5pax_${uniqueId}_${rateIdx}" value="${rate.rate_5pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">6 Pax</label><input type="number" name="rate_6pax_${uniqueId}_${rateIdx}" value="${rate.rate_6pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">7 Pax</label><input type="number" name="rate_7pax_${uniqueId}_${rateIdx}" value="${rate.rate_7pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">8 Pax</label><input type="number" name="rate_8pax_${uniqueId}_${rateIdx}" value="${rate.rate_8pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">9 Pax</label><input type="number" name="rate_9pax_${uniqueId}_${rateIdx}" value="${rate.rate_9pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">10 Pax</label><input type="number" name="rate_10pax_${uniqueId}_${rateIdx}" value="${rate.rate_10pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">11 Pax</label><input type="number" name="rate_11pax_${uniqueId}_${rateIdx}" value="${rate.rate_11pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">12 Pax</label><input type="number" name="rate_12pax_${uniqueId}_${rateIdx}" value="${rate.rate_12pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">Child (No Breakfast)</label><input type="number" name="rate_child_no_breakfast_${uniqueId}_${rateIdx}" value="${rate.rate_child_no_breakfast || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                        <div>
+                            <h6 class="text-xs font-semibold text-gray-600 mb-2">REGULAR RATES</h6>
+                            <div class="grid grid-cols-4 gap-2">
+                                <div><label class="block text-xs text-gray-500 mb-1">Season</label><input type="text" name="rate_season_${uniqueId}_${rateIdx}" value="${rate.season || "Regular"}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">Duration</label><input type="text" name="rate_duration_${uniqueId}_${rateIdx}" value="${rate.duration || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">Validity Date</label><input type="date" name="rate_validity_${uniqueId}_${rateIdx}" value="${rate.validity_date || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                            </div>
+                            <div class="grid grid-cols-4 gap-2 mt-2">
+                                <div><label class="block text-xs text-gray-500 mb-1">Solo</label><input type="number" name="rate_solo_${uniqueId}_${rateIdx}" value="${rate.rate_solo || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">2 Pax</label><input type="number" name="rate_2pax_${uniqueId}_${rateIdx}" value="${rate.rate_2pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">3 Pax</label><input type="number" name="rate_3pax_${uniqueId}_${rateIdx}" value="${rate.rate_3pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">4 Pax</label><input type="number" name="rate_4pax_${uniqueId}_${rateIdx}" value="${rate.rate_4pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">5 Pax</label><input type="number" name="rate_5pax_${uniqueId}_${rateIdx}" value="${rate.rate_5pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">6 Pax</label><input type="number" name="rate_6pax_${uniqueId}_${rateIdx}" value="${rate.rate_6pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">7 Pax</label><input type="number" name="rate_7pax_${uniqueId}_${rateIdx}" value="${rate.rate_7pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">8 Pax</label><input type="number" name="rate_8pax_${uniqueId}_${rateIdx}" value="${rate.rate_8pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">9 Pax</label><input type="number" name="rate_9pax_${uniqueId}_${rateIdx}" value="${rate.rate_9pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">10 Pax</label><input type="number" name="rate_10pax_${uniqueId}_${rateIdx}" value="${rate.rate_10pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">11 Pax</label><input type="number" name="rate_11pax_${uniqueId}_${rateIdx}" value="${rate.rate_11pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">12 Pax</label><input type="number" name="rate_12pax_${uniqueId}_${rateIdx}" value="${rate.rate_12pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">Child (No Breakfast)</label><input type="number" name="rate_child_no_breakfast_${uniqueId}_${rateIdx}" value="${rate.rate_child_no_breakfast || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                            </div>
+                        </div>
+                        <div class="border-t border-gray-200 pt-3">
+                            <h6 class="text-xs font-semibold text-gray-600 mb-2">EXTRA NIGHTS</h6>
+                            <div class="grid grid-cols-4 gap-2">
+                                <div><label class="block text-xs text-gray-500 mb-1">Solo</label><input type="number" name="extra_night_solo_${uniqueId}_${rateIdx}" value="${rate.extra_night_solo || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">2 Pax</label><input type="number" name="extra_night_2pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_2pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">3 Pax</label><input type="number" name="extra_night_3pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_3pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">4 Pax</label><input type="number" name="extra_night_4pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_4pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">5 Pax</label><input type="number" name="extra_night_5pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_5pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">6 Pax</label><input type="number" name="extra_night_6pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_6pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">7 Pax</label><input type="number" name="extra_night_7pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_7pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">8 Pax</label><input type="number" name="extra_night_8pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_8pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">9 Pax</label><input type="number" name="extra_night_9pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_9pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">10 Pax</label><input type="number" name="extra_night_10pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_10pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">11 Pax</label><input type="number" name="extra_night_11pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_11pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">12 Pax</label><input type="number" name="extra_night_12pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_12pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">Child (No Breakfast)</label><input type="number" name="extra_night_child_no_breakfast_${uniqueId}_${rateIdx}" value="${rate.extra_night_child_no_breakfast || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Additional Info</label>
+                            <textarea name="rate_additional_info_${uniqueId}_${rateIdx}" rows="2" class="w-full px-2 py-1 border rounded-lg text-sm">${rate.additional_info || ""}</textarea>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <label class="flex items-center">
+                                <input type="checkbox" name="rate_breakfast_included_${uniqueId}_${rateIdx}" ${rate.breakfast_included !== false ? "checked" : ""} class="h-3 w-3 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                                <span class="ml-1 text-xs text-gray-600">Breakfast Included</span>
+                            </label>
                         </div>
                     </div>
-                    <div class="border-t border-gray-200 pt-3">
-                        <h6 class="text-xs font-semibold text-gray-600 mb-2">EXTRA NIGHTS</h6>
-                        <div class="grid grid-cols-4 gap-2">
-                            <div><label class="block text-xs text-gray-500 mb-1">Solo</label><input type="number" name="extra_night_solo_${uniqueId}_${rateIdx}" value="${rate.extra_night_solo || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">2 Pax</label><input type="number" name="extra_night_2pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_2pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">3 Pax</label><input type="number" name="extra_night_3pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_3pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">4 Pax</label><input type="number" name="extra_night_4pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_4pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">5 Pax</label><input type="number" name="extra_night_5pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_5pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">6 Pax</label><input type="number" name="extra_night_6pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_6pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">7 Pax</label><input type="number" name="extra_night_7pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_7pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">8 Pax</label><input type="number" name="extra_night_8pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_8pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">9 Pax</label><input type="number" name="extra_night_9pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_9pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">10 Pax</label><input type="number" name="extra_night_10pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_10pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">11 Pax</label><input type="number" name="extra_night_11pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_11pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">12 Pax</label><input type="number" name="extra_night_12pax_${uniqueId}_${rateIdx}" value="${rate.extra_night_12pax || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">Child (No Breakfast)</label><input type="number" name="extra_night_child_no_breakfast_${uniqueId}_${rateIdx}" value="${rate.extra_night_child_no_breakfast || ""}" class="w-full px-2 py-1 border rounded-lg text-sm"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Additional Info</label>
-                        <textarea name="rate_additional_info_${uniqueId}_${rateIdx}" rows="2" class="w-full px-2 py-1 border rounded-lg text-sm">${rate.additional_info || ""}</textarea>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <label class="flex items-center">
-                            <input type="checkbox" name="rate_breakfast_included_${uniqueId}_${rateIdx}" ${rate.breakfast_included !== false ? "checked" : ""} class="h-3 w-3 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
-                            <span class="ml-1 text-xs text-gray-600">Breakfast Included</span>
-                        </label>
-                    </div>
-                </div>
-            </div>`;
+                </div>`;
     });
     return html;
   },
@@ -1876,11 +1841,13 @@ const CreateDestination = {
     });
 
     const div = document.createElement("div");
-    div.className = "border border-blue-200 rounded-lg p-4 bg-white";
+    div.className = "border border-blue-200 rounded-lg p-4 bg-white mb-3";
     div.innerHTML = `
             <div class="flex justify-between items-center mb-3">
                 <span class="text-sm font-medium text-blue-800">New Rate Set</span>
-                <button type="button" onclick="this.closest('.border').remove()" class="text-red-500"><i class="fas fa-trash"></i></button>
+                <button type="button" onclick="this.closest('.border').remove()" class="text-red-500 hover:text-red-700">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
             <div class="space-y-4">
                 <div>
@@ -2057,45 +2024,43 @@ const CreateDestination = {
   },
 
   generateOptionalTourFields: function (tours, rates) {
-    // tours should already be filtered by destination_id
     let html = "";
 
     if (!tours || tours.length === 0) {
       return `<div class="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
-                    <i class="fas fa-info-circle text-4xl mb-2"></i>
-                    <p>No optional tours created for this destination yet.</p>
-                    <p class="text-sm">Click "Add Optional Tour" to create tours that can be assigned to packages.</p>
-                </div>`;
+                        <i class="fas fa-info-circle text-4xl mb-2"></i>
+                        <p>No optional tours created for this destination yet.</p>
+                        <p class="text-sm">Click "Add Optional Tour" to create tours that can be assigned to packages.</p>
+                    </div>`;
     }
 
     tours.forEach(function (tour, tourIdx) {
       const tourId = tour.id || "new";
       const tourName = tour.name || "";
+      const tourRates = tour.rates || {};
+
       html += `<div class="bg-pink-50 p-4 rounded-lg border border-pink-200 optional-tour-section" data-tour-id="${tourId}" data-tour-index="${tourIdx}">
-                    <div class="flex justify-between items-center mb-3">
-                        <h5 class="font-medium text-pink-800">Tour ${tourIdx + 1}: ${CreateDestination.escapeHtml(tourName)}</h5>
-                        <div class="flex gap-2">
-                            <button type="button" onclick="CreateDestination.deleteOptionalTour(${typeof tourId === "number" ? tourId : "null"}, '${CreateDestination.escapeHtml(tourName)}', this.closest('.optional-tour-section'))" class="text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 transition-colors" title="Delete this tour"><i class="fas fa-trash"></i></button>
-                            <button type="button" onclick="this.closest('.bg-pink-50').remove()" class="text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors" title="Remove from form"><i class="fas fa-times"></i></button>
+                        <div class="flex justify-between items-center mb-3">
+                            <h5 class="font-medium text-pink-800">Tour ${tourIdx + 1}: ${CreateDestination.escapeHtml(tourName)}</h5>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="CreateDestination.deleteOptionalTour(${typeof tourId === "number" ? tourId : "null"}, '${CreateDestination.escapeHtml(tourName)}', this.closest('.optional-tour-section'))" class="text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 transition-colors" title="Delete this tour"><i class="fas fa-trash"></i></button>
+                                <button type="button" onclick="this.closest('.bg-pink-50').remove()" class="text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors" title="Remove from form"><i class="fas fa-times"></i></button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="space-y-3">
-                        <div><label class="block text-xs font-medium text-gray-500 mb-1">Tour Name</label><input type="text" name="tour_name[]" value="${CreateDestination.escapeHtml(tourName)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Tour Name" required></div>
-                        <div><label class="block text-xs font-medium text-gray-500 mb-1">Description</label><textarea name="tour_description[]" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Tour description">${CreateDestination.escapeHtml(tour.description || "")}</textarea></div>
-                        <div><label class="block text-xs font-medium text-gray-500 mb-1">Display Order</label><input type="number" name="tour_display_order[]" value="${tour.display_order || 0}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Display Order"></div>
-                        <div class="flex items-center"><label class="flex items-center"><input type="checkbox" name="tour_is_active[]" ${tour.is_active !== false ? "checked" : ""} class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"><span class="ml-2 text-sm text-gray-700">Active</span></label></div>
-                        <div class="border-t border-pink-200 pt-3">
-                            <h6 class="font-medium text-pink-700 mb-2">💰 Tour Rates</h6>
-                            <div class="tour-rates-container-${tourIdx} space-y-2">${CreateDestination.generateTourRateFields(
-                              tourIdx,
-                              rates.filter(function (rate) {
-                                return rate.tour_id === tour.id;
-                              }),
-                            )}</div>
-                            <button type="button" onclick="CreateDestination.addTourRateField(${tourIdx})" class="mt-2 px-3 py-1 bg-pink-100 text-pink-700 rounded-lg hover:bg-pink-200 text-xs"><i class="fas fa-plus mr-1"></i> Add Rate</button>
+                        <div class="space-y-3">
+                            <div><label class="block text-xs font-medium text-gray-500 mb-1">Tour Name</label><input type="text" name="tour_name[]" value="${CreateDestination.escapeHtml(tourName)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Tour Name" required></div>
+                            <div><label class="block text-xs font-medium text-gray-500 mb-1">Description</label><textarea name="tour_description[]" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Tour description">${CreateDestination.escapeHtml(tour.description || "")}</textarea></div>
+                            <div><label class="block text-xs font-medium text-gray-500 mb-1">Display Order</label><input type="number" name="tour_display_order[]" value="${tour.display_order || 0}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Display Order"></div>
+                            <div class="flex items-center"><label class="flex items-center"><input type="checkbox" name="tour_is_active[]" ${tour.is_active !== false ? "checked" : ""} class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"><span class="ml-2 text-sm text-gray-700">Active</span></label></div>
+                            <div class="border-t border-pink-200 pt-3">
+                                <h6 class="font-medium text-pink-700 mb-2">💰 Tour Rates</h6>
+                                <div class="tour-rates-container-${tourIdx} space-y-2">
+                                    ${CreateDestination.generateTourRateFields(tourIdx, tourRates ? [tourRates] : [])}
+                                </div>
+                                <button type="button" onclick="CreateDestination.addTourRateField(${tourIdx})" class="mt-2 px-3 py-1 bg-pink-100 text-pink-700 rounded-lg hover:bg-pink-200 text-xs"><i class="fas fa-plus mr-1"></i> Add Rate</button>
+                            </div>
                         </div>
-                    </div>
-                </div>`;
+                    </div>`;
     });
     return html;
   },
@@ -2109,33 +2074,34 @@ const CreateDestination = {
     div.setAttribute("data-tour-id", "new");
     div.setAttribute("data-tour-index", tourIdx);
 
-    // Get the destination ID from the hidden input
-    const destinationId =
-      document.querySelector('input[name="destination_id"]')?.value || "";
-
     div.innerHTML = `<div class="flex justify-between items-center mb-3">
-                        <h5 class="font-medium text-pink-800">New Optional Tour</h5>
-                        <div class="flex gap-2">
-                            <button type="button" onclick="CreateDestination.deleteOptionalTour(null, 'this tour', this.closest('.optional-tour-section'))" class="text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 transition-colors" title="Delete this tour"><i class="fas fa-trash"></i></button>
-                            <button type="button" onclick="this.closest('.bg-pink-50').remove()" class="text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors" title="Remove from form"><i class="fas fa-times"></i></button>
+                            <h5 class="font-medium text-pink-800">New Optional Tour</h5>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="CreateDestination.deleteOptionalTour(null, 'this tour', this.closest('.optional-tour-section'))" class="text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 transition-colors" title="Delete this tour"><i class="fas fa-trash"></i></button>
+                                <button type="button" onclick="this.closest('.bg-pink-50').remove()" class="text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors" title="Remove from form"><i class="fas fa-times"></i></button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="space-y-3">
-                        <div><label class="block text-xs font-medium text-gray-500 mb-1">Tour Name</label><input type="text" name="tour_name[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Tour Name" required></div>
-                        <div><label class="block text-xs font-medium text-gray-500 mb-1">Description</label><textarea name="tour_description[]" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Tour description"></textarea></div>
-                        <div><label class="block text-xs font-medium text-gray-500 mb-1">Display Order</label><input type="number" name="tour_display_order[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Display Order" value="0"></div>
-                        <div class="flex items-center"><label class="flex items-center"><input type="checkbox" name="tour_is_active[]" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" checked><span class="ml-2 text-sm text-gray-700">Active</span></label></div>
-                        <div class="border-t border-pink-200 pt-3">
-                            <h6 class="font-medium text-pink-700 mb-2">💰 Tour Rates</h6>
-                            <div class="tour-rates-container-${tourIdx} space-y-2"></div>
-                            <button type="button" onclick="CreateDestination.addTourRateField(${tourIdx})" class="mt-2 px-3 py-1 bg-pink-100 text-pink-700 rounded-lg hover:bg-pink-200 text-xs"><i class="fas fa-plus mr-1"></i> Add Rate</button>
-                        </div>
-                    </div>`;
+                        <div class="space-y-3">
+                            <div><label class="block text-xs font-medium text-gray-500 mb-1">Tour Name</label><input type="text" name="tour_name[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Tour Name" required></div>
+                            <div><label class="block text-xs font-medium text-gray-500 mb-1">Description</label><textarea name="tour_description[]" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Tour description"></textarea></div>
+                            <div><label class="block text-xs font-medium text-gray-500 mb-1">Display Order</label><input type="number" name="tour_display_order[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Display Order" value="0"></div>
+                            <div class="flex items-center"><label class="flex items-center"><input type="checkbox" name="tour_is_active[]" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" checked><span class="ml-2 text-sm text-gray-700">Active</span></label></div>
+                            <div class="border-t border-pink-200 pt-3">
+                                <h6 class="font-medium text-pink-700 mb-2">💰 Tour Rates</h6>
+                                <div class="tour-rates-container-${tourIdx} space-y-2"></div>
+                                <button type="button" onclick="CreateDestination.addTourRateField(${tourIdx})" class="mt-2 px-3 py-1 bg-pink-100 text-pink-700 rounded-lg hover:bg-pink-200 text-xs"><i class="fas fa-plus mr-1"></i> Add Rate</button>
+                            </div>
+                        </div>`;
     container.appendChild(div);
   },
+
   generateTourRateFields: function (tourIdx, rates) {
     let html = "";
-    rates.forEach(function (rate) {
+    const ratesArray = Array.isArray(rates) ? rates : [rates];
+
+    ratesArray.forEach(function (rate, rateIdx) {
+      if (!rate) return;
+
       html += `<div class="grid grid-cols-5 gap-2 items-center bg-white p-2 rounded-lg">
                         <div><label class="block text-xs text-gray-500 mb-1">Solo</label><input type="number" name="tour_rate_solo_${tourIdx}[]" value="${rate.rate_solo || ""}" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"></div>
                         <div><label class="block text-xs text-gray-500 mb-1">2 Pax</label><input type="number" name="tour_rate_2pax_${tourIdx}[]" value="${rate.rate_2pax || ""}" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"></div>
@@ -2153,6 +2119,29 @@ const CreateDestination = {
                         <button type="button" onclick="CreateDestination.deleteTourRate(this.parentElement)" class="text-red-500 hover:text-red-700 col-span-1 p-2"><i class="fas fa-trash"></i></button>
                     </div>`;
     });
+
+    if (
+      ratesArray.length === 0 ||
+      (ratesArray.length === 1 && !ratesArray[0])
+    ) {
+      html += `<div class="grid grid-cols-5 gap-2 items-center bg-white p-2 rounded-lg">
+                        <div><input type="number" name="tour_rate_solo_${tourIdx}[]" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm" placeholder="Solo"></div>
+                        <div><input type="number" name="tour_rate_2pax_${tourIdx}[]" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm" placeholder="2 Pax"></div>
+                        <div><input type="number" name="tour_rate_3pax_${tourIdx}[]" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm" placeholder="3 Pax"></div>
+                        <div><input type="number" name="tour_rate_4pax_${tourIdx}[]" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm" placeholder="4 Pax"></div>
+                        <div><input type="number" name="tour_rate_5pax_${tourIdx}[]" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm" placeholder="5 Pax"></div>
+                        <div><input type="number" name="tour_rate_6pax_${tourIdx}[]" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm" placeholder="6 Pax"></div>
+                        <div><input type="number" name="tour_rate_7pax_${tourIdx}[]" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm" placeholder="7 Pax"></div>
+                        <div><input type="number" name="tour_rate_8pax_${tourIdx}[]" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm" placeholder="8 Pax"></div>
+                        <div><input type="number" name="tour_rate_9pax_${tourIdx}[]" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm" placeholder="9 Pax"></div>
+                        <div><input type="number" name="tour_rate_10pax_${tourIdx}[]" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm" placeholder="10 Pax"></div>
+                        <div><input type="number" name="tour_rate_11pax_${tourIdx}[]" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm" placeholder="11 Pax"></div>
+                        <div><input type="number" name="tour_rate_12pax_${tourIdx}[]" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm" placeholder="12 Pax"></div>
+                        <div><input type="number" name="tour_rate_child_${tourIdx}[]" class="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm" placeholder="Child"></div>
+                        <button type="button" onclick="CreateDestination.deleteTourRate(this.parentElement)" class="text-red-500 hover:text-red-700 col-span-1 p-2"><i class="fas fa-trash"></i></button>
+                    </div>`;
+    }
+
     return html;
   },
 

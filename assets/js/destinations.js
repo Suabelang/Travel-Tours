@@ -141,7 +141,6 @@ const Destinations = {
 
     let filteredData = result.data;
 
-    // Apply search filter
     if (searchInput && searchInput.value) {
       const searchTerm = searchInput.value.toLowerCase();
       filteredData = filteredData.filter(
@@ -152,7 +151,6 @@ const Destinations = {
       );
     }
 
-    // Apply status filter
     if (filterSelect && filterSelect.value === "active") {
       filteredData = filteredData.filter((dest) => dest.is_active === true);
     } else if (filterSelect && filterSelect.value === "inactive") {
@@ -175,14 +173,14 @@ const Destinations = {
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
-                            <tr>
+                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Airport</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
+                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             ${filteredData
@@ -226,7 +224,6 @@ const Destinations = {
     this.currentDestinationId = id;
 
     try {
-      // Fetch destination
       const destination = await SupabaseService.query("destinations", {
         eq: { column: "id", value: id },
       });
@@ -237,22 +234,18 @@ const Destinations = {
         return;
       }
 
-      // Fetch images
       const images = await SupabaseService.query("destination_images", {
         eq: { column: "destination_id", value: id },
       });
 
-      // Fetch packages
       const packages = await SupabaseService.query("destination_packages", {
         eq: { column: "destination_id", value: id },
       });
 
-      // Fetch hotel categories
       const hotelCategories = await SupabaseService.query("hotel_categories", {
         eq: { column: "destination_id", value: id },
       });
 
-      // Get all hotels from all categories
       let allHotels = [];
       const categories = hotelCategories.success ? hotelCategories.data : [];
       for (let cat of categories) {
@@ -264,7 +257,6 @@ const Destinations = {
         }
       }
 
-      // Get package-related data
       let allPackageRates = [];
       let allInclusions = [];
       let allExclusions = [];
@@ -297,16 +289,14 @@ const Destinations = {
           allItineraries = [...allItineraries, ...itineraries.data];
       }
 
-      // FIX: Fetch optional tours ONLY for this destination
       const optionalTours = await SupabaseService.query(
         "optional_tour_categories",
         {
-          eq: { column: "destination_id", value: id }, // ← CRITICAL FIX
+          eq: { column: "destination_id", value: id },
           order: { column: "display_order", ascending: true },
         },
       );
 
-      // Get optional tour rates
       let allOptionalTourRates = [];
       const toursList = optionalTours.success ? optionalTours.data : [];
       for (let tour of toursList) {
@@ -320,7 +310,7 @@ const Destinations = {
 
       console.log(
         `Loaded ${toursList.length} optional tours for destination ${id}`,
-      ); // Debug log
+      );
 
       this.showDestinationDetailsModal(destData, {
         images: images.success ? images.data : [],
@@ -336,9 +326,11 @@ const Destinations = {
       });
     } catch (error) {
       console.error("Error loading destination details:", error);
-      Config.showToast("Error loading destination details", "error");
+      if (typeof Config !== "undefined")
+        Config.showToast("Error loading destination details", "error");
     }
   },
+
   showDestinationDetailsModal: function (destination, relatedData) {
     const modalHtml = `
             <div class="fixed inset-0 z-50 overflow-y-auto">
@@ -384,8 +376,6 @@ const Destinations = {
     }
     modalContainer.innerHTML = modalHtml;
   },
-
-  // ==================== DELETE FUNCTIONALITY ====================
 
   showDeleteConfirmation: function (id, name) {
     const modalHtml = `
@@ -446,10 +436,10 @@ const Destinations = {
   deleteDestination: async function (id, name) {
     this.closeDeleteModal();
 
-    Config.showToast("Deleting destination and all related data...", "info");
+    if (typeof Config !== "undefined")
+      Config.showToast("Deleting destination and all related data...", "info");
 
     try {
-      // Step 1: Get all packages for this destination
       const packagesResult = await SupabaseService.query(
         "destination_packages",
         {
@@ -481,7 +471,6 @@ const Destinations = {
         );
       }
 
-      // Step 2: Get all hotel categories for this destination
       const categoriesResult = await SupabaseService.query("hotel_categories", {
         eq: { column: "destination_id", value: id },
       });
@@ -499,20 +488,19 @@ const Destinations = {
         );
       }
 
-      // Step 3: Delete destination images
       await SupabaseService.delete("destination_images", {
         destination_id: id,
       });
       console.log("Deleted destination images");
 
-      // Step 4: Finally, delete the destination
       const result = await SupabaseService.delete("destinations", id);
 
       if (result.success) {
-        Config.showToast(
-          `✅ "${name}" and all related data deleted successfully!`,
-          "success",
-        );
+        if (typeof Config !== "undefined")
+          Config.showToast(
+            `✅ "${name}" and all related data deleted successfully!`,
+            "success",
+          );
         this.loadDestinations();
         this.loadStats();
       } else {
@@ -520,282 +508,467 @@ const Destinations = {
       }
     } catch (error) {
       console.error("Error deleting destination:", error);
-      Config.showToast(
-        `❌ Error deleting destination: ${error.message}`,
-        "error",
-      );
+      if (typeof Config !== "undefined")
+        Config.showToast(
+          `❌ Error deleting destination: ${error.message}`,
+          "error",
+        );
     }
   },
 
   generateDetailsView: function (destination, data) {
     return `
-            <div class="space-y-6">
-                <!-- Basic Information -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <i class="fas fa-info-circle text-blue-600 mr-2"></i>Basic Information
-                    </h4>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><p class="text-sm text-gray-500">Destination Name</p><p class="text-base font-medium">${this.escapeHtml(destination.name)}</p></div>
-                        <div><p class="text-sm text-gray-500">Country</p><p class="text-base font-medium">${this.escapeHtml(destination.country || "Philippines")}</p></div>
-                        <div><p class="text-sm text-gray-500">Airport Name</p><p class="text-base font-medium">${this.escapeHtml(destination.airport_name || "—")}</p></div>
-                        <div><p class="text-sm text-gray-500">Status</p><span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${destination.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}">${destination.is_active ? "Active" : "Inactive"}</span></div>
-                        <div class="col-span-2"><p class="text-sm text-gray-500">Description</p><p class="text-base">${this.escapeHtml(destination.description || "No description")}</p></div>
-                    </div>
+        <div class="space-y-6">
+            <!-- Basic Information -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>Basic Information
+                </h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><p class="text-sm text-gray-500">Destination Name</p><p class="text-base font-medium">${this.escapeHtml(destination.name)}</p></div>
+                    <div><p class="text-sm text-gray-500">Country</p><p class="text-base font-medium">${this.escapeHtml(destination.country || "Philippines")}</p></div>
+                    <div><p class="text-sm text-gray-500">Airport Name</p><p class="text-base font-medium">${this.escapeHtml(destination.airport_name || "—")}</p></div>
+                    <div><p class="text-sm text-gray-500">Status</p><span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${destination.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}">${destination.is_active ? "Active" : "Inactive"}</span></div>
+                    <div class="col-span-2"><p class="text-sm text-gray-500">Description</p><p class="text-base">${this.escapeHtml(destination.description || "No description")}</p></div>
                 </div>
+            </div>
 
-                <!-- Images -->
-                ${
-                  data.images && data.images.length > 0
-                    ? `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-images text-green-600 mr-2"></i>Images (${data.images.length})</h4>
-                    <div class="grid grid-cols-3 gap-4">
-                        ${data.images.map((img) => `<div class="relative group"><img src="${this.escapeHtml(img.url)}" class="w-full h-32 object-cover rounded-lg">${img.is_primary ? '<span class="absolute top-2 left-2 bg-primary-600 text-white text-xs px-2 py-1 rounded">Primary</span>' : ""}</div>`).join("")}
-                    </div>
+            <!-- Images -->
+            ${
+              data.images && data.images.length > 0
+                ? `
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-images text-green-600 mr-2"></i>Images (${data.images.length})</h4>
+                <div class="grid grid-cols-3 gap-4">
+                    ${data.images.map((img) => `<div class="relative group"><img src="${this.escapeHtml(img.url)}" class="w-full h-32 object-cover rounded-lg">${img.is_primary ? '<span class="absolute top-2 left-2 bg-primary-600 text-white text-xs px-2 py-1 rounded">Primary</span>' : ""}</div>`).join("")}
                 </div>
-                `
-                    : ""
-                }
+            </div>
+            `
+                : ""
+            }
 
-                <!-- Hotel Categories -->
-                ${
-                  data.hotelCategories && data.hotelCategories.length > 0
-                    ? `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-layer-group text-purple-600 mr-2"></i>Hotel Categories (${data.hotelCategories.length})</h4>
-                    <div class="space-y-4">
-                        ${data.hotelCategories.map((cat) => `<div class="border-l-4 border-purple-400 pl-4"><h5 class="font-medium">${this.escapeHtml(cat.category_name)}</h5><div class="grid grid-cols-3 gap-2 mt-2 text-sm"><div><span class="text-gray-500">Display Order:</span> ${cat.display_order || 0}</div><div><span class="text-gray-500">Has Breakfast:</span> ${cat.has_breakfast ? "Yes" : "No"}</div>${cat.breakfast_note ? `<div><span class="text-gray-500">Breakfast Note:</span> ${this.escapeHtml(cat.breakfast_note)}</div>` : ""}</div></div>`).join("")}
-                    </div>
+            <!-- Hotel Categories -->
+            ${
+              data.hotelCategories && data.hotelCategories.length > 0
+                ? `
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-layer-group text-purple-600 mr-2"></i>Hotel Categories (${data.hotelCategories.length})</h4>
+                <div class="flex flex-wrap gap-2">
+                    ${data.hotelCategories.map((cat) => `<span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">${this.escapeHtml(cat.category_name)}</span>`).join("")}
                 </div>
-                `
-                    : ""
-                }
+            </div>
+            `
+                : ""
+            }
 
-                <!-- Hotels -->
-                ${
-                  data.hotels && data.hotels.length > 0
-                    ? `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-hotel text-amber-600 mr-2"></i>Hotels (${data.hotels.length})</h4>
-                    <div class="space-y-4">
-                        ${data.hotels.map((hotel) => `<div class="border rounded-lg p-4"><h5 class="font-medium text-lg">${this.escapeHtml(hotel.name)}</h5><div class="grid grid-cols-2 gap-2 mt-2 text-sm"><div><span class="text-gray-500">Status:</span> ${hotel.is_active ? "Active" : "Inactive"}</div>${hotel.description ? `<div class="col-span-2"><span class="text-gray-500">Description:</span> ${this.escapeHtml(hotel.description)}</div>` : ""}${hotel.notes ? `<div class="col-span-2"><span class="text-gray-500">Notes:</span> ${this.escapeHtml(hotel.notes)}</div>` : ""}</div>${hotel.image_url ? `<img src="${this.escapeHtml(hotel.image_url)}" class="mt-2 h-20 w-20 object-cover rounded">` : ""}</div>`).join("")}
-                    </div>
-                </div>
-                `
-                    : ""
-                }
-
-                <!-- Packages -->
-                ${
-                  data.packages && data.packages.length > 0
-                    ? `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-box text-blue-600 mr-2"></i>Packages (${data.packages.length})</h4>
-                    <div class="space-y-6">
-                        ${data.packages
-                          .map(
-                            (pkg) => `
-                            <div class="border rounded-lg p-4">
-                                <h5 class="font-medium text-lg">${this.escapeHtml(pkg.package_name)}</h5>
-                                <div class="grid grid-cols-2 gap-2 mt-2 text-sm">
-                                    <div><span class="text-gray-500">Code:</span> ${this.escapeHtml(pkg.package_code || "—")}</div>
-                                    <div><span class="text-gray-500">Base Price:</span> ₱${pkg.base_price || 0}</div>
-                                    <div><span class="text-gray-500">Status:</span> ${pkg.is_active ? "Active" : "Inactive"}</div>
+            <!-- Hotels -->
+            ${
+              data.hotels && data.hotels.length > 0
+                ? `
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-hotel text-amber-600 mr-2"></i>Hotels (${data.hotels.length})</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${data.hotels
+                      .map(
+                        (hotel) => `
+                        <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div class="flex items-start gap-3">
+                                ${hotel.image_url ? `<img src="${this.escapeHtml(hotel.image_url)}" class="w-16 h-16 object-cover rounded-lg">` : `<div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center"><i class="fas fa-hotel text-gray-400 text-2xl"></i></div>`}
+                                <div class="flex-1">
+                                    <h5 class="font-semibold text-gray-800">${this.escapeHtml(hotel.name)}</h5>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-xs ${hotel.is_active ? "text-green-600" : "text-gray-500"}">${hotel.is_active ? "Active" : "Inactive"}</span>
+                                    </div>
+                                    ${hotel.description ? `<p class="text-xs text-gray-500 mt-2">${this.escapeHtml(hotel.description.substring(0, 100))}${hotel.description.length > 100 ? "..." : ""}</p>` : ""}
                                 </div>
-                                
-                                <!-- Package Hotel Rates -->
+                            </div>
+                        </div>
+                    `,
+                      )
+                      .join("")}
+                </div>
+            </div>
+            `
+                : ""
+            }
+
+            <!-- Packages -->
+            ${
+              data.packages && data.packages.length > 0
+                ? `
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-box text-blue-600 mr-2"></i>Packages (${data.packages.length})</h4>
+                <div class="space-y-6">
+                    ${data.packages
+                      .map((pkg) => {
+                        const packageRates = data.packageRates.filter(
+                          (r) => r.package_id === pkg.id,
+                        );
+                        const ratesByCategory = {};
+
+                        packageRates.forEach((rate) => {
+                          const category = data.hotelCategories.find(
+                            (cat) => cat.id === rate.hotel_category_id,
+                          );
+                          const categoryName = category
+                            ? category.category_name
+                            : "Uncategorized";
+                          if (!ratesByCategory[categoryName])
+                            ratesByCategory[categoryName] = [];
+                          ratesByCategory[categoryName].push(rate);
+                        });
+
+                        return `
+                        <div class="border rounded-lg overflow-hidden">
+                            <div class="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3 border-b">
+                                <div class="flex justify-between items-center">
+                                    <h5 class="font-bold text-blue-800 text-lg">${this.escapeHtml(pkg.package_name)}</h5>
+                                    <span class="px-2 py-1 text-xs rounded-full ${pkg.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}">${pkg.is_active ? "Active" : "Inactive"}</span>
+                                </div>
+                                <div class="flex gap-4 mt-1 text-sm">
+                                    <span><span class="text-gray-500">Code:</span> ${this.escapeHtml(pkg.package_code || "—")}</span>
+                                    <span><span class="text-gray-500">Base Price:</span> ₱${pkg.base_price || 0}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4">
                                 ${
-                                  data.packageRates.filter(
-                                    (r) => r.package_id === pkg.id,
-                                  ).length > 0
+                                  packageRates.length > 0
                                     ? `
-                                <div class="mt-3">
-                                    <h6 class="font-medium text-sm text-gray-700 mb-2">💰 Hotel Rates</h6>
-                                    <div class="overflow-x-auto mb-4">
-                                        <table class="min-w-full text-sm border-collapse">
-                                            <thead><tr class="bg-gray-50"><th class="px-2 py-1 border text-left">Season</th><th class="px-2 py-1 border text-left">Duration</th><th class="px-2 py-1 border text-right">Solo</th><th class="px-2 py-1 border text-right">2 Pax</th><th class="px-2 py-1 border text-right">3 Pax</th><th class="px-2 py-1 border text-right">4 Pax</th><th class="px-2 py-1 border text-right">5 Pax</th><th class="px-2 py-1 border text-right">6 Pax</th><th class="px-2 py-1 border text-right">7 Pax</th><th class="px-2 py-1 border text-right">8 Pax</th><th class="px-2 py-1 border text-right">9 Pax</th><th class="px-2 py-1 border text-right">10 Pax</th><th class="px-2 py-1 border text-right">11 Pax</th><th class="px-2 py-1 border text-right">12 Pax</th><th class="px-2 py-1 border text-right">Child</th></tr></thead>
-                                            <tbody>
-                                                ${data.packageRates
-                                                  .filter(
-                                                    (r) =>
-                                                      r.package_id === pkg.id,
-                                                  )
+                                <div class="space-y-6">
+                                    ${Object.entries(ratesByCategory)
+                                      .map(([categoryName, rates]) => {
+                                        // Group rates by season/duration
+                                        const groupedRates = {};
+                                        rates.forEach((rate) => {
+                                          const key = `${rate.season || "Regular"}|${rate.duration || ""}`;
+                                          const label = rate.duration
+                                            ? `${rate.season || "Regular"} (${rate.duration})`
+                                            : rate.season || "Regular";
+                                          if (!groupedRates[key]) {
+                                            groupedRates[key] = {
+                                              label: label,
+                                              rates: [],
+                                            };
+                                          }
+                                          groupedRates[key].rates.push(rate);
+                                        });
+
+                                        return `
+                                        <div class="border rounded-lg overflow-hidden">
+                                            <div class="bg-gray-100 px-4 py-2 font-semibold text-gray-700">
+                                                ${this.escapeHtml(categoryName)}
+                                            </div>
+                                            <div class="p-4 space-y-4">
+                                                ${Object.values(groupedRates)
                                                   .map(
-                                                    (rate) =>
-                                                      `<tr class="hover:bg-gray-50"><td class="px-2 py-1 border">${this.escapeHtml(rate.season || "Regular")}</td><td class="px-2 py-1 border">${this.escapeHtml(rate.duration || "—")}</td><td class="px-2 py-1 border text-right">${rate.rate_solo ? "₱" + rate.rate_solo.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.rate_2pax ? "₱" + rate.rate_2pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.rate_3pax ? "₱" + rate.rate_3pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.rate_4pax ? "₱" + rate.rate_4pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.rate_5pax ? "₱" + rate.rate_5pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.rate_6pax ? "₱" + rate.rate_6pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.rate_7pax ? "₱" + rate.rate_7pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.rate_8pax ? "₱" + rate.rate_8pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.rate_9pax ? "₱" + rate.rate_9pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.rate_10pax ? "₱" + rate.rate_10pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.rate_11pax ? "₱" + rate.rate_11pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.rate_12pax ? "₱" + rate.rate_12pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.rate_child_no_breakfast ? "₱" + rate.rate_child_no_breakfast.toLocaleString() : "—"}</td></tr>`,
+                                                    (group) => `
+                                                    <div>
+                                                        <div class="text-sm font-medium text-gray-600 mb-2">${this.escapeHtml(group.label)}</div>
+                                                        <div class="overflow-x-auto">
+                                                            <table class="min-w-full text-sm">
+                                                                <thead>
+                                                                    <tr class="bg-gray-50">
+                                                                        <th class="px-3 py-2 text-left">Pax Type</th>
+                                                                        ${group.rates[0]?.rate_solo ? '<th class="px-3 py-2 text-right">Solo</th>' : ""}
+                                                                        ${group.rates[0]?.rate_2pax ? '<th class="px-3 py-2 text-right">2 Pax</th>' : ""}
+                                                                        ${group.rates[0]?.rate_3pax ? '<th class="px-3 py-2 text-right">3 Pax</th>' : ""}
+                                                                        ${group.rates[0]?.rate_4pax ? '<th class="px-3 py-2 text-right">4 Pax</th>' : ""}
+                                                                        ${group.rates[0]?.rate_5pax ? '<th class="px-3 py-2 text-right">5 Pax</th>' : ""}
+                                                                        ${group.rates[0]?.rate_6pax ? '<th class="px-3 py-2 text-right">6 Pax</th>' : ""}
+                                                                        ${group.rates[0]?.rate_7pax ? '<th class="px-3 py-2 text-right">7 Pax</th>' : ""}
+                                                                        ${group.rates[0]?.rate_8pax ? '<th class="px-3 py-2 text-right">8 Pax</th>' : ""}
+                                                                        ${group.rates[0]?.rate_9pax ? '<th class="px-3 py-2 text-right">9 Pax</th>' : ""}
+                                                                        ${group.rates[0]?.rate_10pax ? '<th class="px-3 py-2 text-right">10 Pax</th>' : ""}
+                                                                        ${group.rates[0]?.rate_11pax ? '<th class="px-3 py-2 text-right">11 Pax</th>' : ""}
+                                                                        ${group.rates[0]?.rate_12pax ? '<th class="px-3 py-2 text-right">12 Pax</th>' : ""}
+                                                                        ${group.rates[0]?.rate_child_no_breakfast ? '<th class="px-3 py-2 text-right">Child</th>' : ""}
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    ${group.rates
+                                                                      .map(
+                                                                        (
+                                                                          rate,
+                                                                        ) => `
+                                                                        <tr class="border-t hover:bg-gray-50">
+                                                                            <td class="px-3 py-2 font-medium">Regular Rate</td>
+                                                                            ${rate.rate_solo ? `<td class="px-3 py-2 text-right">₱${Number(rate.rate_solo).toLocaleString()}</td>` : ""}
+                                                                            ${rate.rate_2pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.rate_2pax).toLocaleString()}</td>` : ""}
+                                                                            ${rate.rate_3pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.rate_3pax).toLocaleString()}</td>` : ""}
+                                                                            ${rate.rate_4pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.rate_4pax).toLocaleString()}</td>` : ""}
+                                                                            ${rate.rate_5pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.rate_5pax).toLocaleString()}</td>` : ""}
+                                                                            ${rate.rate_6pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.rate_6pax).toLocaleString()}</td>` : ""}
+                                                                            ${rate.rate_7pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.rate_7pax).toLocaleString()}</td>` : ""}
+                                                                            ${rate.rate_8pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.rate_8pax).toLocaleString()}</td>` : ""}
+                                                                            ${rate.rate_9pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.rate_9pax).toLocaleString()}</td>` : ""}
+                                                                            ${rate.rate_10pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.rate_10pax).toLocaleString()}</td>` : ""}
+                                                                            ${rate.rate_11pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.rate_11pax).toLocaleString()}</td>` : ""}
+                                                                            ${rate.rate_12pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.rate_12pax).toLocaleString()}</td>` : ""}
+                                                                            ${rate.rate_child_no_breakfast ? `<td class="px-3 py-2 text-right">₱${Number(rate.rate_child_no_breakfast).toLocaleString()}</td>` : ""}
+                                                                        </tr>
+                                                                    `,
+                                                                      )
+                                                                      .join("")}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                        
+                                                        ${
+                                                          group.rates.some(
+                                                            (r) =>
+                                                              r.extra_night_solo ||
+                                                              r.extra_night_2pax ||
+                                                              r.extra_night_3pax ||
+                                                              r.extra_night_4pax ||
+                                                              r.extra_night_5pax ||
+                                                              r.extra_night_6pax,
+                                                          )
+                                                            ? `
+                                                        <div class="mt-3">
+                                                            <div class="text-sm font-medium text-gray-600 mb-2">🌙 Extra Night Rates</div>
+                                                            <div class="overflow-x-auto">
+                                                                <table class="min-w-full text-sm">
+                                                                    <thead>
+                                                                        <tr class="bg-gray-50">
+                                                                            <th class="px-3 py-2 text-left">Pax Type</th>
+                                                                            ${group.rates.some((r) => r.extra_night_solo) ? '<th class="px-3 py-2 text-right">Solo</th>' : ""}
+                                                                            ${group.rates.some((r) => r.extra_night_2pax) ? '<th class="px-3 py-2 text-right">2 Pax</th>' : ""}
+                                                                            ${group.rates.some((r) => r.extra_night_3pax) ? '<th class="px-3 py-2 text-right">3 Pax</th>' : ""}
+                                                                            ${group.rates.some((r) => r.extra_night_4pax) ? '<th class="px-3 py-2 text-right">4 Pax</th>' : ""}
+                                                                            ${group.rates.some((r) => r.extra_night_5pax) ? '<th class="px-3 py-2 text-right">5 Pax</th>' : ""}
+                                                                            ${group.rates.some((r) => r.extra_night_6pax) ? '<th class="px-3 py-2 text-right">6 Pax</th>' : ""}
+                                                                            ${group.rates.some((r) => r.extra_night_7pax) ? '<th class="px-3 py-2 text-right">7 Pax</th>' : ""}
+                                                                            ${group.rates.some((r) => r.extra_night_8pax) ? '<th class="px-3 py-2 text-right">8 Pax</th>' : ""}
+                                                                            ${group.rates.some((r) => r.extra_night_9pax) ? '<th class="px-3 py-2 text-right">9 Pax</th>' : ""}
+                                                                            ${group.rates.some((r) => r.extra_night_10pax) ? '<th class="px-3 py-2 text-right">10 Pax</th>' : ""}
+                                                                            ${group.rates.some((r) => r.extra_night_11pax) ? '<th class="px-3 py-2 text-right">11 Pax</th>' : ""}
+                                                                            ${group.rates.some((r) => r.extra_night_12pax) ? '<th class="px-3 py-2 text-right">12 Pax</th>' : ""}
+                                                                            ${group.rates.some((r) => r.extra_night_child_no_breakfast) ? '<th class="px-3 py-2 text-right">Child</th>' : ""}
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        ${group.rates
+                                                                          .map(
+                                                                            (
+                                                                              rate,
+                                                                            ) => `
+                                                                            <tr class="border-t hover:bg-gray-50">
+                                                                                <td class="px-3 py-2 font-medium">Extra Night</td>
+                                                                                ${rate.extra_night_solo ? `<td class="px-3 py-2 text-right">₱${Number(rate.extra_night_solo).toLocaleString()}</td>` : ""}
+                                                                                ${rate.extra_night_2pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.extra_night_2pax).toLocaleString()}</td>` : ""}
+                                                                                ${rate.extra_night_3pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.extra_night_3pax).toLocaleString()}</td>` : ""}
+                                                                                ${rate.extra_night_4pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.extra_night_4pax).toLocaleString()}</td>` : ""}
+                                                                                ${rate.extra_night_5pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.extra_night_5pax).toLocaleString()}</td>` : ""}
+                                                                                ${rate.extra_night_6pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.extra_night_6pax).toLocaleString()}</td>` : ""}
+                                                                                ${rate.extra_night_7pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.extra_night_7pax).toLocaleString()}</td>` : ""}
+                                                                                ${rate.extra_night_8pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.extra_night_8pax).toLocaleString()}</td>` : ""}
+                                                                                ${rate.extra_night_9pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.extra_night_9pax).toLocaleString()}</td>` : ""}
+                                                                                ${rate.extra_night_10pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.extra_night_10pax).toLocaleString()}</td>` : ""}
+                                                                                ${rate.extra_night_11pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.extra_night_11pax).toLocaleString()}</td>` : ""}
+                                                                                ${rate.extra_night_12pax ? `<td class="px-3 py-2 text-right">₱${Number(rate.extra_night_12pax).toLocaleString()}</td>` : ""}
+                                                                                ${rate.extra_night_child_no_breakfast ? `<td class="px-3 py-2 text-right">₱${Number(rate.extra_night_child_no_breakfast).toLocaleString()}</td>` : ""}
+                                                                            </tr>
+                                                                        `,
+                                                                          )
+                                                                          .join(
+                                                                            "",
+                                                                          )}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                        `
+                                                            : ""
+                                                        }
+                                                        
+                                                        ${
+                                                          group.rates.some(
+                                                            (r) =>
+                                                              r.breakfast_included,
+                                                          )
+                                                            ? `
+                                                        <div class="mt-2">
+                                                            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">🍳 Breakfast Included</span>
+                                                        </div>
+                                                        `
+                                                            : ""
+                                                        }
+                                                        
+                                                        ${
+                                                          group.rates.some(
+                                                            (r) =>
+                                                              r.additional_info,
+                                                          )
+                                                            ? `
+                                                        <div class="mt-2 text-sm text-gray-600">
+                                                            <strong>ℹ️ Additional Info:</strong> ${this.escapeHtml(group.rates[0].additional_info)}
+                                                        </div>
+                                                        `
+                                                            : ""
+                                                        }
+                                                    </div>
+                                                `,
                                                   )
                                                   .join("")}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    
-                                    <h6 class="font-medium text-sm text-gray-700 mb-2">🌙 Extra Nights</h6>
-                                    <div class="overflow-x-auto">
-                                        <table class="min-w-full text-sm border-collapse">
-                                            <thead><tr class="bg-gray-50"><th class="px-2 py-1 border text-right">Solo</th><th class="px-2 py-1 border text-right">2 Pax</th><th class="px-2 py-1 border text-right">3 Pax</th><th class="px-2 py-1 border text-right">4 Pax</th><th class="px-2 py-1 border text-right">5 Pax</th><th class="px-2 py-1 border text-right">6 Pax</th><th class="px-2 py-1 border text-right">7 Pax</th><th class="px-2 py-1 border text-right">8 Pax</th><th class="px-2 py-1 border text-right">9 Pax</th><th class="px-2 py-1 border text-right">10 Pax</th><th class="px-2 py-1 border text-right">11 Pax</th><th class="px-2 py-1 border text-right">12 Pax</th><th class="px-2 py-1 border text-right">Child</th></tr></thead>
-                                            <tbody>
-                                                ${(() => {
-                                                  const ratesWithExtras =
-                                                    data.packageRates.filter(
-                                                      (r) =>
-                                                        r.package_id ===
-                                                          pkg.id &&
-                                                        (r.extra_night_solo ||
-                                                          r.extra_night_2pax),
-                                                    );
-                                                  if (
-                                                    ratesWithExtras.length === 0
-                                                  )
-                                                    return '<tr><td colspan="13" class="px-2 py-2 text-center text-gray-500">No extra night rates configured</td></tr>';
-                                                  return ratesWithExtras
-                                                    .map(
-                                                      (rate) =>
-                                                        `<tr class="hover:bg-gray-50"><td class="px-2 py-1 border text-right">${rate.extra_night_solo ? "₱" + rate.extra_night_solo.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.extra_night_2pax ? "₱" + rate.extra_night_2pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.extra_night_3pax ? "₱" + rate.extra_night_3pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.extra_night_4pax ? "₱" + rate.extra_night_4pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.extra_night_5pax ? "₱" + rate.extra_night_5pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.extra_night_6pax ? "₱" + rate.extra_night_6pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.extra_night_7pax ? "₱" + rate.extra_night_7pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.extra_night_8pax ? "₱" + rate.extra_night_8pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.extra_night_9pax ? "₱" + rate.extra_night_9pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.extra_night_10pax ? "₱" + rate.extra_night_10pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.extra_night_11pax ? "₱" + rate.extra_night_11pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.extra_night_12pax ? "₱" + rate.extra_night_12pax.toLocaleString() : "—"}</td><td class="px-2 py-1 border text-right">${rate.extra_night_child_no_breakfast ? "₱" + rate.extra_night_child_no_breakfast.toLocaleString() : "—"}</td></tr>`,
-                                                    )
-                                                    .join("");
-                                                })()}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    
-                                    ${(() => {
-                                      const rateWithInfo =
-                                        data.packageRates.find(
-                                          (r) =>
-                                            r.package_id === pkg.id &&
-                                            r.additional_info,
-                                        );
-                                      return rateWithInfo
-                                        ? `<div class="mt-3 text-sm"><span class="font-medium text-gray-600">Additional Info:</span><p class="mt-1 text-gray-700">${this.escapeHtml(rateWithInfo.additional_info)}</p></div>`
-                                        : "";
-                                    })()}
+                                            </div>
+                                        </div>
+                                        `;
+                                      })
+                                      .join("")}
                                 </div>
                                 `
-                                    : ""
+                                    : '<div class="text-center text-gray-500 py-4">No rates configured for this package</div>'
                                 }
-
-                                <!-- Inclusions -->
+                                
                                 ${
                                   data.inclusions.filter(
                                     (i) => i.package_id === pkg.id,
                                   ).length > 0
                                     ? `
-                                <div class="mt-3"><h6 class="font-medium text-sm text-green-700">✅ Inclusions</h6><ul class="list-disc list-inside text-sm">${data.inclusions
-                                  .filter((i) => i.package_id === pkg.id)
-                                  .map(
-                                    (inc) =>
-                                      `<li>${this.escapeHtml(inc.inclusion_text)}</li>`,
-                                  )
-                                  .join("")}</ul></div>
+                                <div class="mt-4 pt-4 border-t">
+                                    <h6 class="font-medium text-sm text-green-700 mb-2">✅ Inclusions</h6>
+                                    <div class="flex flex-wrap gap-2">
+                                        ${data.inclusions
+                                          .filter(
+                                            (i) => i.package_id === pkg.id,
+                                          )
+                                          .map(
+                                            (inc) =>
+                                              `<span class="text-sm bg-green-50 text-green-700 px-3 py-1 rounded-full">${this.escapeHtml(inc.inclusion_text)}</span>`,
+                                          )
+                                          .join("")}
+                                    </div>
+                                </div>
                                 `
                                     : ""
                                 }
-
-                                <!-- Exclusions -->
+                                
                                 ${
                                   data.exclusions.filter(
                                     (e) => e.package_id === pkg.id,
                                   ).length > 0
                                     ? `
-                                <div class="mt-3"><h6 class="font-medium text-sm text-red-700">❌ Exclusions</h6><ul class="list-disc list-inside text-sm">${data.exclusions
-                                  .filter((e) => e.package_id === pkg.id)
-                                  .map(
-                                    (exc) =>
-                                      `<li>${this.escapeHtml(exc.exclusion_text)}</li>`,
-                                  )
-                                  .join("")}</ul></div>
+                                <div class="mt-4">
+                                    <h6 class="font-medium text-sm text-red-700 mb-2">❌ Exclusions</h6>
+                                    <div class="flex flex-wrap gap-2">
+                                        ${data.exclusions
+                                          .filter(
+                                            (e) => e.package_id === pkg.id,
+                                          )
+                                          .map(
+                                            (exc) =>
+                                              `<span class="text-sm bg-red-50 text-red-700 px-3 py-1 rounded-full">${this.escapeHtml(exc.exclusion_text)}</span>`,
+                                          )
+                                          .join("")}
+                                    </div>
+                                </div>
                                 `
                                     : ""
                                 }
-
-                                <!-- Itineraries -->
+                                
                                 ${
                                   data.itineraries.filter(
                                     (i) => i.package_id === pkg.id,
                                   ).length > 0
                                     ? `
-                                <div class="mt-3"><h6 class="font-medium text-sm text-indigo-700">📅 Itineraries</h6><div class="space-y-2">${data.itineraries
-                                  .filter((i) => i.package_id === pkg.id)
-                                  .sort((a, b) => a.day_number - b.day_number)
-                                  .map(
-                                    (iti) =>
-                                      `<div class="border-l-2 border-indigo-200 pl-3"><p class="font-medium">Day ${iti.day_number}: ${iti.day_title || ""}</p><p class="text-sm whitespace-pre-line">${iti.day_description ? (Array.isArray(iti.day_description) ? iti.day_description.join("\n") : iti.day_description) : ""}</p></div>`,
-                                  )
-                                  .join("")}</div></div>
+                                <div class="mt-4">
+                                    <h6 class="font-medium text-sm text-indigo-700 mb-2">📅 Itineraries</h6>
+                                    <div class="space-y-2">
+                                        ${data.itineraries
+                                          .filter(
+                                            (i) => i.package_id === pkg.id,
+                                          )
+                                          .sort(
+                                            (a, b) =>
+                                              a.day_number - b.day_number,
+                                          )
+                                          .map(
+                                            (iti) => `
+                                            <div class="bg-indigo-50 rounded-lg p-3">
+                                                <div class="font-semibold text-indigo-800">Day ${iti.day_number}: ${iti.day_title || ""}</div>
+                                                <div class="text-sm text-gray-700 mt-1 whitespace-pre-line">${iti.day_description ? (Array.isArray(iti.day_description) ? iti.day_description.join("\n") : iti.day_description) : ""}</div>
+                                            </div>
+                                        `,
+                                          )
+                                          .join("")}
+                                    </div>
+                                </div>
                                 `
                                     : ""
                                 }
                             </div>
-                        `,
-                          )
-                          .join("")}
-                    </div>
+                        </div>
+                        `;
+                      })
+                      .join("")}
                 </div>
-                `
-                    : ""
-                }
+            </div>
+            `
+                : ""
+            }
 
-               <!-- Optional Tours -->
-${
-  data.optionalTours && data.optionalTours.length > 0
-    ? `
-<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-    <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-umbrella-beach text-pink-600 mr-2"></i>Optional Tours (${data.optionalTours.length})</h4>
-    <div class="space-y-4">
-        ${data.optionalTours
-          .map(
-            (tour) => `
-            <div class="border rounded-lg p-4">
-                <h5 class="font-medium">${this.escapeHtml(tour.name)}</h5>
-                ${tour.description ? `<p class="text-sm text-gray-600 mt-1">${this.escapeHtml(tour.description)}</p>` : ""}
-                ${
-                  data.optionalTourRates.filter((r) => r.tour_id === tour.id)
-                    .length > 0
-                    ? `<div class="mt-2"><h6 class="text-xs font-medium text-gray-500">Rates</h6><div class="grid grid-cols-4 gap-2 mt-1 text-sm">${(() => {
-                        const rates = data.optionalTourRates.filter(
+            <!-- Optional Tours -->
+            ${
+              data.optionalTours && data.optionalTours.length > 0
+                ? `
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-umbrella-beach text-pink-600 mr-2"></i>Optional Tours (${data.optionalTours.length})</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${data.optionalTours
+                      .map((tour) => {
+                        const tourRates = data.optionalTourRates.filter(
                           (r) => r.tour_id === tour.id,
                         );
-                        return rates
-                          .map(
-                            (rate) =>
-                              `<div>Solo: ₱${rate.rate_solo || "—"}</div><div>2 Pax: ₱${rate.rate_2pax || "—"}</div><div>3 Pax: ₱${rate.rate_3pax || "—"}</div><div>4 Pax: ₱${rate.rate_4pax || "—"}</div><div>5 Pax: ₱${rate.rate_5pax || "—"}</div><div>6 Pax: ₱${rate.rate_6pax || "—"}</div><div>7 Pax: ₱${rate.rate_7pax || "—"}</div><div>8 Pax: ₱${rate.rate_8pax || "—"}</div><div>9 Pax: ₱${rate.rate_9pax || "—"}</div><div>10 Pax: ₱${rate.rate_10pax || "—"}</div><div>11 Pax: ₱${rate.rate_11pax || "—"}</div><div>12 Pax: ₱${rate.rate_12pax || "—"}</div><div>Child: ₱${rate.rate_child_4_9 || "—"}</div>`,
-                          )
-                          .join("");
-                      })()}</div></div>`
-                    : ""
-                }
+                        return `
+                        <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <h5 class="font-semibold text-gray-800">${this.escapeHtml(tour.name)}</h5>
+                            ${tour.description ? `<p class="text-sm text-gray-500 mt-1">${this.escapeHtml(tour.description)}</p>` : ""}
+                            ${
+                              tourRates.length > 0
+                                ? `
+                            <div class="mt-3 pt-3 border-t">
+                                <div class="text-xs font-medium text-gray-500 mb-2">Rates (per person)</div>
+                                <div class="grid grid-cols-2 gap-2 text-sm">
+                                    ${tourRates
+                                      .map(
+                                        (rate) => `
+                                        ${rate.rate_solo ? `<div class="flex justify-between"><span class="text-gray-600">Solo:</span><span class="font-medium">₱${Number(rate.rate_solo).toLocaleString()}</span></div>` : ""}
+                                        ${rate.rate_2pax ? `<div class="flex justify-between"><span class="text-gray-600">2 Pax:</span><span class="font-medium">₱${Number(rate.rate_2pax).toLocaleString()}</span></div>` : ""}
+                                        ${rate.rate_3pax ? `<div class="flex justify-between"><span class="text-gray-600">3 Pax:</span><span class="font-medium">₱${Number(rate.rate_3pax).toLocaleString()}</span></div>` : ""}
+                                        ${rate.rate_4pax ? `<div class="flex justify-between"><span class="text-gray-600">4 Pax:</span><span class="font-medium">₱${Number(rate.rate_4pax).toLocaleString()}</span></div>` : ""}
+                                        ${rate.rate_5pax ? `<div class="flex justify-between"><span class="text-gray-600">5 Pax:</span><span class="font-medium">₱${Number(rate.rate_5pax).toLocaleString()}</span></div>` : ""}
+                                        ${rate.rate_6pax ? `<div class="flex justify-between"><span class="text-gray-600">6 Pax:</span><span class="font-medium">₱${Number(rate.rate_6pax).toLocaleString()}</span></div>` : ""}
+                                        ${rate.rate_child_4_9 ? `<div class="flex justify-between"><span class="text-gray-600">Child (4-9):</span><span class="font-medium">₱${Number(rate.rate_child_4_9).toLocaleString()}</span></div>` : ""}
+                                    `,
+                                      )
+                                      .join("")}
+                                </div>
+                            </div>
+                            `
+                                : ""
+                            }
+                        </div>
+                    `;
+                      })
+                      .join("")}
+                </div>
             </div>
-        `,
-          )
-          .join("")}
-    </div>
-</div>
-`
-    : `
-<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-    <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-umbrella-beach text-pink-600 mr-2"></i>Optional Tours</h4>
-    <div class="text-center py-8 text-gray-500">
-        <i class="fas fa-info-circle text-4xl mb-2"></i>
-        <p>No optional tours available for this destination.</p>
-        <p class="text-sm">Optional tours can be added when editing the destination.</p>
-    </div>
-</div>
-`
-}
-            </div>
+            `
+                : `
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-    <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-umbrella-beach text-pink-600 mr-2"></i>Optional Tours</h4>
-    <div class="text-center py-8 text-gray-500">
-        <i class="fas fa-info-circle text-4xl mb-2"></i>
-        <p>No optional tours available for this destination.</p>
-        <p class="text-sm">Optional tours can be added when editing the destination.</p>
-    </div>
-</div>
-
-        `;
+                <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-umbrella-beach text-pink-600 mr-2"></i>Optional Tours</h4>
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-info-circle text-4xl mb-2"></i>
+                    <p>No optional tours available for this destination.</p>
+                    <p class="text-sm">Optional tours can be added when editing the destination.</p>
+                </div>
+            </div>
+            `
+            }
+        </div>
+    `;
   },
-
   showAddDestinationModal: function () {
     if (typeof CreateDestination !== "undefined") {
       CreateDestination.showDestinationModal();

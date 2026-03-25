@@ -1,5 +1,5 @@
 // assets/js/modules/bookings.js
-// Main Bookings Module - With Extra Nights Functionality
+// Main Bookings Module - With Extra Night Dropdown & Pax Type
 
 console.log("🚀 Bookings Module Loading...");
 
@@ -57,6 +57,35 @@ window.fetchBookingById = async function (id) {
   } catch (error) {
     console.error("Error fetching booking:", error);
     return null;
+  }
+};
+
+// Update booking status and amount
+window.updateBookingStatusAndAmount = async function (
+  id,
+  status,
+  amount = null,
+) {
+  try {
+    const updateData = {
+      status: status,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (amount !== null) {
+      updateData.total_amount = amount;
+    }
+
+    const { error } = await supabase
+      .from("b2b_bookings")
+      .update(updateData)
+      .eq("id", id);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error updating booking:", error);
+    return false;
   }
 };
 
@@ -128,7 +157,7 @@ window.renderBookingsTable = function () {
     `;
 };
 
-// OPEN CREATE BOOKING MODAL - WITH EXTRA NIGHTS
+// OPEN CREATE BOOKING MODAL
 window.openCreateBookingModal = async function () {
   console.log("Opening create booking modal...");
 
@@ -141,7 +170,6 @@ window.openCreateBookingModal = async function () {
       .order("name");
 
     if (destError) throw destError;
-    console.log("Destinations loaded:", destinations?.length);
 
     // Fetch optional tours
     const { data: optionalTours } = await supabase
@@ -150,16 +178,14 @@ window.openCreateBookingModal = async function () {
       .eq("is_active", true)
       .order("display_order");
 
-    console.log("Optional tours loaded:", optionalTours?.length);
-
     const modalHtml = `
             <div id="createBookingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="z-index: 10001;">
-                <div class="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+                <div class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
                     <div class="bg-gradient-to-r from-emerald-600 to-emerald-500 px-6 py-4 rounded-t-xl sticky top-0">
                         <div class="flex justify-between items-center">
                             <div>
                                 <h3 class="text-xl font-bold text-white">Create New Booking</h3>
-                                <p class="text-emerald-100 text-sm">Fill in the customer and travel details below</p>
+                                <p class="text-emerald-100 text-sm">Fill in customer and travel details</p>
                             </div>
                             <button onclick="closeCreateModal()" class="text-white hover:text-gray-200 text-2xl">&times;</button>
                         </div>
@@ -167,13 +193,11 @@ window.openCreateBookingModal = async function () {
                     <form id="createBookingForm" class="p-6 space-y-5">
                         <!-- Customer Information -->
                         <div class="border-b pb-4">
-                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                                <i class="fas fa-user text-emerald-600"></i> Customer Information
-                            </h4>
+                            <h4 class="font-semibold text-gray-800 mb-3">👤 Customer Information</h4>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                                    <input type="text" id="clientName" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500">
+                                    <input type="text" id="clientName" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
@@ -195,9 +219,7 @@ window.openCreateBookingModal = async function () {
                         
                         <!-- Trip Details -->
                         <div class="border-b pb-4">
-                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                                <i class="fas fa-plane text-emerald-600"></i> Trip Details
-                            </h4>
+                            <h4 class="font-semibold text-gray-800 mb-3">✈️ Trip Details</h4>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Destination *</label>
@@ -219,29 +241,29 @@ window.openCreateBookingModal = async function () {
                                     </select>
                                 </div>
                                 <div id="hotelRatesContainer" class="hidden">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Hotel Rates *</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Hotel Rate *</label>
                                     <select id="hotelRatesSelected" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                                         <option value="">Select Rate</option>
                                     </select>
                                 </div>
-                                <div id="hotelPaxContainer" class="hidden">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Number of Pax *</label>
-                                    <input type="number" id="hotelPaxCount" min="1" value="1" class="w-full border border-gray-300 rounded-lg px-3 py-2">
-                                    <p class="text-xs text-gray-500 mt-1">Number of persons for this booking</p>
+                                <div id="extraNightsContainer" class="hidden">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Extra Night Fee</label>
+                                    <select id="extraNightsSelect" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                        <option value="0">No Extra Night</option>
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1">Select extra night fee if applicable</p>
                                 </div>
                                 <div class="col-span-2">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Travel Dates *</label>
-                                    <input type="text" id="travelDates" placeholder="2024-03-20, 2024-03-25" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
-                                    <p class="text-xs text-gray-500 mt-1">Format: YYYY-MM-DD, YYYY-MM-DD (start date, end date)</p>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Travel Dates</label>
+                                    <input type="text" id="travelDates" placeholder="2024-03-20, 2024-03-25" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                    <p class="text-xs text-gray-500 mt-1">Format: YYYY-MM-DD, YYYY-MM-DD</p>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Optional Tour -->
                         <div class="border-b pb-4">
-                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                                <i class="fas fa-umbrella-beach text-emerald-600"></i> Optional Tour
-                            </h4>
+                            <h4 class="font-semibold text-gray-800 mb-3">🏝️ Optional Tour</h4>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Select Optional Tour</label>
@@ -250,12 +272,8 @@ window.openCreateBookingModal = async function () {
                                         ${optionalTours?.map((t) => `<option value="${t.id}">${t.name}</option>`).join("") || ""}
                                     </select>
                                 </div>
-                                <div id="optionalTourPaxContainer" class="hidden">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Number of Pax</label>
-                                    <input type="number" id="optionalTourPaxCount" min="1" value="1" class="w-full border border-gray-300 rounded-lg px-3 py-2">
-                                </div>
                                 <div id="optionalTourRatesContainer" class="hidden col-span-2">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Tour Rates</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Tour Rate</label>
                                     <select id="optionalTourRateSelected" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                                         <option value="">Select Rate</option>
                                     </select>
@@ -265,9 +283,7 @@ window.openCreateBookingModal = async function () {
                         
                         <!-- Additional Details -->
                         <div class="border-b pb-4">
-                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                                <i class="fas fa-id-card text-emerald-600"></i> ID Picture (Optional)
-                            </h4>
+                            <h4 class="font-semibold text-gray-800 mb-3">🆔 ID Picture (Optional)</h4>
                             <input type="file" id="idPicture" accept="image/*" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                         </div>
                         
@@ -285,9 +301,7 @@ window.openCreateBookingModal = async function () {
                         
                         <div class="flex justify-end gap-3 pt-4 border-t">
                             <button type="button" onclick="closeCreateModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
-                            <button type="submit" class="px-6 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-lg hover:from-emerald-700 hover:to-emerald-600 flex items-center gap-2">
-                                <i class="fas fa-save"></i> Create Booking
-                            </button>
+                            <button type="submit" class="px-6 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-lg hover:from-emerald-700 hover:to-emerald-600">Create Booking</button>
                         </div>
                     </form>
                 </div>
@@ -302,23 +316,20 @@ window.openCreateBookingModal = async function () {
     const hotelSelect = document.getElementById("hotelCategoryId");
     const hotelRatesContainer = document.getElementById("hotelRatesContainer");
     const hotelRatesSelect = document.getElementById("hotelRatesSelected");
-    const hotelPaxContainer = document.getElementById("hotelPaxContainer");
-    const hotelPaxCount = document.getElementById("hotelPaxCount");
-    const optionalTourSelect = document.getElementById("optionalTourId");
-    const optionalTourPaxContainer = document.getElementById(
-      "optionalTourPaxContainer",
+    const extraNightsContainer = document.getElementById(
+      "extraNightsContainer",
     );
+    const extraNightsSelect = document.getElementById("extraNightsSelect");
+    const optionalTourSelect = document.getElementById("optionalTourId");
     const optionalTourRatesContainer = document.getElementById(
       "optionalTourRatesContainer",
     );
     const optionalTourRateSelect = document.getElementById(
       "optionalTourRateSelected",
     );
-    const optionalTourPaxCount = document.getElementById(
-      "optionalTourPaxCount",
-    );
+    const travelDatesInput = document.getElementById("travelDates");
 
-    // Handle destination change - load packages
+    // Handle destination change
     destSelect.addEventListener("change", async () => {
       const destId = destSelect.value;
       if (destId) {
@@ -328,7 +339,6 @@ window.openCreateBookingModal = async function () {
           .eq("destination_id", destId)
           .eq("is_active", true);
 
-        console.log("Packages loaded:", packages?.length);
         packageSelect.innerHTML = '<option value="">Select Package</option>';
         packages?.forEach((p) => {
           packageSelect.innerHTML += `<option value="${p.id}">${p.package_name}</option>`;
@@ -336,14 +346,13 @@ window.openCreateBookingModal = async function () {
       }
       hotelSelect.innerHTML = '<option value="">Select Package First</option>';
       hotelRatesContainer.classList.add("hidden");
-      hotelPaxContainer.classList.add("hidden");
+      extraNightsContainer.classList.add("hidden");
     });
 
-    // Handle package change - load hotel categories
+    // Handle package change
     packageSelect.addEventListener("change", async () => {
       const pkgId = packageSelect.value;
       const destId = destSelect.value;
-      console.log("Package selected:", pkgId, "Destination:", destId);
 
       if (pkgId && destId) {
         const { data: categories } = await supabase
@@ -351,219 +360,256 @@ window.openCreateBookingModal = async function () {
           .select("*")
           .eq("destination_id", destId);
 
-        console.log("Hotel categories loaded:", categories?.length);
         hotelSelect.innerHTML = '<option value="">No Hotel</option>';
         categories?.forEach((c) => {
-          hotelSelect.innerHTML += `<option value="${c.id}">${c.category_name}${c.has_breakfast ? " (with breakfast)" : ""}</option>`;
+          hotelSelect.innerHTML += `<option value="${c.id}">${c.category_name}</option>`;
         });
       } else {
         hotelSelect.innerHTML =
           '<option value="">Select Package First</option>';
       }
       hotelRatesContainer.classList.add("hidden");
-      hotelPaxContainer.classList.add("hidden");
+      extraNightsContainer.classList.add("hidden");
     });
 
-    // Handle hotel category change - load hotel rates with extra nights
+    // Handle hotel category change - load rates with extra nights
     hotelSelect.addEventListener("change", async () => {
       const hotelId = hotelSelect.value;
       const pkgId = packageSelect.value;
 
-      console.log("Hotel selected:", hotelId, "Package:", pkgId);
-
       if (hotelId && pkgId && hotelId !== "") {
-        const { data: rates, error } = await supabase
+        const { data: rates } = await supabase
           .from("package_hotel_rates")
           .select("*")
           .eq("package_id", pkgId)
-          .eq("hotel_category_id", hotelId)
-          .maybeSingle();
+          .eq("hotel_category_id", hotelId);
 
-        console.log("Hotel rates from DB:", rates);
+        console.log("Hotel rates loaded:", rates);
 
-        if (error) {
-          console.error("Error fetching rates:", error);
-        }
+        if (rates && rates.length > 0) {
+          hotelRatesSelect.innerHTML = '<option value="">Select Rate</option>';
 
-        if (rates) {
-          hotelRatesSelect.innerHTML =
-            '<option value="">Select Rate Type</option>';
-          let hasRates = false;
+          rates.forEach((rate) => {
+            const label = `${rate.season || "Regular"}${rate.duration ? ` (${rate.duration})` : ""}`;
 
-          // Add adult rates with extra nights
-          const rateOptions = [
-            {
-              key: "rate_solo",
-              label: "Solo (1 pax)",
-              extraKey: "extra_night_solo",
-            },
-            { key: "rate_2pax", label: "2 Pax", extraKey: "extra_night_2pax" },
-            { key: "rate_3pax", label: "3 Pax", extraKey: "extra_night_3pax" },
-            { key: "rate_4pax", label: "4 Pax", extraKey: "extra_night_4pax" },
-            { key: "rate_5pax", label: "5 Pax", extraKey: "extra_night_5pax" },
-            { key: "rate_6pax", label: "6 Pax", extraKey: "extra_night_6pax" },
-            { key: "rate_7pax", label: "7 Pax", extraKey: "extra_night_7pax" },
-            { key: "rate_8pax", label: "8 Pax", extraKey: "extra_night_8pax" },
-            { key: "rate_9pax", label: "9 Pax", extraKey: "extra_night_9pax" },
-            {
-              key: "rate_10pax",
-              label: "10 Pax",
-              extraKey: "extra_night_10pax",
-            },
-            {
-              key: "rate_11pax",
-              label: "11 Pax",
-              extraKey: "extra_night_11pax",
-            },
-            {
-              key: "rate_12pax",
-              label: "12 Pax",
-              extraKey: "extra_night_12pax",
-            },
-          ];
-
-          rateOptions.forEach((rate) => {
-            if (rates[rate.key] && rates[rate.key] > 0) {
-              const extraNightRate = rates[rate.extraKey] || 0;
-              hotelRatesSelect.innerHTML += `<option value="${rate.key}" 
-                                data-amount="${rates[rate.key]}" 
-                                data-extra-night="${extraNightRate}"
-                                data-label="${rate.label}">${rate.label} - ₱${Number(rates[rate.key]).toLocaleString()} ${extraNightRate > 0 ? `(Extra night: ₱${Number(extraNightRate).toLocaleString()})` : ""}</option>`;
-              hasRates = true;
+            // Solo rate
+            if (rate.rate_solo && rate.rate_solo > 0) {
+              hotelRatesSelect.innerHTML += `<option 
+                                value="solo_${rate.id}" 
+                                data-rate="${rate.rate_solo}" 
+                                data-extra-night="${rate.extra_night_solo || 0}"
+                                data-label="Solo (1 pax)"
+                                data-season="${rate.season || "Regular"}"
+                                data-duration="${rate.duration || ""}">${label} - Solo: ₱${Number(rate.rate_solo).toLocaleString()}</option>`;
+            }
+            // 2 Pax rate
+            if (rate.rate_2pax && rate.rate_2pax > 0) {
+              hotelRatesSelect.innerHTML += `<option 
+                                value="2pax_${rate.id}" 
+                                data-rate="${rate.rate_2pax}" 
+                                data-extra-night="${rate.extra_night_2pax || 0}"
+                                data-label="2 Pax"
+                                data-season="${rate.season || "Regular"}"
+                                data-duration="${rate.duration || ""}">${label} - 2 Pax: ₱${Number(rate.rate_2pax).toLocaleString()}</option>`;
+            }
+            // 3 Pax rate
+            if (rate.rate_3pax && rate.rate_3pax > 0) {
+              hotelRatesSelect.innerHTML += `<option 
+                                value="3pax_${rate.id}" 
+                                data-rate="${rate.rate_3pax}" 
+                                data-extra-night="${rate.extra_night_3pax || 0}"
+                                data-label="3 Pax"
+                                data-season="${rate.season || "Regular"}"
+                                data-duration="${rate.duration || ""}">${label} - 3 Pax: ₱${Number(rate.rate_3pax).toLocaleString()}</option>`;
+            }
+            // 4 Pax rate
+            if (rate.rate_4pax && rate.rate_4pax > 0) {
+              hotelRatesSelect.innerHTML += `<option 
+                                value="4pax_${rate.id}" 
+                                data-rate="${rate.rate_4pax}" 
+                                data-extra-night="${rate.extra_night_4pax || 0}"
+                                data-label="4 Pax"
+                                data-season="${rate.season || "Regular"}"
+                                data-duration="${rate.duration || ""}">${label} - 4 Pax: ₱${Number(rate.rate_4pax).toLocaleString()}</option>`;
+            }
+            // 5 Pax rate
+            if (rate.rate_5pax && rate.rate_5pax > 0) {
+              hotelRatesSelect.innerHTML += `<option 
+                                value="5pax_${rate.id}" 
+                                data-rate="${rate.rate_5pax}" 
+                                data-extra-night="${rate.extra_night_5pax || 0}"
+                                data-label="5 Pax"
+                                data-season="${rate.season || "Regular"}"
+                                data-duration="${rate.duration || ""}">${label} - 5 Pax: ₱${Number(rate.rate_5pax).toLocaleString()}</option>`;
+            }
+            // 6 Pax rate
+            if (rate.rate_6pax && rate.rate_6pax > 0) {
+              hotelRatesSelect.innerHTML += `<option 
+                                value="6pax_${rate.id}" 
+                                data-rate="${rate.rate_6pax}" 
+                                data-extra-night="${rate.extra_night_6pax || 0}"
+                                data-label="6 Pax"
+                                data-season="${rate.season || "Regular"}"
+                                data-duration="${rate.duration || ""}">${label} - 6 Pax: ₱${Number(rate.rate_6pax).toLocaleString()}</option>`;
+            }
+            // 7 Pax rate
+            if (rate.rate_7pax && rate.rate_7pax > 0) {
+              hotelRatesSelect.innerHTML += `<option 
+                                value="7pax_${rate.id}" 
+                                data-rate="${rate.rate_7pax}" 
+                                data-extra-night="${rate.extra_night_7pax || 0}"
+                                data-label="7 Pax"
+                                data-season="${rate.season || "Regular"}"
+                                data-duration="${rate.duration || ""}">${label} - 7 Pax: ₱${Number(rate.rate_7pax).toLocaleString()}</option>`;
+            }
+            // 8 Pax rate
+            if (rate.rate_8pax && rate.rate_8pax > 0) {
+              hotelRatesSelect.innerHTML += `<option 
+                                value="8pax_${rate.id}" 
+                                data-rate="${rate.rate_8pax}" 
+                                data-extra-night="${rate.extra_night_8pax || 0}"
+                                data-label="8 Pax"
+                                data-season="${rate.season || "Regular"}"
+                                data-duration="${rate.duration || ""}">${label} - 8 Pax: ₱${Number(rate.rate_8pax).toLocaleString()}</option>`;
+            }
+            // 9 Pax rate
+            if (rate.rate_9pax && rate.rate_9pax > 0) {
+              hotelRatesSelect.innerHTML += `<option 
+                                value="9pax_${rate.id}" 
+                                data-rate="${rate.rate_9pax}" 
+                                data-extra-night="${rate.extra_night_9pax || 0}"
+                                data-label="9 Pax"
+                                data-season="${rate.season || "Regular"}"
+                                data-duration="${rate.duration || ""}">${label} - 9 Pax: ₱${Number(rate.rate_9pax).toLocaleString()}</option>`;
+            }
+            // 10 Pax rate
+            if (rate.rate_10pax && rate.rate_10pax > 0) {
+              hotelRatesSelect.innerHTML += `<option 
+                                value="10pax_${rate.id}" 
+                                data-rate="${rate.rate_10pax}" 
+                                data-extra-night="${rate.extra_night_10pax || 0}"
+                                data-label="10 Pax"
+                                data-season="${rate.season || "Regular"}"
+                                data-duration="${rate.duration || ""}">${label} - 10 Pax: ₱${Number(rate.rate_10pax).toLocaleString()}</option>`;
+            }
+            // 11 Pax rate
+            if (rate.rate_11pax && rate.rate_11pax > 0) {
+              hotelRatesSelect.innerHTML += `<option 
+                                value="11pax_${rate.id}" 
+                                data-rate="${rate.rate_11pax}" 
+                                data-extra-night="${rate.extra_night_11pax || 0}"
+                                data-label="11 Pax"
+                                data-season="${rate.season || "Regular"}"
+                                data-duration="${rate.duration || ""}">${label} - 11 Pax: ₱${Number(rate.rate_11pax).toLocaleString()}</option>`;
+            }
+            // 12 Pax rate
+            if (rate.rate_12pax && rate.rate_12pax > 0) {
+              hotelRatesSelect.innerHTML += `<option 
+                                value="12pax_${rate.id}" 
+                                data-rate="${rate.rate_12pax}" 
+                                data-extra-night="${rate.extra_night_12pax || 0}"
+                                data-label="12 Pax"
+                                data-season="${rate.season || "Regular"}"
+                                data-duration="${rate.duration || ""}">${label} - 12 Pax: ₱${Number(rate.rate_12pax).toLocaleString()}</option>`;
+            }
+            // Child rate
+            if (
+              rate.rate_child_no_breakfast &&
+              rate.rate_child_no_breakfast > 0
+            ) {
+              hotelRatesSelect.innerHTML += `<option 
+                                value="child_${rate.id}" 
+                                data-rate="${rate.rate_child_no_breakfast}" 
+                                data-extra-night="${rate.extra_night_child_no_breakfast || 0}"
+                                data-label="Child"
+                                data-season="${rate.season || "Regular"}"
+                                data-duration="${rate.duration || ""}">${label} - Child: ₱${Number(rate.rate_child_no_breakfast).toLocaleString()}</option>`;
             }
           });
 
-          // Add child rate if exists
-          if (
-            rates.rate_child_no_breakfast &&
-            rates.rate_child_no_breakfast > 0
-          ) {
-            const extraNightChild = rates.extra_night_child_no_breakfast || 0;
-            hotelRatesSelect.innerHTML += `<option value="child" 
-                            data-amount="${rates.rate_child_no_breakfast}" 
-                            data-extra-night="${extraNightChild}"
-                            data-label="Child (no breakfast)">Child (no breakfast) - ₱${Number(rates.rate_child_no_breakfast).toLocaleString()} ${extraNightChild > 0 ? `(Extra night: ₱${Number(extraNightChild).toLocaleString()})` : ""}</option>`;
-            hasRates = true;
-          }
-
-          if (hasRates) {
-            hotelRatesContainer.classList.remove("hidden");
-            console.log("Hotel rates container shown");
-          } else {
-            hotelRatesContainer.classList.add("hidden");
-            hotelPaxContainer.classList.add("hidden");
-            console.log("No rates found for this hotel");
-          }
+          hotelRatesContainer.classList.remove("hidden");
         } else {
-          hotelRatesContainer.classList.add("hidden");
-          hotelPaxContainer.classList.add("hidden");
-          console.log("No rates record found for this package and hotel");
+          console.log("No rates found for this hotel category");
         }
       } else {
         hotelRatesContainer.classList.add("hidden");
-        hotelPaxContainer.classList.add("hidden");
+        extraNightsContainer.classList.add("hidden");
       }
     });
 
-    // Handle hotel rate selection to show pax count
+    // Handle hotel rate selection - populate extra night dropdown
     hotelRatesSelect.addEventListener("change", () => {
+      console.log("Rate selected:", hotelRatesSelect.value);
+
       if (hotelRatesSelect.value && hotelRatesSelect.value !== "") {
-        hotelPaxContainer.classList.remove("hidden");
-
-        // Auto-populate pax count based on rate type
-        const selectedOption =
+        const selected =
           hotelRatesSelect.options[hotelRatesSelect.selectedIndex];
-        const rateLabel = selectedOption.dataset.label || "";
+        const extraAmount = parseFloat(selected.dataset.extraNight) || 0;
 
-        if (rateLabel.includes("Solo")) {
-          hotelPaxCount.value = 1;
-        } else if (rateLabel.includes("2 Pax")) {
-          hotelPaxCount.value = 2;
-        } else if (rateLabel.includes("3 Pax")) {
-          hotelPaxCount.value = 3;
-        } else if (rateLabel.includes("4 Pax")) {
-          hotelPaxCount.value = 4;
-        } else if (rateLabel.includes("5 Pax")) {
-          hotelPaxCount.value = 5;
-        } else if (rateLabel.includes("6 Pax")) {
-          hotelPaxCount.value = 6;
+        console.log("Extra amount:", extraAmount);
+
+        // Clear and reset extra nights dropdown
+        extraNightsSelect.innerHTML =
+          '<option value="0">No Extra Night</option>';
+
+        if (extraAmount > 0) {
+          // Add the extra night option
+          extraNightsSelect.innerHTML += `<option value="${extraAmount}">Extra Night: ₱${extraAmount.toLocaleString()}</option>`;
+          // Show the container
+          extraNightsContainer.classList.remove("hidden");
+          console.log("Extra night dropdown shown with amount:", extraAmount);
         } else {
-          hotelPaxCount.value = 1;
+          // Hide the container if no extra night
+          extraNightsContainer.classList.add("hidden");
+          console.log("No extra night available for this rate");
         }
       } else {
-        hotelPaxContainer.classList.add("hidden");
+        extraNightsContainer.classList.add("hidden");
       }
     });
 
     // Handle optional tour change
     optionalTourSelect.addEventListener("change", async () => {
       const tourId = optionalTourSelect.value;
-      console.log("Optional tour selected:", tourId);
 
       if (tourId && tourId !== "") {
-        const { data: rates, error } = await supabase
+        const { data: rates } = await supabase
           .from("optional_tour_rates")
           .select("*")
           .eq("tour_id", tourId)
           .maybeSingle();
 
-        console.log("Optional tour rates:", rates);
-
         if (rates) {
-          optionalTourPaxContainer.classList.remove("hidden");
           optionalTourRatesContainer.classList.remove("hidden");
           optionalTourRateSelect.innerHTML =
-            '<option value="">Select Rate Type</option>';
+            '<option value="">Select Rate</option>';
 
-          let hasRates = false;
-          const rateOptions = [
-            { key: "rate_solo", label: "Solo (1 pax)" },
-            { key: "rate_2pax", label: "2 Pax" },
-            { key: "rate_3pax", label: "3 Pax" },
-            { key: "rate_4pax", label: "4 Pax" },
-            { key: "rate_5pax", label: "5 Pax" },
-            { key: "rate_6pax", label: "6 Pax" },
-            { key: "rate_7pax", label: "7 Pax" },
-            { key: "rate_8pax", label: "8 Pax" },
-            { key: "rate_9pax", label: "9 Pax" },
-            { key: "rate_10pax", label: "10 Pax" },
-            { key: "rate_11pax", label: "11 Pax" },
-            { key: "rate_12pax", label: "12 Pax" },
-          ];
-
-          rateOptions.forEach((rate) => {
-            if (rates[rate.key] && rates[rate.key] > 0) {
-              optionalTourRateSelect.innerHTML += `<option value="${rate.key}" data-amount="${rates[rate.key]}">${rate.label} - ₱${Number(rates[rate.key]).toLocaleString()}</option>`;
-              hasRates = true;
-            }
-          });
-
+          if (rates.rate_solo && rates.rate_solo > 0) {
+            optionalTourRateSelect.innerHTML += `<option value="solo" data-rate="${rates.rate_solo}" data-label="Solo">Solo: ₱${Number(rates.rate_solo).toLocaleString()}</option>`;
+          }
+          if (rates.rate_2pax && rates.rate_2pax > 0) {
+            optionalTourRateSelect.innerHTML += `<option value="2pax" data-rate="${rates.rate_2pax}" data-label="2 Pax">2 Pax: ₱${Number(rates.rate_2pax).toLocaleString()}</option>`;
+          }
+          if (rates.rate_3pax && rates.rate_3pax > 0) {
+            optionalTourRateSelect.innerHTML += `<option value="3pax" data-rate="${rates.rate_3pax}" data-label="3 Pax">3 Pax: ₱${Number(rates.rate_3pax).toLocaleString()}</option>`;
+          }
+          if (rates.rate_4pax && rates.rate_4pax > 0) {
+            optionalTourRateSelect.innerHTML += `<option value="4pax" data-rate="${rates.rate_4pax}" data-label="4 Pax">4 Pax: ₱${Number(rates.rate_4pax).toLocaleString()}</option>`;
+          }
           if (rates.rate_child_4_9 && rates.rate_child_4_9 > 0) {
-            optionalTourRateSelect.innerHTML += `<option value="child" data-amount="${rates.rate_child_4_9}">Child (4-9 years) - ₱${Number(rates.rate_child_4_9).toLocaleString()}</option>`;
-            hasRates = true;
+            optionalTourRateSelect.innerHTML += `<option value="child" data-rate="${rates.rate_child_4_9}" data-label="Child">Child: ₱${Number(rates.rate_child_4_9).toLocaleString()}</option>`;
           }
-
-          if (!hasRates) {
-            optionalTourRateSelect.innerHTML =
-              '<option value="">No rates available</option>';
-          }
-        } else {
-          optionalTourPaxContainer.classList.add("hidden");
-          optionalTourRatesContainer.classList.add("hidden");
-          console.log("No rates found for this optional tour");
         }
       } else {
-        optionalTourPaxContainer.classList.add("hidden");
         optionalTourRatesContainer.classList.add("hidden");
       }
     });
 
-    // Handle form submission with extra nights calculation
+    // Handle form submission
     const form = document.getElementById("createBookingForm");
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      // Generate booking reference
       const date = new Date();
       const year = date.getFullYear().toString().slice(-2);
       const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -573,65 +619,81 @@ window.openCreateBookingModal = async function () {
         .padStart(4, "0");
       const bookingRef = `SNS-${year}${month}${day}-${random}`;
 
-      // Parse travel dates
-      const travelDatesStr = document.getElementById("travelDates").value;
+      const travelDatesStr = travelDatesInput?.value || "";
       const travelDatesArray = travelDatesStr
-        .split(",")
-        .map((d) => new Date(d.trim()).toISOString());
-      const nights = travelDatesArray.length - 1; // Calculate number of nights
+        ? travelDatesStr.split(",").map((d) => new Date(d.trim()))
+        : [];
 
-      // Get selected hotel rate and calculate total with extra nights
+      // Get values with pax type
       let hotelRateAmount = null;
-      let hotelExtraNightRate = null;
-      let hotelTotalAmount = null;
-      let hotelPaxCountValue = 1;
+      let hotelExtraNight = null;
+      let selectedPaxType = "";
+      let selectedPaxCount = 1;
+      let selectedRateDetails = "";
 
       if (hotelRatesSelect.value && hotelRatesSelect.value !== "") {
         const selectedOption =
           hotelRatesSelect.options[hotelRatesSelect.selectedIndex];
-        hotelRateAmount = parseFloat(selectedOption.dataset.amount);
-        hotelExtraNightRate =
-          parseFloat(selectedOption.dataset.extraNight) || 0;
-        hotelPaxCountValue =
-          parseInt(document.getElementById("hotelPaxCount")?.value) || 1;
+        hotelRateAmount = parseFloat(selectedOption.dataset.rate) || 0;
+        hotelExtraNight = parseFloat(selectedOption.dataset.extraNight) || 0;
 
-        // Calculate total: (base rate + (extra night rate * nights)) * pax count
-        const baseTotal = hotelRateAmount;
-        const extraNightsTotal = hotelExtraNightRate * nights;
-        const perPaxTotal = baseTotal + extraNightsTotal;
-        hotelTotalAmount = perPaxTotal * hotelPaxCountValue;
+        // Get the pax type from the selected option
+        selectedPaxType = selectedOption.dataset.label || "Solo (1 pax)";
+
+        // Determine pax count based on pax type
+        if (selectedPaxType === "2 Pax") selectedPaxCount = 2;
+        else if (selectedPaxType === "3 Pax") selectedPaxCount = 3;
+        else if (selectedPaxType === "4 Pax") selectedPaxCount = 4;
+        else if (selectedPaxType === "5 Pax") selectedPaxCount = 5;
+        else if (selectedPaxType === "6 Pax") selectedPaxCount = 6;
+        else if (selectedPaxType === "7 Pax") selectedPaxCount = 7;
+        else if (selectedPaxType === "8 Pax") selectedPaxCount = 8;
+        else if (selectedPaxType === "9 Pax") selectedPaxCount = 9;
+        else if (selectedPaxType === "10 Pax") selectedPaxCount = 10;
+        else if (selectedPaxType === "11 Pax") selectedPaxCount = 11;
+        else if (selectedPaxType === "12 Pax") selectedPaxCount = 12;
+        else if (selectedPaxType === "Child") selectedPaxCount = 1;
+        else selectedPaxCount = 1; // Solo
+
+        // Build selected rate details
+        const season = selectedOption.dataset.season || "Regular";
+        const duration = selectedOption.dataset.duration || "";
+        selectedRateDetails = `${season}${duration ? ` (${duration})` : ""} - ${selectedPaxType}: ₱${hotelRateAmount.toLocaleString()}`;
+        if (hotelExtraNight > 0) {
+          selectedRateDetails += ` + Extra Night: ₱${hotelExtraNight.toLocaleString()}`;
+        }
 
         console.log("Hotel calculation:", {
-          baseRate: hotelRateAmount,
-          extraNightRate: hotelExtraNightRate,
-          nights: nights,
-          perPaxTotal: perPaxTotal,
-          paxCount: hotelPaxCountValue,
-          total: hotelTotalAmount,
+          paxType: selectedPaxType,
+          paxCount: selectedPaxCount,
+          rateAmount: hotelRateAmount,
+          extraNight: hotelExtraNight,
+          total: hotelRateAmount + hotelExtraNight,
         });
       }
 
-      // Get selected optional tour rate
+      // Get optional tour rate
       let optionalTourRateAmount = null;
-      let optionalTourTotal = null;
+      let optionalTourPaxType = "";
       if (optionalTourRateSelect.value && optionalTourSelect.value !== "") {
         const selectedOption =
           optionalTourRateSelect.options[optionalTourRateSelect.selectedIndex];
-        optionalTourRateAmount = parseFloat(selectedOption.dataset.amount);
-        const paxCount = parseInt(optionalTourPaxCount.value) || 1;
-        optionalTourTotal = optionalTourRateAmount * paxCount;
+        optionalTourRateAmount = parseFloat(selectedOption.dataset.rate) || 0;
+        optionalTourPaxType = selectedOption.dataset.label || "";
         console.log(
-          "Selected optional tour rate:",
+          "Optional tour:",
           optionalTourRateAmount,
-          "Total:",
-          optionalTourTotal,
+          optionalTourPaxType,
         );
       }
 
-      // Calculate grand total
-      const grandTotal = (hotelTotalAmount || 0) + (optionalTourTotal || 0);
+      // Simple addition: Hotel Rate + Extra Night + Optional Tour
+      const grandTotal =
+        (hotelRateAmount || 0) +
+        (hotelExtraNight || 0) +
+        (optionalTourRateAmount || 0);
 
-      // Upload ID picture if exists
+      // Upload ID picture
       let idPictureUrl = null;
       const idPictureFile = document.getElementById("idPicture").files[0];
 
@@ -642,26 +704,20 @@ window.openCreateBookingModal = async function () {
           const fileExt = idPictureFile.name.split(".").pop();
           const fileName = `${timestamp}-${randomStr}.${fileExt}`;
 
-          const { error } = await supabase.storage
+          await supabase.storage
             .from("id_pictures")
-            .upload(fileName, idPictureFile, {
-              cacheControl: "3600",
-              upsert: false,
-            });
+            .upload(fileName, idPictureFile);
 
-          if (!error) {
-            const {
-              data: { publicUrl },
-            } = supabase.storage.from("id_pictures").getPublicUrl(fileName);
-            idPictureUrl = publicUrl;
-            console.log("ID picture uploaded:", idPictureUrl);
-          }
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("id_pictures").getPublicUrl(fileName);
+          idPictureUrl = publicUrl;
         } catch (uploadError) {
           console.error("Upload error:", uploadError);
         }
       }
 
-      // Get package and destination names
+      // Get names
       const packageId = document.getElementById("packageId").value;
       const destinationId = document.getElementById("destinationId").value;
       const hotelCategoryId = document.getElementById("hotelCategoryId").value;
@@ -698,7 +754,7 @@ window.openCreateBookingModal = async function () {
         optionalTourName = tour?.name;
       }
 
-      // Create booking data with extra nights info
+      // Create booking with pax type
       const bookingData = {
         booking_reference: bookingRef,
         destination_id: parseInt(destinationId),
@@ -720,20 +776,19 @@ window.openCreateBookingModal = async function () {
         category_name: dest?.name || null,
         hotel_Name: hotelName,
         hotel_Rates_Selected: hotelRateAmount,
-        hotel_extra_night_rate: hotelExtraNightRate,
-        hotel_pax_count: hotelPaxCountValue,
-        hotel_nights: nights,
+        hotel_extra_night_rate: hotelExtraNight,
+        hotel_pax_count: selectedPaxCount,
+        selected_pax_type: selectedPaxType,
+        selected_rate_details: selectedRateDetails,
         optional_tour_id:
           optionalTourSelect.value && optionalTourSelect.value !== ""
             ? parseInt(optionalTourSelect.value)
             : null,
         optional_tour_name: optionalTourName,
-        optional_tour_pax_count:
-          optionalTourSelect.value && optionalTourSelect.value !== ""
-            ? parseInt(optionalTourPaxCount.value) || 1
-            : null,
+        optional_tour_pax_count: selectedPaxCount,
+        optional_tour_pax_type: optionalTourPaxType,
         optional_tour_rate_selected: optionalTourRateAmount,
-        optional_tour_total_amount: optionalTourTotal,
+        optional_tour_total_amount: optionalTourRateAmount,
         status: "pending",
         payment_status: "unpaid",
         created_at: new Date().toISOString(),
@@ -748,10 +803,9 @@ window.openCreateBookingModal = async function () {
 
       if (error) {
         alert("Error: " + error.message);
-        console.error("Insert error:", error);
       } else {
         alert(
-          `✅ Booking created!\nReference: ${bookingRef}\nTotal Amount: ₱${grandTotal.toLocaleString()}\nNights: ${nights}\nPax: ${hotelPaxCountValue}`,
+          `✅ Booking created!\nReference: ${bookingRef}\nTotal: ₱${grandTotal.toLocaleString()}\nPax: ${selectedPaxType}`,
         );
         closeCreateModal();
         await window.fetchBookings();
@@ -759,7 +813,6 @@ window.openCreateBookingModal = async function () {
       }
     });
 
-    // Close modal function
     window.closeCreateModal = function () {
       const modal = document.getElementById("createBookingModal");
       if (modal) modal.remove();
@@ -801,4 +854,4 @@ window.initBookingsModule = async function () {
   }
 };
 
-console.log("✅ Bookings module loaded with extra nights functionality");
+console.log("✅ Bookings module loaded with extra night dropdown and pax type");

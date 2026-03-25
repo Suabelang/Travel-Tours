@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="sroll-smooth">
+<html lang="en" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta
@@ -56,26 +56,247 @@
     </script>
 
     <style>
+      /* ===== FIX: ISA LANG SCROLLBAR SA BUONG PAGE ===== */
+      html {
+        overflow-y: scroll !important;
+        overflow-x: hidden !important;
+        scroll-behavior: smooth;
+        height: 100% !important;
+      }
+
+      body {
+        overflow-y: visible !important;
+        overflow-x: hidden !important;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh !important;
+        height: auto !important;
+        position: relative !important;
+      }
+
+      /* ===== HOME SECTION - HINDI PUTOL ANG BACKGROUND IMAGE ===== */
+      #home {
+        position: relative;
+        width: 100%;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+
+      #home .bg-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        transition: background-image 0.5s ease-in-out;
+        z-index: 1;
+      }
+
+      .hero-video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 1;
+      }
+
+      #home .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 2;
+      }
+
+      .golden-border {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
+        z-index: 50;
+      }
+
+      .hero-content {
+        position: absolute;
+        left: 4rem;
+        top: 50%;
+        transform: translateY(-50%);
+        max-width: 600px;
+        color: white;
+        z-index: 30;
+      }
+
+      .hero-region {
+        color: #ffd700;
+        font-size: 1.25rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 1rem;
+      }
+
+      .hero-title {
+        font-size: 4rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 1.5rem;
+        text-transform: uppercase;
+      }
+
+      .hero-desc {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.1rem;
+        max-width: 500px;
+        line-height: 1.5;
+      }
+
+      /* Fix for carousel - horizontal scroll only */
+      .carousel-cards {
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* ===== MODAL FIX: TANGGALIN ANG SCROLLBAR SA MODAL ===== */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(10px);
+        overflow: hidden !important;
+      }
+
+      .modal.active {
+        display: flex !important;
+        overflow: hidden !important;
+      }
+
+      .modal-content {
+        width: 100%;
+        height: 100%;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        padding: 0;
+        margin: 0;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+      }
+
+      .modal-content::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        background: transparent !important;
+      }
+
+      .modal-popup {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        z-index: 99999;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        overflow: hidden !important;
+      }
+
+      .modal-popup.active {
+        display: flex !important;
+        overflow: hidden !important;
+      }
+
+      .modal-popup-content {
+        background: white;
+        border-radius: 32px;
+        max-width: 500px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+        animation: modalAppear 0.3s ease;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+      }
+
+      .modal-popup-content::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        background: transparent !important;
+      }
+
+      .mobile-menu {
+        position: fixed;
+        top: 70px;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(10px);
+        padding: 1rem;
+        border-top: 3px solid #ffd700;
+        transform: translateY(-150%);
+        transition: transform 0.3s ease;
+        z-index: 999;
+        max-height: calc(100vh - 70px);
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .mobile-menu::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .mobile-menu::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+
+      .mobile-menu::-webkit-scrollbar-thumb {
+        background: #076653;
+        border-radius: 10px;
+      }
+
+      body.modal-open {
+        overflow: hidden !important;
+      }
+
       .carousel-card {
         transition: opacity 0.3s ease;
       }
       .carousel-card:not(.active) {
         display: none;
       }
-      /* ===== ORIGINAL STYLES - LAHAT ANDITO ===== */
+
       * {
         font-family: "Poppins", sans-serif;
         margin: 0;
         padding: 0;
         box-sizing: border-box;
         -webkit-tap-highlight-color: transparent;
-      }
-
-      html {
-        font-size: 14px;
-        overflow-x: hidden;
-        width: 100%;
-        scroll-behavior: smooth;
       }
 
       @media (min-width: 360px) {
@@ -87,13 +308,6 @@
         html {
           font-size: 16px;
         }
-      }
-
-      body {
-        overflow-x: hidden;
-        width: 100%;
-        position: relative;
-        min-height: 100vh;
       }
 
       /* ===== BACK TO TOP BUTTON ===== */
@@ -190,244 +404,6 @@
         }
       }
 
-      /* ===== VINTAGE LOGO STYLES ===== */
-      .logo-premium {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        position: relative;
-        padding: 5px 15px;
-        border-radius: 100px 20px 100px 20px;
-        background: rgba(255, 215, 0, 0.1);
-        backdrop-filter: blur(5px);
-        border: 3px solid #b45309;
-        box-shadow: 5px 5px 0 #92400e;
-      }
-
-      .vintage-icon {
-        width: 60px;
-        height: 60px;
-        position: relative;
-      }
-
-      .camera {
-        position: absolute;
-        width: 35px;
-        height: 25px;
-        background: #57534e;
-        border-radius: 8px;
-        top: 15px;
-        left: 12px;
-        box-shadow: inset 0 0 0 2px #92400e;
-      }
-
-      .camera-lens {
-        position: absolute;
-        width: 12px;
-        height: 12px;
-        background: #1e293b;
-        border-radius: 50%;
-        top: 21px;
-        left: 23px;
-        border: 2px solid #94a3b8;
-        box-shadow: 0 0 0 1px #92400e;
-      }
-
-      .luggage {
-        position: absolute;
-        bottom: 8px;
-        left: 18px;
-        width: 25px;
-        height: 15px;
-        background: #92400e;
-        border-radius: 3px;
-        border: 1px solid #b45309;
-      }
-
-      .luggage-handle {
-        position: absolute;
-        top: 3px;
-        left: 28px;
-        width: 4px;
-        height: 6px;
-        background: #92400e;
-        border-radius: 2px;
-        border: 1px solid #b45309;
-      }
-
-      .stamp {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 22px;
-        height: 22px;
-        border: 2px solid #b45309;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 10px;
-        color: #b45309;
-        font-weight: bold;
-        background: rgba(255, 215, 0, 0.2);
-        transform: rotate(-10deg);
-      }
-
-      .compass-vintage {
-        position: absolute;
-        top: 5px;
-        left: 0;
-        width: 15px;
-        height: 15px;
-        border: 2px solid #b45309;
-        border-radius: 50%;
-      }
-      .compass-vintage::before {
-        content: "N";
-        position: absolute;
-        font-size: 8px;
-        top: -2px;
-        left: 4px;
-        color: #b45309;
-      }
-
-      .logo-premium-text {
-        display: flex;
-        flex-direction: column;
-      }
-
-      .logo-premium-s-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 2px;
-        position: relative;
-      }
-
-      .logo-premium-s {
-        font-size: 2.8rem;
-        font-weight: 800;
-        color: #fef3c7;
-        font-family: "Times New Roman", serif;
-        text-shadow:
-          3px 3px 0 #b45309,
-          5px 5px 0 rgba(0, 0, 0, 0.2);
-        letter-spacing: -2px;
-        transition: all 0.3s ease;
-      }
-
-      .logo-premium-s:hover {
-        transform: translateY(-2px);
-        filter: drop-shadow(0 5px 10px #ffd700);
-      }
-
-      .logo-premium-s:first-child {
-        transform: rotate(-2deg);
-        margin-right: -5px;
-      }
-
-      .logo-premium-s:last-child {
-        transform: rotate(2deg);
-        margin-left: -5px;
-      }
-
-      .logo-premium-amp {
-        font-size: 2rem;
-        color: #ffd700;
-        font-weight: bold;
-        font-style: italic;
-        margin: 0 2px;
-        text-shadow: 2px 2px 0 #b45309;
-        transform: rotate(-5deg);
-      }
-
-      .logo-premium-tagline {
-        font-size: 0.6rem;
-        color: #fef3c7;
-        letter-spacing: 3px;
-        text-transform: uppercase;
-        border-bottom: 2px solid #b45309;
-        padding-bottom: 3px;
-        margin-top: -5px;
-        font-style: italic;
-      }
-
-      /* Vintage corner decorations */
-      .logo-premium::before,
-      .logo-premium::after {
-        content: "✦";
-        position: absolute;
-        color: #ffd700;
-        font-size: 12px;
-        opacity: 0.6;
-      }
-      .logo-premium::before {
-        top: 5px;
-        left: 5px;
-      }
-      .logo-premium::after {
-        bottom: 5px;
-        right: 5px;
-      }
-
-      /* Responsive logo styles */
-      @media (max-width: 768px) {
-        .logo-premium {
-          gap: 10px;
-          padding: 3px 10px;
-        }
-
-        .vintage-icon {
-          width: 50px;
-          height: 50px;
-        }
-
-        .camera {
-          width: 30px;
-          height: 22px;
-          left: 10px;
-        }
-        .camera-lens {
-          left: 19px;
-        }
-
-        .logo-premium-s {
-          font-size: 2.2rem;
-        }
-
-        .logo-premium-amp {
-          font-size: 1.6rem;
-        }
-
-        .logo-premium-tagline {
-          font-size: 0.5rem;
-          letter-spacing: 2px;
-        }
-      }
-
-      @media (max-width: 480px) {
-        .logo-premium {
-          gap: 8px;
-        }
-
-        .vintage-icon {
-          width: 45px;
-          height: 45px;
-        }
-
-        .logo-premium-s {
-          font-size: 1.8rem;
-        }
-
-        .logo-premium-amp {
-          font-size: 1.3rem;
-        }
-
-        .logo-premium-tagline {
-          font-size: 0.45rem;
-          letter-spacing: 1px;
-        }
-      }
-
       .nav-links {
         display: flex;
         gap: 0.5rem;
@@ -482,7 +458,6 @@
         position: relative;
       }
 
-      /* Login Button */
       .login-btn-tropical {
         background: #ffd700;
         color: #076653;
@@ -519,7 +494,6 @@
         color: white;
       }
 
-      /* Mobile Menu Button */
       .mobile-menu-btn {
         display: none;
         flex-direction: column;
@@ -554,32 +528,6 @@
         transform: rotate(-45deg) translate(8px, -8px);
       }
 
-      .mobile-menu {
-        position: fixed;
-        top: 70px;
-        left: 0;
-        right: 0;
-        background: rgba(255, 255, 255, 0.98);
-        backdrop-filter: blur(10px);
-        padding: 1rem;
-        border-top: 3px solid #ffd700;
-        transform: translateY(-150%);
-        transition: transform 0.3s ease;
-        z-index: 999;
-        max-height: calc(100vh - 70px);
-        overflow-y: auto;
-      }
-
-      @media (min-width: 769px) {
-        .mobile-menu {
-          display: none !important;
-        }
-      }
-
-      .mobile-menu.active {
-        transform: translateY(0);
-      }
-
       .mobile-menu a {
         display: flex;
         align-items: center;
@@ -611,201 +559,196 @@
         color: white;
       }
 
-      /* ===== HOME SECTION - UPDATED FOR MOBILE ===== */
-      #home {
-        position: relative;
-        height: 100vh;
-        min-height: 600px;
-        overflow: hidden;
-      }
-
-      #home .bg-image {
-        position: absolute;
-        inset: 0;
-        background-size: cover;
-        background-position: center;
-        transition: background-image 0.5s ease-in-out;
-        z-index: 1;
-      }
-
-      .hero-video {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        z-index: 1;
-      }
-
-      #home .overlay {
-        position: absolute;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.3);
-        z-index: 2;
-      }
-
-      .golden-border {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
-        z-index: 50;
-      }
-
-      .hero-content {
-        position: absolute;
-        left: 4rem;
-        top: 50%;
-        transform: translateY(-50%);
-        max-width: 600px;
-        color: white;
-        z-index: 30;
-      }
-
+      /* ===== MOBILE FIX - HERO IMAGE HINDI PUTOL, CAROUSEL SA BOTTOM RIGHT ===== */
       @media (max-width: 768px) {
+        /* Hero image - buo at hindi putol */
+        #home {
+          min-height: 100vh;
+          height: auto;
+        }
+
+        #home .bg-image {
+          position: absolute !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          background-size: cover !important;
+          background-position: center center !important;
+          background-repeat: no-repeat !important;
+        }
+
+        #home .overlay {
+          position: absolute !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+        }
+
         .hero-content {
-          left: 1rem;
-          right: 1rem;
-          text-align: center;
-          max-width: 100%;
-          top: 40%; /* Moved up a bit to give space for carousel */
+          left: 1rem !important;
+          right: 1rem !important;
+          top: 45% !important;
+          transform: translateY(-50%) !important;
+          text-align: center !important;
+          max-width: 100% !important;
+          z-index: 30 !important;
         }
-      }
 
-      .hero-region {
-        color: #ffd700;
-        font-size: 1.25rem;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        margin-bottom: 1rem;
-      }
+        .hero-title {
+          font-size: 2rem !important;
+          margin-bottom: 0.75rem !important;
+        }
 
-      @media (max-width: 768px) {
         .hero-region {
-          font-size: 1rem;
+          font-size: 0.85rem !important;
+          margin-bottom: 0.5rem !important;
         }
-      }
 
-      .hero-title {
-        font-size: 4rem;
-        font-weight: 700;
-        line-height: 1.2;
-        margin-bottom: 1.5rem;
-        text-transform: uppercase;
-      }
-
-      @media (max-width: 1024px) {
-        .hero-title {
-          font-size: 3rem;
-        }
-      }
-
-      @media (max-width: 768px) {
-        .hero-title {
-          font-size: 2rem;
-        }
-      }
-
-      @media (max-width: 480px) {
-        .hero-title {
-          font-size: 1.8rem;
-        }
-      }
-
-      .hero-desc {
-        color: rgba(255, 255, 255, 0.8);
-        font-size: 1.1rem;
-        max-width: 500px;
-      }
-
-      @media (max-width: 768px) {
         .hero-desc {
-          margin: 0 auto;
-          font-size: 0.9rem;
-          display: none; /* Hide description on very small screens to save space */
+          display: none !important;
         }
-      }
 
-      /* ===== CAROUSEL CARDS - FIXED FOR MOBILE ===== */
-      .carousel-container {
-        position: absolute;
-        bottom: 2rem;
-        right: 2rem;
-        z-index: 30;
-        width: auto;
-      }
-
-      @media (max-width: 768px) {
+        /* Carousel container - nasa BOTTOM RIGHT */
         .carousel-container {
-          bottom: 1rem;
-          left: 0;
-          right: 0;
-          width: 100%;
-          padding: 0 1rem;
+          position: absolute !important;
+          bottom: 1rem !important;
+          right: 0.5rem !important;
+          left: auto !important;
+          top: auto !important;
+          width: auto !important;
+          max-width: 85% !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          z-index: 30 !important;
         }
 
         .carousel-cards {
-          justify-content: center;
-          gap: 0.5rem;
+          display: flex !important;
+          gap: 0.6rem !important;
+          overflow-x: auto !important;
+          overflow-y: visible !important;
+          justify-content: flex-end !important;
+          padding: 0.5rem 0 0.5rem 0 !important;
+          -webkit-overflow-scrolling: touch !important;
+          scrollbar-width: thin !important;
         }
 
         .carousel-card {
-          min-width: 120px;
-          width: 130px;
+          min-width: 130px !important;
+          width: 140px !important;
+          flex-shrink: 0 !important;
+          background: white !important;
+          border-radius: 12px !important;
+          overflow: hidden !important;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
         }
 
-        .carousel-card .relative {
-          height: 80px !important; /* Smaller images on mobile */
-        }
-
-        .carousel-controls {
-          justify-content: center;
-          margin-top: 0.5rem;
-        }
-
-        .carousel-btn {
-          width: 36px;
-          height: 36px;
-        }
-
-        .carousel-page {
-          font-size: 1.2rem;
-        }
-      }
-
-      @media (max-width: 480px) {
-        .carousel-card {
-          min-width: 100px;
-          width: 110px;
-        }
-
-        .carousel-card .relative {
-          height: 70px !important;
+        .carousel-card img {
+          width: 100% !important;
+          height: 95px !important;
+          object-fit: cover !important;
+          display: block !important;
         }
 
         .card-content {
           padding: 0.5rem !important;
         }
 
-        .card-content h4 {
+        .carousel-card-title {
           font-size: 0.75rem !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
         }
 
-        .card-content p {
+        .carousel-card-region {
           font-size: 0.65rem !important;
         }
+
+        .carousel-controls {
+          gap: 0.5rem !important;
+          margin-top: 0.3rem !important;
+          justify-content: flex-end !important;
+        }
+
+        .carousel-btn {
+          width: 30px !important;
+          height: 30px !important;
+          font-size: 12px !important;
+          background: rgba(0, 0, 0, 0.6) !important;
+        }
+
+        .carousel-page {
+          font-size: 0.8rem !important;
+          padding: 0.15rem 0.6rem !important;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .hero-content {
+          top: 40% !important;
+        }
+
+        .hero-title {
+          font-size: 1.6rem !important;
+        }
+
+        .carousel-container {
+          max-width: 90% !important;
+          bottom: 0.8rem !important;
+          right: 0.3rem !important;
+        }
+
+        .carousel-card {
+          min-width: 115px !important;
+          width: 125px !important;
+        }
+
+        .carousel-card img {
+          height: 85px !important;
+        }
+
+        .card-content {
+          padding: 0.4rem !important;
+        }
+
+        .carousel-card-title {
+          font-size: 0.7rem !important;
+        }
+      }
+
+      @media (min-width: 769px) and (max-width: 1024px) {
+        .hero-title {
+          font-size: 3rem !important;
+        }
+
+        .hero-content {
+          left: 2rem !important;
+          max-width: 500px !important;
+        }
+      }
+
+      /* ===== CAROUSEL CARDS - DESKTOP VERSION ===== */
+      .carousel-container {
+        position: absolute;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 30;
+        width: auto;
+        max-width: 80%;
       }
 
       .carousel-cards {
         display: flex;
         gap: 1rem;
         overflow-x: auto;
-        padding-bottom: 1rem;
+        padding-bottom: 0.5rem;
         justify-content: flex-end;
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
       }
 
       .carousel-card {
@@ -819,6 +762,7 @@
         cursor: pointer;
         border: 2px solid transparent;
         scroll-snap-align: start;
+        flex-shrink: 0;
       }
 
       .carousel-card.active {
@@ -835,6 +779,7 @@
         width: 100%;
         height: 120px;
         object-fit: cover;
+        display: block;
       }
 
       .card-content {
@@ -846,6 +791,9 @@
         color: #1f2937;
         font-size: 1rem;
         margin-bottom: 0.25rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .carousel-card-region {
@@ -861,15 +809,15 @@
         align-items: center;
         justify-content: flex-end;
         gap: 1rem;
-        margin-top: 1rem;
+        margin-top: 0.5rem;
       }
 
       .carousel-btn {
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        background: rgba(0, 0, 0, 0.5);
         color: white;
         display: flex;
         align-items: center;
@@ -877,23 +825,22 @@
         cursor: pointer;
         transition: all 0.3s;
         touch-action: manipulation;
+        backdrop-filter: blur(4px);
       }
 
       .carousel-btn:hover {
-        border-color: rgba(255, 255, 255, 0.6);
+        background: rgba(0, 0, 0, 0.8);
+        border-color: rgba(255, 255, 255, 0.8);
       }
 
       .carousel-page {
         color: white;
-        font-size: 2rem;
-        font-weight: 300;
-      }
-
-      /* Hide description on very small screens */
-      @media (max-width: 480px) {
-        .hero-desc {
-          display: none;
-        }
+        font-size: 1.2rem;
+        font-weight: 500;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 0.2rem 0.8rem;
+        border-radius: 20px;
+        backdrop-filter: blur(4px);
       }
 
       /* ===== DESTINATIONS SECTION ===== */
@@ -1078,7 +1025,6 @@
         color: white;
       }
 
-      /* Forms */
       .visa-form,
       .ferry-form {
         background: white;
@@ -1122,35 +1068,51 @@
         box-shadow: 0 0 0 3px rgba(7, 102, 83, 0.1);
       }
 
+      /* ===== MODAL GALLERY FIX ===== */
+      @media (max-width: 768px) {
+        .modal-content .bg-white.p-5.rounded-xl {
+          padding: 0.75rem !important;
+        }
+
+        .modal-content .relative.rounded-xl.overflow-hidden {
+          height: 250px !important;
+        }
+
+        .modal-content .flex.gap-2.mt-4.overflow-x-auto {
+          gap: 0.5rem !important;
+          padding-bottom: 0.5rem !important;
+        }
+
+        .modal-content .flex-shrink-0.w-16.h-16 {
+          width: 60px !important;
+          height: 60px !important;
+        }
+
+        .modal-content .flex-shrink-0.w-16.h-16 img {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+        }
+
+        .modal-content button.absolute {
+          width: 32px !important;
+          height: 32px !important;
+          font-size: 12px !important;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .modal-content .relative.rounded-xl.overflow-hidden {
+          height: 200px !important;
+        }
+
+        .modal-content .flex-shrink-0.w-16.h-16 {
+          width: 50px !important;
+          height: 50px !important;
+        }
+      }
+
       /* ===== DETAIL MODAL STYLES ===== */
-      .modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.9);
-        z-index: 10000;
-        align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(10px);
-      }
-
-      .modal.active {
-        display: flex !important;
-      }
-
-      .modal-content {
-        width: 100%;
-        height: 100%;
-        overflow-y: auto;
-        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-        padding: 0;
-        margin: 0;
-        -webkit-overflow-scrolling: touch;
-      }
-
       .modal-close-btn {
         position: fixed !important;
         top: 10px !important;
@@ -1677,83 +1639,6 @@
       }
 
       /* ===== MODAL POPUP STYLES ===== */
-      .modal-popup {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.7);
-        backdrop-filter: blur(5px);
-        z-index: 99999;
-        align-items: center;
-        justify-content: center;
-        padding: 16px;
-      }
-
-      .modal-popup.active {
-        display: flex;
-      }
-
-      .modal-popup-content {
-        background: white;
-        border-radius: 32px;
-        max-width: 500px;
-        width: 100%;
-        max-height: 90vh;
-        overflow-y: auto;
-        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
-        animation: modalAppear 0.3s ease;
-      }
-
-      @keyframes modalAppear {
-        from {
-          opacity: 0;
-          transform: scale(0.9);
-        }
-        to {
-          opacity: 1;
-          transform: scale(1);
-        }
-      }
-
-      .modal-popup-header {
-        background: linear-gradient(135deg, #076653, #0a8a6e);
-        padding: 24px;
-        border-radius: 32px 32px 0 0;
-        position: relative;
-        color: white;
-      }
-
-      .modal-popup-close {
-        position: absolute;
-        top: 16px;
-        right: 16px;
-        width: 36px;
-        height: 36px;
-        background: rgba(255, 255, 255, 0.2);
-        border: none;
-        border-radius: 50%;
-        color: white;
-        font-size: 20px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s;
-      }
-
-      .modal-popup-close:hover {
-        background: white;
-        color: #076653;
-        transform: rotate(90deg);
-      }
-
-      .modal-popup-body {
-        padding: 24px;
-      }
-
       .country-grid-popup {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -2127,460 +2012,6 @@
           right: max(20px, env(safe-area-inset-right));
         }
       }
-
-      /* ===== TABLET RESPONSIVENESS (768px - 1024px) ===== */
-      @media (min-width: 768px) and (max-width: 1024px) {
-        /* Home Section */
-        #home {
-          min-height: 100vh;
-          height: auto;
-        }
-
-        .hero-content {
-          left: 2rem;
-          max-width: 450px;
-          top: 45%;
-          transform: translateY(-45%);
-        }
-
-        .hero-region {
-          font-size: 1.1rem;
-          margin-bottom: 0.75rem;
-        }
-
-        .hero-title {
-          font-size: 2.8rem;
-          line-height: 1.2;
-          margin-bottom: 1rem;
-        }
-
-        .hero-desc {
-          font-size: 1rem;
-          line-height: 1.6;
-          max-width: 400px;
-          display: block;
-        }
-
-        /* Carousel for Tablet */
-        .carousel-container {
-          bottom: 2rem;
-          right: 2rem;
-          width: auto;
-          max-width: 500px;
-        }
-
-        .carousel-cards {
-          gap: 0.75rem;
-          justify-content: flex-end;
-        }
-
-        .carousel-card {
-          min-width: 140px;
-          width: 150px;
-        }
-
-        .carousel-card .relative {
-          height: 90px !important;
-        }
-
-        .carousel-card img {
-          height: 90px;
-        }
-
-        .card-content {
-          padding: 0.6rem !important;
-        }
-
-        .card-content h4 {
-          font-size: 0.85rem !important;
-        }
-
-        .card-content p {
-          font-size: 0.7rem !important;
-        }
-
-        .carousel-controls {
-          margin-top: 0.5rem;
-          gap: 1rem;
-        }
-
-        .carousel-btn {
-          width: 40px;
-          height: 40px;
-          font-size: 0.9rem;
-        }
-
-        .carousel-page {
-          font-size: 1.5rem;
-        }
-
-        /* Destinations Grid for Tablet */
-        .destinations-grid {
-          grid-template-columns: repeat(2, 1fr) !important;
-          gap: 1.25rem;
-          padding: 0 1rem;
-        }
-
-        .destination-card {
-          height: 100%;
-        }
-
-        .destination-card img {
-          height: 180px;
-        }
-
-        .destination-card-body {
-          padding: 1.25rem;
-        }
-
-        .destination-card-title {
-          font-size: 1.3rem;
-        }
-
-        /* Services Section for Tablet */
-        #services {
-          padding: 0 1.5rem;
-        }
-
-        #services .bg-white {
-          padding: 2.5rem !important;
-        }
-
-        #serviceButtons {
-          gap: 1.5rem;
-        }
-
-        .service-card {
-          padding: 1.5rem;
-        }
-
-        .service-icon {
-          width: 70px;
-          height: 70px;
-          font-size: 2rem;
-        }
-
-        /* About Section for Tablet */
-        #about .grid {
-          gap: 1.5rem;
-        }
-
-        #about .md\:grid-cols-3 {
-          grid-template-columns: repeat(3, 1fr) !important;
-        }
-
-        #about .md\:grid-cols-4 {
-          grid-template-columns: repeat(2, 1fr) !important;
-        }
-
-        .timeline-card {
-          padding: 1.25rem;
-        }
-
-        /* Footer for Tablet */
-        footer .grid {
-          grid-template-columns: repeat(2, 1fr) !important;
-          gap: 2rem;
-        }
-
-        /* Modal adjustments for Tablet */
-        .modal-content-wrapper {
-          padding: 70px 20px 30px;
-        }
-
-        .modal-tabs {
-          gap: 0.5rem;
-          padding: 0.5rem 0;
-        }
-
-        .modal-tab {
-          padding: 0.6rem 1.2rem;
-          font-size: 0.9rem;
-        }
-
-        .modal-package-grid {
-          grid-template-columns: 1fr !important;
-          gap: 1.5rem;
-        }
-
-        .modal-price-table {
-          overflow-x: auto;
-        }
-
-        .modal-price-table table {
-          min-width: 600px;
-        }
-
-        .modal-day-card {
-          padding: 1.25rem;
-        }
-
-        .modal-day-card h3 {
-          font-size: 1.2rem;
-        }
-
-        /* Image carousel in modal */
-        .carousel-main {
-          height: 300px;
-        }
-
-        .carousel-nav {
-          width: 38px;
-          height: 38px;
-        }
-
-        /* Filter buttons for Tablet */
-        #filterButtons .flex {
-          gap: 0.5rem;
-          justify-content: center;
-          flex-wrap: wrap;
-        }
-
-        .filter-btn {
-          padding: 0.5rem 1rem;
-          font-size: 0.85rem;
-        }
-
-        .sub-filter-btn {
-          padding: 0.4rem 0.8rem;
-          font-size: 0.75rem;
-        }
-      }
-
-      /* ===== LARGE TABLETS (1024px specific) ===== */
-      @media (min-width: 1024px) and (max-width: 1200px) {
-        .hero-content {
-          left: 3rem;
-          max-width: 500px;
-        }
-
-        .hero-title {
-          font-size: 3.2rem;
-        }
-
-        .carousel-container {
-          right: 2.5rem;
-          bottom: 2.5rem;
-        }
-
-        .carousel-card {
-          min-width: 160px;
-          width: 170px;
-        }
-
-        .carousel-card .relative {
-          height: 100px !important;
-        }
-
-        .destinations-grid {
-          grid-template-columns: repeat(3, 1fr) !important;
-          gap: 1.5rem;
-        }
-
-        .modal-package-grid {
-          grid-template-columns: 2fr 1fr !important;
-        }
-      }
-
-      /* ===== PORTRAIT TABLETS (iPad Portrait) ===== */
-      @media (min-width: 768px) and (max-width: 834px) and (orientation: portrait) {
-        .hero-content {
-          top: 40%;
-          transform: translateY(-40%);
-          max-width: 400px;
-        }
-
-        .hero-title {
-          font-size: 2.5rem;
-        }
-
-        .hero-desc {
-          font-size: 0.95rem;
-          max-width: 350px;
-        }
-
-        .carousel-container {
-          bottom: 1.5rem;
-          right: 1.5rem;
-          max-width: 400px;
-        }
-
-        .carousel-card {
-          min-width: 120px;
-          width: 130px;
-        }
-
-        .carousel-card .relative {
-          height: 80px !important;
-        }
-      }
-
-      /* ===== LANDSCAPE TABLETS (iPad Landscape) ===== */
-      @media (min-width: 1024px) and (max-width: 1194px) and (orientation: landscape) {
-        .hero-content {
-          left: 4rem;
-          max-width: 550px;
-        }
-
-        .hero-title {
-          font-size: 3.5rem;
-        }
-
-        .carousel-container {
-          bottom: 2.5rem;
-          right: 3rem;
-        }
-
-        .carousel-card {
-          min-width: 170px;
-          width: 180px;
-        }
-      }
-
-      /* ===== FIX FOR MODAL POPUPS ON TABLET ===== */
-      @media (min-width: 768px) and (max-width: 1024px) {
-        .modal-popup-content {
-          max-width: 600px;
-          width: 90%;
-        }
-
-        .country-grid-popup {
-          grid-template-columns: repeat(4, 1fr) !important;
-          gap: 0.75rem;
-        }
-
-        .country-popup-btn {
-          padding: 0.75rem 0.25rem;
-        }
-
-        .country-popup-btn span:first-child {
-          font-size: 1.8rem;
-        }
-
-        .input-popup {
-          padding: 0.9rem 1rem;
-          font-size: 0.95rem;
-        }
-
-        .btn-popup {
-          padding: 0.9rem;
-          font-size: 0.95rem;
-        }
-
-        /* Booking Modal for Tablet */
-        #bookingModal .bg-white {
-          max-width: 90%;
-          width: 800px;
-        }
-
-        #bookingModal .grid-cols-1.md\:grid-cols-2 {
-          grid-template-columns: 1fr !important;
-        }
-
-        .hotel-category-card {
-          margin-bottom: 1rem;
-        }
-
-        .hotels-section .grid-cols-1.md\:grid-cols-2 {
-          grid-template-columns: repeat(2, 1fr) !important;
-        }
-      }
-
-      /* ===== FIX FOR NAVIGATION ON TABLET ===== */
-      @media (min-width: 768px) and (max-width: 1024px) {
-        .nav-links {
-          display: flex !important;
-          gap: 0.25rem;
-        }
-
-        .nav-links li a {
-          padding: 0.6rem 1rem;
-          font-size: 0.85rem;
-        }
-
-        .login-btn-tropical {
-          padding: 0.5rem 1rem;
-          font-size: 0.85rem;
-        }
-
-        .mobile-menu-btn {
-          display: none !important;
-        }
-
-        .mobile-menu {
-          display: none !important;
-        }
-
-        /* Logo adjustment */
-        .logo-premium-s {
-          font-size: 2.4rem;
-        }
-
-        .logo-premium-amp {
-          font-size: 1.8rem;
-        }
-
-        .vintage-icon {
-          width: 55px;
-          height: 55px;
-        }
-      }
-
-      /* ===== FIX FOR GRID LAYOUTS ON TABLET ===== */
-      @media (min-width: 768px) and (max-width: 1024px) {
-        /* Timeline grid */
-        #about .grid.md\:grid-cols-3 {
-          grid-template-columns: repeat(3, 1fr) !important;
-        }
-
-        /* Core values grid */
-        #about .grid.md\:grid-cols-4 {
-          grid-template-columns: repeat(2, 1fr) !important;
-          gap: 1rem;
-        }
-
-        /* Footer grid */
-        footer .grid.md\:grid-cols-2.lg\:grid-cols-4 {
-          grid-template-columns: repeat(2, 1fr) !important;
-        }
-
-        /* Service buttons */
-        #serviceButtons {
-          grid-template-columns: repeat(2, 1fr) !important;
-        }
-      }
-
-      /* ===== FIX FOR TEXT SIZES ON TABLET ===== */
-      @media (min-width: 768px) and (max-width: 1024px) {
-        .section-title h2 {
-          font-size: 2.5rem;
-        }
-
-        .section-title p {
-          font-size: 1.1rem;
-        }
-
-        #about h2.text-4xl {
-          font-size: 2.2rem;
-        }
-
-        #about .text-xl {
-          font-size: 1.1rem;
-        }
-
-        .gradient-text {
-          font-size: inherit;
-        }
-
-        /* Mission/Vision cards */
-        #about .bg-\[\#076653\] h3 {
-          font-size: 1.3rem;
-        }
-
-        #about .bg-\[\#076653\] p {
-          font-size: 0.95rem;
-        }
-      }
     </style>
   </head>
   <body>
@@ -2592,12 +2023,12 @@
       <i class="fas fa-chevron-up"></i>
     </button>
 
-    <!-- Detail Modal (will be populated by tours.js) -->
+    <!-- Detail Modal -->
     <div id="detailModal" class="modal">
       <div class="modal-content" id="detailContent"></div>
     </div>
 
-    <!-- Success Modal (for booking confirmation) -->
+    <!-- Success Modal -->
     <div id="successModal" class="success-modal">
       <div class="success-content">
         <div class="success-icon">
@@ -2620,15 +2051,15 @@
     <!-- Notification -->
     <div id="notification" class="notification" style="display: none"></div>
 
-    <!-- ===== NAVBAR WITH IMAGE LOGO ===== -->
+    <!-- ===== NAVBAR ===== -->
     <nav class="tropical-nav-simple">
       <div class="nav-container">
-        <!-- IMAGE-BASED LOGO - Option 3 -->
         <div class="flex items-center gap-2">
           <img
             src="./assets/images/llll.png"
             alt="S&S Travel"
             class="h-16 w-auto"
+            onerror="this.style.display = 'none'"
           />
           <span class="text-xl font-bold text-white hidden sm:inline"
             >S&S Travel</span
@@ -2655,19 +2086,15 @@
         </ul>
 
         <div class="nav-right">
-          <!-- LOGIN BUTTON -->
           <a href="login.html" class="login-btn-tropical" id="loginButton">
             <i class="fas fa-sign-in-alt"></i> <span>Login</span>
           </a>
-
-          <!-- Mobile Menu Button -->
           <div class="mobile-menu-btn" onclick="toggleMobileMenu()">
             <span></span><span></span><span></span>
           </div>
         </div>
       </div>
 
-      <!-- Mobile Menu -->
       <div class="mobile-menu" id="mobileMenu">
         <a href="#home" onclick="toggleMobileMenu()"
           ><i class="fas fa-home"></i> Home</a
@@ -2735,9 +2162,7 @@
           </p>
         </div>
 
-        <!-- FILTER BUTTONS CONTAINER - Add this -->
         <div id="filterButtons" class="mb-8"></div>
-
         <div id="loadingSpinner" class="loading-spinner"></div>
         <div class="destinations-grid" id="destinationsGrid"></div>
         <div id="errorMessage" class="error-message" style="display: none">
@@ -2751,7 +2176,6 @@
       <div
         class="bg-white/90 backdrop-blur-sm border border-white/30 shadow-2xl rounded-3xl p-8 md:p-12 relative overflow-hidden"
       >
-        <!-- Decorative Elements -->
         <div
           class="absolute top-0 left-0 w-64 h-64 bg-[#076653]/5 rounded-full -translate-x-32 -translate-y-32"
         ></div>
@@ -2759,7 +2183,6 @@
           class="absolute bottom-0 right-0 w-64 h-64 bg-[#f97316]/5 rounded-full translate-x-32 translate-y-32"
         ></div>
 
-        <!-- Welcome Screen -->
         <div id="serviceWelcomeScreen" class="text-center mb-12 relative z-10">
           <div
             class="inline-flex items-center justify-center w-20 h-20 bg-[#076653]/10 rounded-full mb-6"
@@ -2775,12 +2198,10 @@
           </p>
         </div>
 
-        <!-- Service Buttons - REMOVED ALL ONCLICK ATTRIBUTES -->
         <div
           id="serviceButtons"
           class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto relative z-10"
         >
-          <!-- Visa Assistance - NO ONCLICK -->
           <div
             class="group bg-white rounded-2xl p-8 text-center shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer border-2 border-transparent hover:border-[#f97316]"
             id="visaCard"
@@ -2812,7 +2233,6 @@
             </div>
           </div>
 
-          <!-- Ferry Assistance - NO ONCLICK -->
           <div
             class="group bg-white rounded-2xl p-8 text-center shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer border-2 border-transparent hover:border-[#f97316]"
             id="ferryCard"
@@ -2845,7 +2265,6 @@
           </div>
         </div>
 
-        <!-- Hidden original forms -->
         <div
           id="visaFormContainer"
           class="visa-form"
@@ -2871,7 +2290,7 @@
       </div>
     </section>
 
-    <!-- VISA MODAL POPUP -->
+    <!-- VISA MODAL -->
     <div id="visaModal" class="modal-popup">
       <div class="modal-popup-content">
         <div class="modal-popup-header">
@@ -2890,14 +2309,11 @@
             </div>
           </div>
         </div>
-
         <div class="modal-popup-body">
           <p class="text-gray-600 mb-4 text-center">
             Select your destination country
           </p>
-
           <div class="country-grid-popup" id="visaCountryGrid"></div>
-
           <div
             id="visaRequirementsBox"
             class="requirements-popup"
@@ -2911,7 +2327,6 @@
             </h4>
             <ul id="visaRequirementsList" class="text-sm space-y-2"></ul>
           </div>
-
           <form id="visaModalForm">
             <input
               type="text"
@@ -2951,7 +2366,7 @@
       </div>
     </div>
 
-    <!-- FERRY MODAL POPUP -->
+    <!-- FERRY MODAL -->
     <div id="ferryModal" class="modal-popup">
       <div class="modal-popup-content">
         <div
@@ -2973,7 +2388,6 @@
             </div>
           </div>
         </div>
-
         <div class="modal-popup-body">
           <div
             class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-6 border-l-4 border-[#076653]"
@@ -2998,7 +2412,6 @@
               </div>
             </div>
           </div>
-
           <form id="ferryModalForm">
             <input
               type="text"
@@ -3055,19 +2468,18 @@
         </div>
       </div>
     </div>
-    <!-- ===== ABOUT SECTION (MERGED - SIMPLE + TIMELINE + CORE VALUES) ===== -->
+
+    <!-- ===== ABOUT SECTION ===== -->
     <section id="about" class="max-w-7xl mx-auto px-4 sm:px-6 py-20">
       <div
         class="bg-white/90 backdrop-blur-sm border border-white/30 shadow-2xl rounded-3xl p-8 md:p-12 relative overflow-hidden"
       >
-        <!-- SIMPLE PART -->
         <div class="text-center mb-16" data-aos="fade-up">
           <div class="inline-block px-6 py-2 rounded-full bg-[#076653]/10 mb-6">
             <span class="text-[#076653] font-semibold text-sm tracking-wider"
               >ABOUT US</span
             >
           </div>
-
           <div class="text-5xl md:text-6xl font-bold mb-2">
             <span class="text-[#076653]">S&S</span>
           </div>
@@ -3076,20 +2488,16 @@
           >
             TRAVELERS AND TOURS
           </div>
-
           <h2 class="text-3xl md:text-4xl font-bold mb-6">
             <span class="gradient-text">Vision & Mission</span>
           </h2>
-
           <p class="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto mb-12">
             We are the Company that put you first <br />and <br />
             SHOT BEFORE WE FLIGHT
           </p>
         </div>
 
-        <!-- Mission & Vision Cards -->
         <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-20">
-          <!-- Mission Card -->
           <div
             class="bg-[#076653] rounded-2xl p-8 text-white hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
             data-aos="fade-right"
@@ -3110,8 +2518,6 @@
               </div>
             </div>
           </div>
-
-          <!-- Vision Card -->
           <div
             class="bg-[#076653] rounded-2xl p-8 text-white hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
             data-aos="fade-left"
@@ -3134,10 +2540,8 @@
           </div>
         </div>
 
-        <!-- DIVIDER -->
         <div class="border-t-2 border-gray-200 my-16 opacity-30"></div>
 
-        <!-- TIMELINE -->
         <div class="text-center mb-16" data-aos="fade-up">
           <div class="inline-block px-6 py-2 rounded-full bg-[#076653]/10 mb-6">
             <span class="text-[#076653] font-semibold text-sm tracking-wider"
@@ -3152,13 +2556,11 @@
           </p>
         </div>
 
-        <!-- TIMELINE GRID -->
         <div
           class="grid md:grid-cols-3 lg:grid-cols-5 gap-6 mb-20"
           data-aos="fade-up"
           data-aos-delay="100"
         >
-          <!-- 2010 -->
           <div
             class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-100 relative group"
           >
@@ -3180,7 +2582,6 @@
               </p>
             </div>
           </div>
-          <!-- 2015 -->
           <div
             class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-100 relative group"
           >
@@ -3201,7 +2602,6 @@
               </p>
             </div>
           </div>
-          <!-- 2020 -->
           <div
             class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-100 relative group"
           >
@@ -3222,7 +2622,6 @@
               </p>
             </div>
           </div>
-          <!-- 2024 -->
           <div
             class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-100 relative group"
           >
@@ -3243,7 +2642,6 @@
               </p>
             </div>
           </div>
-          <!-- 2026 -->
           <div
             class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-100 relative group"
           >
@@ -3266,10 +2664,8 @@
           </div>
         </div>
 
-        <!-- DIVIDER -->
         <div class="border-t-2 border-gray-200 my-16 opacity-30"></div>
 
-        <!-- CORE VALUES -->
         <div class="text-center mb-12" data-aos="fade-up">
           <div class="inline-block px-6 py-2 rounded-full bg-[#076653]/10 mb-4">
             <span class="text-[#076653] font-semibold text-sm tracking-wider"
@@ -3344,9 +2740,7 @@
     <!-- ===== FOOTER ===== -->
     <footer class="bg-[#076653] text-white pt-20 pb-8">
       <div class="max-w-7xl mx-auto px-4 sm:px-6">
-        <!-- Main Footer Content -->
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-10 mb-16">
-          <!-- Company Info -->
           <div>
             <div class="flex items-center gap-3 mb-6">
               <div class="flex flex-col">
@@ -3362,25 +2756,20 @@
               <a
                 href="#"
                 class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-[#ffd700] hover:text-[#076653] transition-all"
-              >
-                <i class="fab fa-facebook-f"></i>
-              </a>
+                ><i class="fab fa-facebook-f"></i
+              ></a>
               <a
                 href="#"
                 class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-[#ffd700] hover:text-[#076653] transition-all"
-              >
-                <i class="fab fa-instagram"></i>
-              </a>
+                ><i class="fab fa-instagram"></i
+              ></a>
               <a
                 href="#"
                 class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-[#ffd700] hover:text-[#076653] transition-all"
-              >
-                <i class="fab fa-twitter"></i>
-              </a>
+                ><i class="fab fa-twitter"></i
+              ></a>
             </div>
           </div>
-
-          <!-- Quick Links -->
           <div>
             <h3 class="text-xl font-bold mb-6 relative inline-block">
               Quick Links
@@ -3419,8 +2808,6 @@
               </li>
             </ul>
           </div>
-
-          <!-- Support -->
           <div>
             <h3 class="text-xl font-bold mb-6 relative inline-block">
               Support
@@ -3452,8 +2839,6 @@
               </li>
             </ul>
           </div>
-
-          <!-- Contact -->
           <div>
             <h3 class="text-xl font-bold mb-6 relative inline-block">
               Contact
@@ -3463,8 +2848,8 @@
             </h3>
             <ul class="space-y-4">
               <li class="flex items-start gap-3">
-                <i class="fas fa-map-marker-alt text-[#ffd700] mt-1"></i>
-                <span class="text-white/80 text-sm">Lamut, Ifugao</span>
+                <i class="fas fa-map-marker-alt text-[#ffd700] mt-1"></i
+                ><span class="text-white/80 text-sm">Lamut, Ifugao</span>
               </li>
               <li class="flex items-start gap-3">
                 <i class="fas fa-phone text-[#ffd700] mt-1"></i>
@@ -3474,14 +2859,14 @@
                 </div>
               </li>
               <li class="flex items-start gap-3">
-                <i class="fas fa-envelope text-[#ffd700] mt-1"></i>
-                <span class="text-white/80 text-sm">info@snstravelers.com</span>
+                <i class="fas fa-envelope text-[#ffd700] mt-1"></i
+                ><span class="text-white/80 text-sm"
+                  >info@snstravelers.com</span
+                >
               </li>
             </ul>
           </div>
         </div>
-
-        <!-- Copyright -->
         <div class="border-t border-white/20 pt-8 text-center">
           <p class="text-white/60 text-sm">
             © 2026 S&S Travelers and Tours. All rights reserved.
@@ -3490,7 +2875,7 @@
       </div>
     </footer>
 
-    <!-- Scripts - Tamang order para maiwasan ang conflict -->
+    <!-- Scripts -->
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="./assets/js/config.js"></script>
     <script src="./assets/js/supabase-client.js"></script>
@@ -3499,24 +2884,19 @@
     <script src="./assets/js/navigation.js"></script>
     <script src="./assets/js/carousel.js"></script>
     <script src="./assets/js/tours.js"></script>
-
-    <!-- SERVICES MUNA bago ang visa at ferry -->
     <script src="./assets/js/services.js"></script>
     <script src="./assets/js/visaassistance.js"></script>
     <script src="./assets/js/ferryassistance.js"></script>
     <script src="./assets/js/main.js"></script>
 
     <script>
-      // ===== MOBILE MENU FIX =====
       function toggleMobileMenu() {
         const menu = document.getElementById("mobileMenu");
         const btn = document.querySelector(".mobile-menu-btn");
-
         menu.classList.toggle("active");
         btn.classList.toggle("active");
       }
 
-      // Close menu when clicking links
       document.querySelectorAll(".mobile-menu a").forEach((link) => {
         link.addEventListener("click", function () {
           document.getElementById("mobileMenu").classList.remove("active");
@@ -3524,7 +2904,6 @@
         });
       });
 
-      // ===== BACK TO TOP =====
       const backToTop = document.getElementById("backToTop");
       window.addEventListener("scroll", () => {
         if (window.scrollY > 300) {
@@ -3538,10 +2917,8 @@
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
 
-      // ===== INITIALIZE AOS =====
       AOS.init({ duration: 800, once: true });
 
-      // ===== SUCCESS MODAL FUNCTION =====
       window.closeSuccessModal = function () {
         const modal = document.getElementById("successModal");
         if (modal) modal.classList.remove("active");
@@ -3559,7 +2936,9 @@
         }
       };
 
-      console.log("✅ index.html loaded - Visa & Ferry managers ready");
+      console.log(
+        "✅ COMPLETE FIX: HERO IMAGE HINDI PUTOL, CAROUSEL SA BOTTOM RIGHT, ISA LANG SCROLLBAR!",
+      );
     </script>
   </body>
 </html>

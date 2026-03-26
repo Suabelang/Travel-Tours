@@ -1,86 +1,11 @@
 // assets/js/modules/bookings/booking-email.js
-// Enhanced email functions with ALL booking details and payment info
+// Enhanced email functions with ALL booking details and per-pax calculations
 
-console.log("📧 Booking Email loaded - Enhanced");
+console.log("📧 Booking Email loaded - Enhanced with Per-Pax Calculations");
 
 // Ensure supabase is available
 if (typeof supabase === "undefined" && typeof window.supabase !== "undefined") {
   var supabase = window.supabase;
-}
-
-// Hardcoded Payment Information
-const PAYMENT_INFO = {
-  banks: [
-    {
-      name: "BDO",
-      accountName: "PINOY TRAVEL BIZ GROUP INC.",
-      branch: "JAS ANTIPOLO",
-      accountNumber: "001080129756",
-      swiftCode: "BNORPHMMXXX",
-    },
-    {
-      name: "Security Bank",
-      accountName: "PINOY TRAVEL BIZ GROUP INC.",
-      branch: "UST BRANCH",
-      accountNumber: "0000071352913",
-      swiftCode: null,
-    },
-    {
-      name: "BPI",
-      accountName: "PINOY TRAVEL BIZ GROUP INC.",
-      branch: "MASANGKAY",
-      accountNumber: "4100 009647",
-      swiftCode: "BOPIPHMM",
-    },
-  ],
-  creditCardFee: "4.5% + ₱200 on Total Bill",
-  contactNumbers: ["09171672200", "09178662022", "09176501100"],
-  note: "After payment, immediately forward the Proof of Payment or the Deposit Slip for verification",
-};
-
-// Get payment info HTML
-function getPaymentInfoHTML() {
-  let banksHtml = "";
-  PAYMENT_INFO.banks.forEach((bank) => {
-    banksHtml += `
-            <div style="margin-bottom: 15px;">
-                <h4 style="margin: 0 0 8px 0; color: #2c3e50;">🏦 ${bank.name}</h4>
-                <p style="margin: 0 0 5px 0;"><strong>Account Name:</strong> ${bank.accountName}</p>
-                <p style="margin: 0 0 5px 0;"><strong>Branch:</strong> ${bank.branch}</p>
-                <p style="margin: 0 0 5px 0;"><strong>Account Number:</strong> ${bank.accountNumber}</p>
-                ${bank.swiftCode ? `<p style="margin: 0 0 5px 0;"><strong>SWIFT Code:</strong> ${bank.swiftCode}</p>` : ""}
-            </div>
-        `;
-  });
-
-  return `
-        <div class="payment-info" style="background: #fff3e0; border: 1px solid #ffd966; border-radius: 12px; padding: 20px; margin: 20px 0;">
-            <h3 style="margin: 0 0 15px 0; color: #b45f06; border-left: 4px solid #f39c12; padding-left: 12px;">💰 Mode of Payments</h3>
-            ${banksHtml}
-            <div style="background: #fef9e6; padding: 12px; border-radius: 8px; margin: 15px 0;">
-                <p style="margin: 0; font-size: 13px;"><strong>💳 Credit Cards/Online Payments:</strong> Processing Fee: ${PAYMENT_INFO.creditCardFee}</p>
-            </div>
-            <div style="background: #e8f5e9; padding: 12px; border-radius: 8px; margin: 15px 0;">
-                <p style="margin: 0; font-size: 13px;"><strong>📝 Note:</strong> ${PAYMENT_INFO.note}</p>
-            </div>
-            <div style="margin-top: 15px;">
-                <h4 style="margin: 0 0 8px 0; color: #2c3e50;">📞 Contact Us:</h4>
-                <p style="margin: 0;">${PAYMENT_INFO.contactNumbers.join(" | ")}</p>
-            </div>
-        </div>
-    `;
-}
-
-// Confidential Note HTML
-function getConfidentialNoteHTML() {
-  return `
-        <div style="background: #fef2e0; border-left: 4px solid #e67e22; padding: 12px 16px; margin: 20px 0; border-radius: 8px;">
-            <p style="margin: 0; font-size: 11px; color: #e67e22;">
-                <strong>🔒 CONFIDENTIAL:</strong> This page is confidential between PINOY ONLINE TRAVEL BIZ and your agency. 
-                Please DO NOT send this to your client. Unauthorized sharing may result in revocation of access and termination of portal account.
-            </p>
-        </div>
-    `;
 }
 
 // Send email via edge function
@@ -130,14 +55,14 @@ window.sendEmail = async function ({
   }
 };
 
-// Get pax type label from booking data
+// Get pax type label from rate details
 function getPaxTypeLabel(booking) {
-  // First check if we have selected_pax_type stored
   if (booking.selected_pax_type) {
     return booking.selected_pax_type;
   }
-  // Check from selected_rate_details
+
   if (booking.selected_rate_details) {
+    // Extract pax type from selected_rate_details
     if (booking.selected_rate_details.includes("Solo")) return "Solo (1 pax)";
     if (booking.selected_rate_details.includes("2 Pax")) return "2 Pax";
     if (booking.selected_rate_details.includes("3 Pax")) return "3 Pax";
@@ -152,13 +77,46 @@ function getPaxTypeLabel(booking) {
     if (booking.selected_rate_details.includes("12 Pax")) return "12 Pax";
     if (booking.selected_rate_details.includes("Child")) return "Child";
   }
-  // Fallback to hotel_pax_count
-  const count = booking.hotel_pax_count || 1;
-  if (count === 1) return "Solo (1 pax)";
-  return `${count} Pax`;
+  return `${booking.hotel_pax_count || 1} Pax`;
 }
 
-// Generate comprehensive approval email HTML with ALL details
+// Helper function to calculate totals with per-pax multiplication
+function calculateBookingTotals(booking) {
+  // Hotel calculations
+  const hotelRatePerPax = booking.hotel_Rates_Selected || 0;
+  const hotelPaxCount = booking.hotel_pax_count || 1;
+  const hotelExtraNightPerPax = booking.hotel_extra_night_rate || 0;
+
+  const hotelBaseTotal = hotelRatePerPax * hotelPaxCount;
+  const hotelExtraTotal = hotelExtraNightPerPax * hotelPaxCount;
+  const hotelTotal = hotelBaseTotal + hotelExtraTotal;
+
+  // Optional tour calculations
+  const optionalTourRatePerPax = booking.optional_tour_rate_selected || 0;
+  const optionalTourPaxCount = booking.optional_tour_pax_count || hotelPaxCount;
+  const optionalTourTotal = optionalTourRatePerPax * optionalTourPaxCount;
+
+  // Totals
+  const subtotal = hotelTotal + optionalTourTotal;
+  const grandTotal =
+    subtotal + (booking.additional_fee || 0) - (booking.discount_amount || 0);
+
+  return {
+    hotelRatePerPax,
+    hotelPaxCount,
+    hotelBaseTotal,
+    hotelExtraNightPerPax,
+    hotelExtraTotal,
+    hotelTotal,
+    optionalTourRatePerPax,
+    optionalTourPaxCount,
+    optionalTourTotal,
+    subtotal,
+    grandTotal,
+  };
+}
+
+// Generate comprehensive approval email HTML with ALL details and per-pax breakdown
 function generateApprovalEmailHTML(booking) {
   const travelDates =
     booking.travel_dates
@@ -174,15 +132,67 @@ function generateApprovalEmailHTML(booking) {
   // Get pax type label
   const paxLabel = getPaxTypeLabel(booking);
 
-  // Calculate totals
-  const hotelTotal =
-    (booking.hotel_Rates_Selected || 0) + (booking.hotel_extra_night_rate || 0);
-  const optionalTotal = booking.optional_tour_total_amount || 0;
-  const subtotal = hotelTotal + optionalTotal;
-  const grandTotal =
-    subtotal + (booking.additional_fee || 0) - (booking.discount_amount || 0);
+  // Calculate totals with per-pax multiplication
+  const totals = calculateBookingTotals(booking);
 
-  // Format additional fees and discounts
+  // Format hotel rate display with per-pax breakdown
+  let hotelRateDisplay = "";
+  if (booking.hotel_Rates_Selected) {
+    hotelRateDisplay = `
+            <div class="price-breakdown-item">
+                <div class="price-row">
+                    <span>Hotel Rate (${totals.hotelPaxCount} pax × ₱${totals.hotelRatePerPax.toLocaleString()}):</span>
+                    <span>₱${totals.hotelBaseTotal.toLocaleString()}</span>
+                </div>
+                ${
+                  booking.hotel_extra_night_rate &&
+                  booking.hotel_extra_night_rate > 0
+                    ? `
+                <div class="price-row">
+                    <span>Extra Night Fee (${totals.hotelPaxCount} pax × ₱${totals.hotelExtraNightPerPax.toLocaleString()}):</span>
+                    <span>₱${totals.hotelExtraTotal.toLocaleString()}</span>
+                </div>
+                `
+                    : ""
+                }
+                <div class="price-row subtotal" style="border-top: 1px solid #e5e7eb; margin-top: 8px; padding-top: 8px;">
+                    <span><strong>Hotel Total:</strong></span>
+                    <span><strong>₱${totals.hotelTotal.toLocaleString()}</strong></span>
+                </div>
+            </div>
+        `;
+  }
+
+  // Format optional tour display
+  let optionalTourDisplay = "";
+  if (booking.optional_tour_name && totals.optionalTourTotal > 0) {
+    optionalTourDisplay = `
+            <div class="section">
+                <h3>🏝️ Optional Tour</h3>
+                <div class="detail-grid">
+                    <div><strong>Tour Name:</strong><br>${escapeHtml(booking.optional_tour_name)}</div>
+                    <div><strong>Number of Pax:</strong><br>${totals.optionalTourPaxCount} Pax</div>
+                    <div><strong>Rate per Pax:</strong><br>₱${totals.optionalTourRatePerPax.toLocaleString()}</div>
+                    <div><strong>Tour Total (${totals.optionalTourPaxCount} pax × ₱${totals.optionalTourRatePerPax.toLocaleString()}):</strong><br>₱${totals.optionalTourTotal.toLocaleString()}</div>
+                </div>
+            </div>
+        `;
+  }
+
+  // Format selected rate details
+  let selectedRateDisplay = "";
+  if (booking.selected_rate_details) {
+    selectedRateDisplay = `
+            <div class="section">
+                <h3>📋 Selected Rate Details</h3>
+                <div class="detail-box" style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                    ${booking.selected_rate_details}
+                </div>
+            </div>
+        `;
+  }
+
+  // Format additional fees and discounts with descriptions
   let additionalFeeDisplay = "";
   if (booking.additional_fee && booking.additional_fee > 0) {
     additionalFeeDisplay = `
@@ -327,12 +337,24 @@ function generateApprovalEmailHTML(booking) {
                     padding: 8px 0;
                     border-bottom: 1px solid #e5e7eb;
                 }
+                .price-row.subtotal {
+                    border-bottom: none;
+                    font-weight: 500;
+                }
+                .price-row.total {
+                    border-top: 2px solid #059669;
+                    border-bottom: none;
+                    margin-top: 12px;
+                    padding-top: 12px;
+                    font-weight: bold;
+                    font-size: 18px;
+                }
                 .total-amount {
                     background: linear-gradient(135deg, #059669 0%, #10b981 100%);
                     padding: 20px;
                     border-radius: 12px;
                     text-align: center;
-                    margin: 20px 0;
+                    margin-top: 20px;
                 }
                 .total-amount .label {
                     color: white;
@@ -353,6 +375,9 @@ function generateApprovalEmailHTML(booking) {
                     font-size: 12px; 
                     border-top: 1px solid #e5e7eb;
                 }
+                .footer p {
+                    margin: 5px 0;
+                }
                 .contact-info {
                     margin-top: 16px;
                     padding-top: 16px;
@@ -361,6 +386,10 @@ function generateApprovalEmailHTML(booking) {
                 @media (max-width: 480px) {
                     .detail-grid {
                         grid-template-columns: 1fr;
+                    }
+                    .container {
+                        margin: 0;
+                        border-radius: 0;
                     }
                 }
             </style>
@@ -372,8 +401,6 @@ function generateApprovalEmailHTML(booking) {
                     <p>Your travel adventure awaits</p>
                 </div>
                 <div class="content">
-                    ${getConfidentialNoteHTML()}
-                    
                     <div class="booking-ref">
                         <div class="label">Booking Reference</div>
                         <div class="value">${booking.booking_reference}</div>
@@ -411,78 +438,37 @@ function generateApprovalEmailHTML(booking) {
                         </div>
                     </div>
                     
-                    ${
-                      booking.selected_rate_details
-                        ? `
-                    <div class="section">
-                        <h3>📋 Selected Rate Details</h3>
-                        <div class="detail-box">
-                            ${escapeHtml(booking.selected_rate_details)}
-                        </div>
-                    </div>
-                    `
-                        : ""
-                    }
+                    ${optionalTourDisplay}
+                    ${selectedRateDisplay}
                     
                     <div class="section">
                         <h3>💰 Price Breakdown</h3>
                         <div class="price-breakdown">
-                            ${
-                              booking.hotel_Rates_Selected
-                                ? `
-                            <div class="price-row">
-                                <span>Hotel Rate:</span>
-                                <span>₱${Number(booking.hotel_Rates_Selected).toLocaleString()}</span>
-                            </div>
-                            `
-                                : ""
-                            }
-                            ${
-                              booking.hotel_extra_night_rate &&
-                              booking.hotel_extra_night_rate > 0
-                                ? `
-                            <div class="price-row">
-                                <span>Extra Night Fee:</span>
-                                <span>₱${Number(booking.hotel_extra_night_rate).toLocaleString()}</span>
-                            </div>
-                            `
-                                : ""
-                            }
+                            ${hotelRateDisplay}
                             ${
                               booking.optional_tour_total_amount &&
                               booking.optional_tour_total_amount > 0
                                 ? `
                             <div class="price-row">
-                                <span>Optional Tour:</span>
-                                <span>₱${Number(booking.optional_tour_total_amount).toLocaleString()}</span>
+                                <span>Optional Tour (${totals.optionalTourPaxCount} pax × ₱${totals.optionalTourRatePerPax.toLocaleString()}):</span>
+                                <span>₱${totals.optionalTourTotal.toLocaleString()}</span>
                             </div>
                             `
                                 : ""
                             }
                             ${additionalFeeDisplay}
                             ${discountDisplay}
-                        </div>
-                        <div class="total-amount">
-                            <div class="label">Total Amount</div>
-                            <div class="amount">₱${grandTotal.toLocaleString()}</div>
+                            <div class="price-row total">
+                                <span>Total Amount:</span>
+                                <span>₱${totals.grandTotal.toLocaleString()}</span>
+                            </div>
                         </div>
                     </div>
                     
-                    ${
-                      booking.optional_tour_name
-                        ? `
-                    <div class="section">
-                        <h3>🏝️ Optional Tour</h3>
-                        <div class="detail-grid">
-                            <div><strong>Tour Name:</strong><br>${escapeHtml(booking.optional_tour_name)}</div>
-                            <div><strong>Number of Pax:</strong><br>${paxLabel}</div>
-                            <div><strong>Rate per Pax:</strong><br>₱${Number(booking.optional_tour_rate_selected || 0).toLocaleString()}</div>
-                            <div><strong>Tour Total:</strong><br>₱${Number(booking.optional_tour_total_amount || 0).toLocaleString()}</div>
-                        </div>
+                    <div class="total-amount">
+                        <div class="label">Amount to be Paid</div>
+                        <div class="amount">₱${totals.grandTotal.toLocaleString()}</div>
                     </div>
-                    `
-                        : ""
-                    }
                     
                     ${
                       booking.special_requests
@@ -508,10 +494,14 @@ function generateApprovalEmailHTML(booking) {
                         : ""
                     }
                     
-                    ${getPaymentInfoHTML()}
-                    
                     <div class="contact-info">
                         <p>✨ Thank you for choosing SNS Travel & Tours! We look forward to making your journey unforgettable.</p>
+                        <p>📞 Need assistance? Contact us:<br>
+                        Phone: 09171672200<br>
+                        09178862022 <br>
+                        09176501100<br>
+                        Email: snstraveltours81@gmail.com<br>
+                        Address: KASSCO BUILDING, RIZAL AVENUE COR. CAVITE AND LICO STREETS, SANTA CRUZ, MANILA, 1014 METRO MANILA</p>
                     </div>
                 </div>
                 <div class="footer">
@@ -524,9 +514,8 @@ function generateApprovalEmailHTML(booking) {
     `;
 }
 
-// Generate payment confirmation HTML
+// Generate comprehensive payment confirmation HTML with full details and per-pax breakdown
 function generatePaymentConfirmationHTML(booking) {
-  const grandTotal = (booking.total_amount || 0).toLocaleString();
   const travelDates =
     booking.travel_dates
       ?.map((d) =>
@@ -539,6 +528,31 @@ function generatePaymentConfirmationHTML(booking) {
       .join(" → ") || "Not specified";
 
   const paxLabel = getPaxTypeLabel(booking);
+
+  // Calculate totals with per-pax multiplication
+  const totals = calculateBookingTotals(booking);
+
+  let additionalFeeDisplay = "";
+  if (booking.additional_fee && booking.additional_fee > 0) {
+    additionalFeeDisplay = `
+            <div class="price-row">
+                <span>Additional Fee:</span>
+                <span>₱${Number(booking.additional_fee).toLocaleString()}</span>
+            </div>
+            ${booking.additional_fee_description ? `<div style="font-size: 12px; color: #6b7280; margin-top: -5px; text-align: right;">(${escapeHtml(booking.additional_fee_description)})</div>` : ""}
+        `;
+  }
+
+  let discountDisplay = "";
+  if (booking.discount_amount && booking.discount_amount > 0) {
+    discountDisplay = `
+            <div class="price-row">
+                <span>Discount:</span>
+                <span>-₱${Number(booking.discount_amount).toLocaleString()}</span>
+            </div>
+            ${booking.discount_description ? `<div style="font-size: 12px; color: #6b7280; margin-top: -5px; text-align: right;">(${escapeHtml(booking.discount_description)})</div>` : ""}
+        `;
+  }
 
   return `
         <!DOCTYPE html>
@@ -556,7 +570,28 @@ function generatePaymentConfirmationHTML(booking) {
                 .amount { font-size: 36px; font-weight: bold; color: #059669; }
                 .booking-ref { background: #f9fafb; padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
                 .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+                .price-breakdown {
+                    background: #f9fafb;
+                    padding: 16px;
+                    border-radius: 12px;
+                    margin: 20px 0;
+                }
+                .price-row {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 8px 0;
+                    border-bottom: 1px solid #e5e7eb;
+                }
+                .price-row.total {
+                    border-top: 2px solid #059669;
+                    border-bottom: none;
+                    margin-top: 12px;
+                    padding-top: 12px;
+                    font-weight: bold;
+                    font-size: 18px;
+                }
                 .footer { background: #f9fafb; padding: 24px; text-align: center; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; }
+                .highlight { color: #059669; font-weight: bold; }
             </style>
         </head>
         <body>
@@ -566,20 +601,12 @@ function generatePaymentConfirmationHTML(booking) {
                     <p>Thank you for your payment</p>
                 </div>
                 <div class="content">
-                    ${getConfidentialNoteHTML()}
-                    
                     <p>Dear <strong>${escapeHtml(booking.client_name) || "Valued Customer"}</strong>,</p>
                     <p>We have successfully received your payment for the following booking:</p>
                     
                     <div class="booking-ref">
                         <strong>Booking Reference:</strong><br>
                         <span style="font-size: 20px; font-weight: bold; color: #059669;">${booking.booking_reference}</span>
-                    </div>
-                    
-                    <div class="amount-box">
-                        <div style="font-size: 14px; color: #065f46; margin-bottom: 8px;">Amount Paid</div>
-                        <div class="amount">₱${grandTotal}</div>
-                        <div style="font-size: 12px; margin-top: 8px;">${new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}</div>
                     </div>
                     
                     <div class="details-grid">
@@ -589,10 +616,54 @@ function generatePaymentConfirmationHTML(booking) {
                         <div><strong>Number of Pax:</strong><br>${paxLabel}</div>
                     </div>
                     
+                    <div class="price-breakdown">
+                        <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #1f2937;">💰 Price Breakdown</h3>
+                        <div class="price-row">
+                            <span>Hotel Rate (${totals.hotelPaxCount} pax × ₱${totals.hotelRatePerPax.toLocaleString()}):</span>
+                            <span>₱${totals.hotelBaseTotal.toLocaleString()}</span>
+                        </div>
+                        ${
+                          booking.hotel_extra_night_rate &&
+                          booking.hotel_extra_night_rate > 0
+                            ? `
+                        <div class="price-row">
+                            <span>Extra Night Fee (${totals.hotelPaxCount} pax × ₱${totals.hotelExtraNightPerPax.toLocaleString()}):</span>
+                            <span>₱${totals.hotelExtraTotal.toLocaleString()}</span>
+                        </div>
+                        `
+                            : ""
+                        }
+                        <div class="price-row">
+                            <span><strong>Hotel Subtotal:</strong></span>
+                            <span><strong>₱${totals.hotelTotal.toLocaleString()}</strong></span>
+                        </div>
+                        ${
+                          booking.optional_tour_total_amount &&
+                          booking.optional_tour_total_amount > 0
+                            ? `
+                        <div class="price-row">
+                            <span>Optional Tour (${totals.optionalTourPaxCount} pax × ₱${totals.optionalTourRatePerPax.toLocaleString()}):</span>
+                            <span>₱${totals.optionalTourTotal.toLocaleString()}</span>
+                        </div>
+                        `
+                            : ""
+                        }
+                        ${additionalFeeDisplay}
+                        ${discountDisplay}
+                        <div class="price-row total">
+                            <span>Total Amount Paid:</span>
+                            <span>₱${totals.grandTotal.toLocaleString()}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="amount-box">
+                        <div style="font-size: 14px; color: #065f46; margin-bottom: 8px;">Payment Confirmed</div>
+                        <div class="amount">₱${totals.grandTotal.toLocaleString()}</div>
+                        <div style="font-size: 12px; margin-top: 8px;">${new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}</div>
+                    </div>
+                    
                     <p>Your booking is now fully confirmed. We've attached the itinerary for your reference.</p>
                     <p>Safe travels and enjoy your journey with SNS Travel & Tours!</p>
-                    
-                    ${getPaymentInfoHTML()}
                 </div>
                 <div class="footer">
                     <p>SNS Travel & Tours - Your Trusted Travel Partner</p>
@@ -604,7 +675,7 @@ function generatePaymentConfirmationHTML(booking) {
     `;
 }
 
-// Generate rejection email HTML
+// Generate comprehensive rejection email HTML
 function generateRejectionEmailHTML(booking, reason) {
   const paxLabel = getPaxTypeLabel(booking);
 
@@ -632,8 +703,6 @@ function generateRejectionEmailHTML(booking, reason) {
                     <p>Important information about your booking</p>
                 </div>
                 <div class="content">
-                    ${getConfidentialNoteHTML()}
-                    
                     <div class="booking-ref">
                         <strong>Booking Reference:</strong><br>
                         <span style="font-size: 20px; font-weight: bold;">${booking.booking_reference}</span>
@@ -665,7 +734,8 @@ function generateRejectionEmailHTML(booking, reason) {
                     
                     <p>We apologize for any inconvenience this may cause and appreciate your understanding.</p>
                     
-                    <p>📞 Contact us: ${PAYMENT_INFO.contactNumbers.join(" | ")}</p>
+                    <p>📞 Contact us: 8180 4194 2015<br>
+                    📧 snstraveltours81.com</p>
                 </div>
                 <div class="footer">
                     <p>SNS Travel & Tours - Your Trusted Travel Partner</p>
@@ -784,7 +854,13 @@ window.sendPaymentConfirmation = async function (bookingId) {
     });
 
     if (result.success) {
-      await window.updatePaymentStatus(bookingId, "paid");
+      // Update payment status if needed
+      const { error } = await supabase
+        .from("b2b_bookings")
+        .update({ payment_status: "paid", paid_at: new Date().toISOString() })
+        .eq("id", bookingId);
+
+      if (error) throw error;
       console.log(`✅ Booking ${bookingId} marked as paid and email sent`);
     }
 
@@ -801,5 +877,5 @@ window.sendPaymentConfirmation = async function (bookingId) {
 };
 
 console.log(
-  "✅ Booking email loaded - Enhanced with payment info and all details",
+  "✅ Booking email loaded - Enhanced with per-pax calculations and detailed breakdowns",
 );

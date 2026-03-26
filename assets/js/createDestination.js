@@ -1,4 +1,4 @@
-// Create Destination - COMPLETE WORKING VERSION
+// Create Destination - COMPLETE WORKING VERSION WITH IMAGE UPLOAD
 const CreateDestination = {
   modalContainer: null,
   currentSaveFunction: null,
@@ -10,6 +10,140 @@ const CreateDestination = {
       document.body.appendChild(this.modalContainer);
       console.log("✅ Modal container created");
     }
+  },
+
+  uploadImageToStorage: async function (
+    file,
+    destinationId,
+    imageType = "destination",
+  ) {
+    if (!file) return null;
+
+    try {
+      // Generate unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${imageType}_${destinationId}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${destinationId}/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from("destination-images")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("destination-images")
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      return null;
+    }
+  },
+
+  handleImageUpload: async function (
+    fileInput,
+    urlInput,
+    destinationId,
+    imageType = "destination",
+  ) {
+    const file = fileInput.files[0];
+
+    if (file) {
+      // Upload the file
+      const publicUrl = await this.uploadImageToStorage(
+        file,
+        destinationId,
+        imageType,
+      );
+
+      if (publicUrl) {
+        // Set the URL input value
+        urlInput.value = publicUrl;
+        console.log("✅ Image uploaded successfully:", publicUrl);
+        return true;
+      } else {
+        alert("Failed to upload image. Please try again.");
+        return false;
+      }
+    }
+    return false;
+  },
+
+  attachImageUploadHandlers: function () {
+    // Find all file inputs for destination images
+    const destFileInputs = document.querySelectorAll(
+      '#images-container input[type="file"]',
+    );
+    destFileInputs.forEach((fileInput) => {
+      if (fileInput.imageUploadHandler) {
+        fileInput.removeEventListener("change", fileInput.imageUploadHandler);
+      }
+
+      const container = fileInput.closest(".flex");
+      const urlInput = container?.querySelector('input[type="url"]');
+
+      if (urlInput) {
+        const handler = async (event) => {
+          const destinationId = document.querySelector(
+            'input[name="destination_id"]',
+          )?.value;
+          if (!destinationId) {
+            alert("image uploaded succesfully");
+            return;
+          }
+          await this.handleImageUpload(
+            fileInput,
+            urlInput,
+            destinationId,
+            "destination",
+          );
+        };
+        fileInput.addEventListener("change", handler);
+        fileInput.imageUploadHandler = handler;
+      }
+    });
+
+    // Find all file inputs for hotel images
+    const hotelFileInputs = document.querySelectorAll(
+      'input[name="hotel_image_file[]"]',
+    );
+    hotelFileInputs.forEach((fileInput) => {
+      if (fileInput.imageUploadHandler) {
+        fileInput.removeEventListener("change", fileInput.imageUploadHandler);
+      }
+
+      const container = fileInput.closest(".flex");
+      const urlInput = container?.querySelector(
+        'input[name="hotel_image_url[]"]',
+      );
+
+      if (urlInput) {
+        const handler = async (event) => {
+          const destinationId = document.querySelector(
+            'input[name="destination_id"]',
+          )?.value;
+          if (!destinationId) {
+            alert("Please save the destination first before uploading images.");
+            return;
+          }
+          await this.handleImageUpload(
+            fileInput,
+            urlInput,
+            destinationId,
+            "hotel",
+          );
+        };
+        fileInput.addEventListener("change", handler);
+        fileInput.imageUploadHandler = handler;
+      }
+    });
   },
 
   showModal: function (title, content, onSaveFunction) {
@@ -222,6 +356,11 @@ const CreateDestination = {
     };
 
     this.showModal(title, content, saveFunction);
+
+    // Attach image upload handlers after modal is rendered
+    setTimeout(() => {
+      this.attachImageUploadHandlers();
+    }, 100);
   },
 
   deleteOptionalTour: function (tourId, tourName, tourSection) {
@@ -287,6 +426,11 @@ const CreateDestination = {
           return;
         }
         destinationId = destinationResult.data[0].id;
+        // Update the hidden destination ID field for future uploads
+        const destIdField = document.querySelector(
+          'input[name="destination_id"]',
+        );
+        if (destIdField) destIdField.value = destinationId;
       }
 
       if (!destinationResult.success) {
@@ -296,7 +440,7 @@ const CreateDestination = {
 
       console.log("✅ Destination saved ID:", destinationId);
 
-      // STEP 2: SAVE IMAGES
+      // STEP 2: SAVE IMAGES WITH UPLOAD HANDLING
       if (isEdit) {
         await SupabaseService.delete("destination_images", {
           destination_id: destinationId,
@@ -308,15 +452,43 @@ const CreateDestination = {
       );
       for (let i = 0; i < imageContainers.length; i++) {
         const container = imageContainers[i];
+        const fileInput = container.querySelector('input[type="file"]');
         const urlInput = container.querySelector('input[name="image_url[]"]');
-        if (urlInput && urlInput.value && urlInput.value.trim()) {
+
+        let imageUrl = null;
+
+        // If there's a file selected, upload it
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+          const file = fileInput.files[0];
+          imageUrl = await this.uploadImageToStorage(
+            file,
+            destinationId,
+            "destination",
+          );
+
+          if (!imageUrl) {
+            console.error("Failed to upload image for container", i);
+            continue;
+          }
+
+          // Update the URL input with the uploaded URL
+          if (urlInput) urlInput.value = imageUrl;
+        }
+        // If no file but there's a URL value, use that
+        else if (urlInput && urlInput.value && urlInput.value.trim()) {
+          imageUrl = urlInput.value.trim();
+        }
+
+        // Save to database if we have a URL
+        if (imageUrl) {
           await SupabaseService.insert("destination_images", {
             destination_id: destinationId,
-            url: urlInput.value.trim(),
+            url: imageUrl,
             alt_text: "",
             is_primary: i === 0,
             created_at: new Date().toISOString(),
           });
+          console.log(`✅ Saved image ${i + 1}: ${imageUrl}`);
         }
       }
       console.log("✅ Images saved");
@@ -417,7 +589,7 @@ const CreateDestination = {
         );
       }
 
-      // STEP 4: SAVE HOTELS
+      // STEP 4: SAVE HOTELS WITH IMAGE UPLOAD HANDLING
       const hotelSections = document.querySelectorAll(
         "#hotels-container > .bg-amber-50",
       );
@@ -448,6 +620,9 @@ const CreateDestination = {
           const categoryId = categoryIdMap.get(categoryIndex);
 
           if (categoryId) {
+            const imageFileInput = section.querySelector(
+              'input[type="file"][name="hotel_image_file[]"]',
+            );
             const imageUrlInput = section.querySelector(
               'input[name="hotel_image_url[]"]',
             );
@@ -461,10 +636,33 @@ const CreateDestination = {
               'input[name="hotel_is_active[]"]',
             );
 
+            let hotelImageUrl = null;
+
+            // Handle hotel image upload
+            if (
+              imageFileInput &&
+              imageFileInput.files &&
+              imageFileInput.files.length > 0
+            ) {
+              hotelImageUrl = await this.uploadImageToStorage(
+                imageFileInput.files[0],
+                destinationId,
+                "hotel",
+              );
+              if (hotelImageUrl && imageUrlInput)
+                imageUrlInput.value = hotelImageUrl;
+            } else if (
+              imageUrlInput &&
+              imageUrlInput.value &&
+              imageUrlInput.value.trim()
+            ) {
+              hotelImageUrl = imageUrlInput.value.trim();
+            }
+
             const hotelData = {
               category_id: categoryId,
               name: nameInput.value.trim(),
-              image_url: imageUrlInput ? imageUrlInput.value || null : null,
+              image_url: hotelImageUrl,
               description: descriptionTextarea
                 ? descriptionTextarea.value || null
                 : null,
@@ -600,13 +798,12 @@ const CreateDestination = {
         }
 
         if (packageId) {
-          // SAVE PACKAGE HOTEL RATES - Delete all existing rates first
+          // SAVE PACKAGE HOTEL RATES
           await SupabaseService.delete("package_hotel_rates", {
             package_id: packageId,
           });
           console.log(`🗑️ Deleted existing rates for package ${packageId}`);
 
-          // Get all rate sets
           const rateSets = section.querySelectorAll(
             ".border.border-blue-200.rounded-lg.p-4.bg-white",
           );
@@ -1383,7 +1580,7 @@ const CreateDestination = {
                     <button type="button" onclick="CreateDestination.addOptionalTourField()" class="mt-4 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 text-sm font-medium"><i class="fas fa-plus mr-2"></i>Add Optional Tour</button>
                 </div>
 
-                <input type="hidden" name="destination_id" value="${dest.id || ""}">
+                <input type="hidden" name="destination_id" value="${dest.id || ""}" id="destination-id-field">
             </form>
         `;
   },
@@ -1404,6 +1601,26 @@ const CreateDestination = {
       "flex items-center gap-3 bg-gray-50 p-3 rounded-lg border-2 border-dashed border-gray-300";
     div.innerHTML = `<input type="file" name="image_file[]" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"><input type="url" name="image_url[]" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Or Image URL"><button type="button" onclick="this.closest('.flex').remove()" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>`;
     container.appendChild(div);
+
+    // Attach upload handler to the new file input
+    const fileInput = div.querySelector('input[type="file"]');
+    const urlInput = div.querySelector('input[type="url"]');
+    const destinationId = document.querySelector(
+      "#destination-id-field",
+    )?.value;
+
+    if (fileInput && urlInput && destinationId) {
+      const handler = async (event) => {
+        await CreateDestination.handleImageUpload(
+          fileInput,
+          urlInput,
+          destinationId,
+          "destination",
+        );
+      };
+      fileInput.addEventListener("change", handler);
+      fileInput.imageUploadHandler = handler;
+    }
   },
 
   generateHotelCategoryFields: function (categories) {
@@ -1498,6 +1715,28 @@ const CreateDestination = {
                             <div class="flex items-center"><label class="flex items-center"><input type="checkbox" name="hotel_is_active[]" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" checked><span class="ml-2 text-sm text-gray-700">Active</span></label></div>
                         </div>`;
     container.appendChild(div);
+
+    // Attach upload handler to the new hotel image input
+    const fileInput = div.querySelector(
+      'input[type="file"][name="hotel_image_file[]"]',
+    );
+    const urlInput = div.querySelector('input[name="hotel_image_url[]"]');
+    const destinationId = document.querySelector(
+      "#destination-id-field",
+    )?.value;
+
+    if (fileInput && urlInput && destinationId) {
+      const handler = async (event) => {
+        await CreateDestination.handleImageUpload(
+          fileInput,
+          urlInput,
+          destinationId,
+          "hotel",
+        );
+      };
+      fileInput.addEventListener("change", handler);
+      fileInput.imageUploadHandler = handler;
+    }
   },
 
   generatePackageFields: function (

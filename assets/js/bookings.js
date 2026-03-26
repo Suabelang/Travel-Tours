@@ -112,7 +112,7 @@ window.renderBookingsTable = function () {
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
-                        <tr>
+                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Reference</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Client</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Destination</th>
@@ -122,7 +122,7 @@ window.renderBookingsTable = function () {
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Total</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Status</th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500">Actions</th>
-                        </tr>
+                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         ${bookings
@@ -666,32 +666,60 @@ window.openCreateBookingModal = async function () {
         console.log("Hotel calculation:", {
           paxType: selectedPaxType,
           paxCount: selectedPaxCount,
-          rateAmount: hotelRateAmount,
+          originalRateAmount: hotelRateAmount,
           extraNight: hotelExtraNight,
-          total: hotelRateAmount + hotelExtraNight,
+          calculatedTotal:
+            hotelRateAmount * selectedPaxCount +
+            hotelExtraNight * selectedPaxCount,
         });
       }
 
       // Get optional tour rate
       let optionalTourRateAmount = null;
       let optionalTourPaxType = "";
+      let optionalTourPaxCount = 1;
+
       if (optionalTourRateSelect.value && optionalTourSelect.value !== "") {
         const selectedOption =
           optionalTourRateSelect.options[optionalTourRateSelect.selectedIndex];
         optionalTourRateAmount = parseFloat(selectedOption.dataset.rate) || 0;
         optionalTourPaxType = selectedOption.dataset.label || "";
+
+        // Determine pax count for optional tour based on the selected type
+        if (optionalTourPaxType === "2 Pax") optionalTourPaxCount = 2;
+        else if (optionalTourPaxType === "3 Pax") optionalTourPaxCount = 3;
+        else if (optionalTourPaxType === "4 Pax") optionalTourPaxCount = 4;
+        else if (optionalTourPaxType === "Child") optionalTourPaxCount = 1;
+        else optionalTourPaxCount = 1; // Solo
+
         console.log(
           "Optional tour:",
           optionalTourRateAmount,
           optionalTourPaxType,
+          optionalTourPaxCount,
+          optionalTourRateAmount * optionalTourPaxCount,
         );
       }
 
-      // Simple addition: Hotel Rate + Extra Night + Optional Tour
-      const grandTotal =
-        (hotelRateAmount || 0) +
-        (hotelExtraNight || 0) +
-        (optionalTourRateAmount || 0);
+      // Calculate grand total with proper multiplication
+      // Hotel total = (rate per pax × number of pax) + (extra night per pax × number of pax)
+      const hotelTotal =
+        (hotelRateAmount || 0) * selectedPaxCount +
+        (hotelExtraNight || 0) * selectedPaxCount;
+
+      // Optional tour total = rate per pax × number of pax
+      const optionalTourTotal =
+        (optionalTourRateAmount || 0) * optionalTourPaxCount;
+
+      const grandTotal = hotelTotal + optionalTourTotal;
+
+      console.log("Final calculation:", {
+        hotelTotal: hotelTotal,
+        optionalTourTotal: optionalTourTotal,
+        grandTotal: grandTotal,
+        paxCount: selectedPaxCount,
+        optionalTourPaxCount: optionalTourPaxCount,
+      });
 
       // Upload ID picture
       let idPictureUrl = null;
@@ -754,7 +782,7 @@ window.openCreateBookingModal = async function () {
         optionalTourName = tour?.name;
       }
 
-      // Create booking with pax type
+      // Create booking with pax type and updated total calculation
       const bookingData = {
         booking_reference: bookingRef,
         destination_id: parseInt(destinationId),
@@ -785,17 +813,17 @@ window.openCreateBookingModal = async function () {
             ? parseInt(optionalTourSelect.value)
             : null,
         optional_tour_name: optionalTourName,
-        optional_tour_pax_count: selectedPaxCount,
+        optional_tour_pax_count: optionalTourPaxCount,
         optional_tour_pax_type: optionalTourPaxType,
         optional_tour_rate_selected: optionalTourRateAmount,
-        optional_tour_total_amount: optionalTourRateAmount,
+        optional_tour_total_amount: optionalTourTotal,
         status: "pending",
         payment_status: "unpaid",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
-      console.log("Creating booking:", bookingData);
+      console.log("Creating booking with correct total:", bookingData);
 
       const { error } = await supabase
         .from("b2b_bookings")
@@ -805,7 +833,7 @@ window.openCreateBookingModal = async function () {
         alert("Error: " + error.message);
       } else {
         alert(
-          `✅ Booking created!\nReference: ${bookingRef}\nTotal: ₱${grandTotal.toLocaleString()}\nPax: ${selectedPaxType}`,
+          `✅ Booking created!\nReference: ${bookingRef}\nPax: ${selectedPaxType}\nTotal: ₱${grandTotal.toLocaleString()}\n\nBreakdown:\n• Hotel (${selectedPaxCount} pax × ₱${hotelRateAmount?.toLocaleString() || 0}): ₱${hotelTotal.toLocaleString()}\n${hotelExtraNight > 0 ? `• Extra Night (${selectedPaxCount} pax × ₱${hotelExtraNight.toLocaleString()}): ₱${(hotelExtraNight * selectedPaxCount).toLocaleString()}\n` : ""}${optionalTourRateAmount > 0 ? `• Optional Tour (${optionalTourPaxCount} pax × ₱${optionalTourRateAmount.toLocaleString()}): ₱${optionalTourTotal.toLocaleString()}` : ""}`,
         );
         closeCreateModal();
         await window.fetchBookings();

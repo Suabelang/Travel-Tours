@@ -232,7 +232,7 @@
       .modal-popup-content {
         background: white;
         border-radius: 32px;
-        max-width: 500px;
+        max-width: 550px;
         width: 100%;
         max-height: 90vh;
         overflow-y: auto !important;
@@ -241,6 +241,7 @@
         animation: modalAppear 0.3s ease;
         scrollbar-width: none !important;
         -ms-overflow-style: none !important;
+        position: relative;
       }
 
       .modal-popup-content::-webkit-scrollbar {
@@ -248,6 +249,20 @@
         width: 0 !important;
         height: 0 !important;
         background: transparent !important;
+      }
+
+      .modal-popup-header {
+        background: linear-gradient(135deg, #076653, #0a8a6e);
+        padding: 24px;
+        border-radius: 32px 32px 0 0;
+        color: white;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .modal-popup-body {
+        padding: 24px;
       }
 
       .mobile-menu {
@@ -2290,183 +2305,14 @@
       </div>
     </section>
 
-    <!-- VISA MODAL -->
+    <!-- VISA MODAL - FIXED (EMPTY CONTAINER, JS WILL POPULATE) -->
     <div id="visaModal" class="modal-popup">
-      <div class="modal-popup-content">
-        <div class="modal-popup-header">
-          <button class="modal-popup-close" id="closeVisaModalBtn">✕</button>
-          <div class="flex items-center gap-4">
-            <div
-              class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-4xl"
-            >
-              🛂
-            </div>
-            <div>
-              <h3 class="text-2xl font-bold">Visa Assistance</h3>
-              <p class="text-white/80 text-sm">
-                We'll help you with your visa application
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="modal-popup-body">
-          <p class="text-gray-600 mb-4 text-center">
-            Select your destination country
-          </p>
-          <div class="country-grid-popup" id="visaCountryGrid"></div>
-          <div
-            id="visaRequirementsBox"
-            class="requirements-popup"
-            style="display: none"
-          >
-            <h4
-              id="visaSelectedCountry"
-              class="font-bold text-[#076653] mb-2 flex items-center gap-2"
-            >
-              <i class="fas fa-clipboard-list"></i><span>Requirements</span>
-            </h4>
-            <ul id="visaRequirementsList" class="text-sm space-y-2"></ul>
-          </div>
-          <form id="visaModalForm">
-            <input
-              type="text"
-              name="fullName"
-              placeholder="Full Name *"
-              class="input-popup"
-              required
-            />
-            <input
-              type="email"
-              name="email"
-              placeholder="Email Address *"
-              class="input-popup"
-              required
-            />
-            <input
-              type="tel"
-              name="phone"
-              placeholder="Phone Number *"
-              class="input-popup"
-              required
-            />
-            <div class="btn-group-popup">
-              <button
-                type="button"
-                class="btn-popup btn-outline-popup"
-                id="cancelVisaBtn"
-              >
-                Cancel
-              </button>
-              <button type="submit" class="btn-popup btn-primary-popup">
-                Submit
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+      <div class="modal-popup-content"></div>
     </div>
 
-    <!-- FERRY MODAL -->
+    <!-- FERRY MODAL - FIXED (EMPTY CONTAINER, JS WILL POPULATE) -->
     <div id="ferryModal" class="modal-popup">
-      <div class="modal-popup-content">
-        <div
-          class="modal-popup-header"
-          style="background: linear-gradient(135deg, #0e7a5c, #0a8a6e)"
-        >
-          <button class="modal-popup-close" id="closeFerryModalBtn">✕</button>
-          <div class="flex items-center gap-4">
-            <div
-              class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-4xl"
-            >
-              ⛴️
-            </div>
-            <div>
-              <h3 class="text-2xl font-bold">Ferry Assistance</h3>
-              <p class="text-white/80 text-sm">
-                We'll help you with your ferry travel
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="modal-popup-body">
-          <div
-            class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-6 border-l-4 border-[#076653]"
-          >
-            <div class="flex items-start gap-3">
-              <div
-                class="w-10 h-10 bg-[#076653] rounded-lg flex items-center justify-center text-white flex-shrink-0"
-              >
-                <i class="fas fa-ship"></i>
-              </div>
-              <div>
-                <h4 class="font-bold text-gray-800 mb-1">
-                  🚢 Boracay Ferry Route
-                </h4>
-                <p class="text-xs text-gray-600 mb-1">
-                  <span class="font-semibold">Route:</span> Batangas Pier →
-                  Caticlan Jetty Port
-                </p>
-                <p class="text-xs text-gray-600">
-                  <span class="font-semibold">Duration:</span> Approx. 9 hours
-                </p>
-              </div>
-            </div>
-          </div>
-          <form id="ferryModalForm">
-            <input
-              type="text"
-              name="fullName"
-              placeholder="Full Name *"
-              class="input-popup"
-              required
-            />
-            <input
-              type="email"
-              name="email"
-              placeholder="Email Address *"
-              class="input-popup"
-              required
-            />
-            <input
-              type="tel"
-              name="phone"
-              placeholder="Phone Number *"
-              class="input-popup"
-              required
-            />
-            <select name="route" class="input-popup" required>
-              <option value="">Select Ferry Route *</option>
-              <option value="boracay">🏖️ Boracay - Batangas to Caticlan</option>
-              <option value="palawan">
-                🏝️ Palawan - Manila to Puerto Princesa
-              </option>
-              <option value="cebu">🌊 Cebu - Manila to Cebu City</option>
-              <option value="mindoro">
-                ⛰️ Mindoro - Batangas to Puerto Galera
-              </option>
-            </select>
-            <textarea
-              name="inquiry"
-              placeholder="Your Inquiry *"
-              rows="3"
-              class="input-popup"
-              required
-            ></textarea>
-            <div class="btn-group-popup">
-              <button
-                type="button"
-                class="btn-popup btn-outline-popup"
-                id="cancelFerryBtn"
-              >
-                Cancel
-              </button>
-              <button type="submit" class="btn-popup btn-primary-popup">
-                Submit
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+      <div class="modal-popup-content"></div>
     </div>
 
     <!-- ===== ABOUT SECTION ===== -->
@@ -2936,9 +2782,70 @@
         }
       };
 
+      // Connect Visa and Ferry buttons to the managers
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("🔧 Connecting Visa & Ferry buttons...");
+
+        // Visa button
+        const visaBtn = document.getElementById("visaButton");
+        if (visaBtn && window.visaAssistanceManager) {
+          visaBtn.onclick = function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.visaAssistanceManager.openVisaModal();
+          };
+        }
+
+        // Ferry button
+        const ferryBtn = document.getElementById("ferryButton");
+        if (ferryBtn && window.ferryAssistanceManager) {
+          ferryBtn.onclick = function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.ferryAssistanceManager.openFerryModal();
+          };
+        }
+
+        // Visa card (for clicking the card itself)
+        const visaCard = document.getElementById("visaCard");
+        if (visaCard && window.visaAssistanceManager) {
+          visaCard.onclick = function (e) {
+            if (e.target.closest("#visaButton")) return;
+            window.visaAssistanceManager.openVisaModal();
+          };
+        }
+
+        // Ferry card
+        const ferryCard = document.getElementById("ferryCard");
+        if (ferryCard && window.ferryAssistanceManager) {
+          ferryCard.onclick = function (e) {
+            if (e.target.closest("#ferryButton")) return;
+            window.ferryAssistanceManager.openFerryModal();
+          };
+        }
+
+        // Override global close functions
+        window.closeVisaModal = function () {
+          if (window.visaAssistanceManager)
+            window.visaAssistanceManager.closeVisaModal();
+        };
+
+        window.closeFerryModal = function () {
+          if (window.ferryAssistanceManager)
+            window.ferryAssistanceManager.closeFerryModal();
+        };
+
+        console.log("✅ Visa & Ferry buttons connected!");
+      });
+
       console.log(
         "✅ COMPLETE FIX: HERO IMAGE HINDI PUTOL, CAROUSEL SA BOTTOM RIGHT, ISA LANG SCROLLBAR!",
       );
+      // Global function to close success modal
+      window.closeSuccessModal = function () {
+        const modal = document.getElementById("customSuccessModal");
+        if (modal) modal.remove();
+      };
     </script>
   </body>
 </html>

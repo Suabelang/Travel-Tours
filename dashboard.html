@@ -2,18 +2,22 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SNS Travel & Tours · Admin Dashboard</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"
+    />
+    <title>SNS Travel & Tours · Live Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
       rel="stylesheet"
     />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link
       rel="icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23076653'>🌴</text></svg>"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90' fill='%23076653'%3E🌴%3C/text%3E%3C/svg%3E"
     />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script>
       tailwind.config = {
         theme: {
@@ -31,92 +35,263 @@
                 800: "#166534",
                 900: "#14532d",
               },
-              secondary: {
-                50: "#ecfdf5",
-                100: "#d1fae5",
-                200: "#a7f3d0",
-                300: "#6ee7b7",
-                400: "#34d399",
-                500: "#10b981",
-                600: "#059669",
-                700: "#047857",
-                800: "#065f46",
-                900: "#064e3b",
-              },
             },
           },
         },
       };
     </script>
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
 
       * {
         font-family: "Inter", sans-serif;
       }
 
-      .sidebar-item {
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-      }
-
-      .sidebar-item::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        height: 100%;
-        width: 3px;
+      .mobile-sidebar-toggle {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
         background: linear-gradient(135deg, #22c55e, #15803d);
-        transform: scaleY(0);
-        transition: transform 0.3s ease;
+        width: 56px;
+        height: 56px;
+        border-radius: 28px;
+        box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+      }
+      .mobile-sidebar-toggle i {
+        font-size: 24px;
+        color: white;
       }
 
-      .sidebar-item:hover::before,
-      .sidebar-item.active::before {
-        transform: scaleY(1);
+      @media (max-width: 768px) {
+        .mobile-sidebar-toggle {
+          display: flex;
+        }
+        .sidebar-desktop {
+          position: fixed;
+          left: -100%;
+          top: 0;
+          height: 100vh;
+          z-index: 1001;
+          transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          width: 280px;
+        }
+        .sidebar-desktop.open {
+          left: 0;
+        }
+        .sidebar-overlay {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 1000;
+        }
+        .sidebar-overlay.active {
+          display: block;
+        }
+        .stats-grid-mobile {
+          grid-template-columns: 1fr !important;
+        }
+        .quick-actions-mobile {
+          grid-template-columns: 1fr !important;
+        }
       }
 
+      .sidebar-item {
+        transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        border-radius: 18px;
+        margin: 8px 12px;
+        background: white;
+        border: 1.5px solid #f0f2f5;
+      }
       .sidebar-item:hover {
-        background: rgba(34, 197, 94, 0.1);
-        padding-left: 1.5rem;
+        transform: translateX(6px);
+        background: #fafcff;
       }
-
-      .sidebar-item.active {
-        background: rgba(34, 197, 94, 0.15);
-        padding-left: 1.5rem;
+      .sidebar-item.active[data-page="dashboard"] {
+        background: linear-gradient(
+          115deg,
+          rgba(34, 197, 94, 0.12),
+          rgba(34, 197, 94, 0.04)
+        );
+        border: 2px solid #22c55e !important;
+      }
+      .sidebar-item.active[data-page="dashboard"] i {
+        color: #16a34a !important;
+      }
+      .sidebar-item.active[data-page="destinations"] {
+        background: linear-gradient(
+          115deg,
+          rgba(59, 130, 246, 0.12),
+          rgba(59, 130, 246, 0.04)
+        );
+        border: 2px solid #3b82f6 !important;
+      }
+      .sidebar-item.active[data-page="destinations"] i {
+        color: #2563eb !important;
+      }
+      .sidebar-item.active[data-page="bookings"] {
+        background: linear-gradient(
+          115deg,
+          rgba(245, 158, 11, 0.12),
+          rgba(245, 158, 11, 0.04)
+        );
+        border: 2px solid #f59e0b !important;
+      }
+      .sidebar-item.active[data-page="bookings"] i {
+        color: #d97706 !important;
       }
 
       .stat-card {
-        transition: all 0.3s ease;
-        border: 1px solid rgba(34, 197, 94, 0.1);
+        transition: all 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        background: white;
+        border-radius: 28px;
+        border: 1px solid rgba(34, 197, 94, 0.2);
+      }
+      .stat-card:hover {
+        transform: translateY(-5px);
+        border-color: #86efac;
       }
 
-      .stat-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 20px 25px -12px rgba(34, 197, 94, 0.2);
-        border-color: rgba(34, 197, 94, 0.3);
+      .gradient-number {
+        background: linear-gradient(135deg, #15803d, #22c55e, #4ade80);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+        font-size: 38px;
+      }
+
+      .stat-icon-box {
+        width: 58px;
+        height: 58px;
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .icon-emerald-bg {
+        background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+        border: 2px solid #10b981;
+      }
+      .icon-blue-bg {
+        background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        border: 2px solid #3b82f6;
+      }
+      .icon-amber-bg {
+        background: linear-gradient(135deg, #fffbeb, #fef3c7);
+        border: 2px solid #f59e0b;
+      }
+
+      .glass-panel {
+        background: rgba(255, 255, 255, 0.96);
+        border-radius: 28px;
+        border: 1px solid rgba(34, 197, 94, 0.2);
+      }
+
+      .premium-header {
+        background: white;
+        border-bottom: 2px solid transparent;
+        border-image: linear-gradient(90deg, #22c55e, #86efac, #15803d);
+        border-image-slice: 1;
       }
 
       .gradient-bg {
         background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
       }
 
-      ::-webkit-scrollbar {
+      .booking-list-item {
+        background: white;
+        border-radius: 22px;
+        border: 1px solid #eef2ff;
+        margin-bottom: 14px;
+      }
+      .booking-list-item:hover {
+        transform: translateX(8px);
+        border-left: 4px solid #22c55e;
+      }
+
+      .photo-action-card {
+        position: relative;
+        border-radius: 28px;
+        overflow: hidden;
+        background-size: cover;
+        background-position: center 30%;
+        cursor: pointer;
+        min-height: 180px;
+      }
+      .photo-action-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          125deg,
+          rgba(0, 0, 0, 0.55),
+          rgba(0, 0, 0, 0.35)
+        );
+        z-index: 1;
+      }
+      .photo-action-card:hover::before {
+        background: linear-gradient(
+          125deg,
+          rgba(34, 197, 94, 0.75),
+          rgba(34, 197, 94, 0.6)
+        );
+      }
+      .action-content {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        padding: 42px 20px;
+        color: white;
+      }
+      .action-content i {
+        font-size: 3rem;
+        margin-bottom: 12px;
+        display: block;
+      }
+
+      .live-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(34, 197, 94, 0.1);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        color: #16a34a;
+      }
+      .live-dot {
         width: 8px;
         height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 10px;
-      }
-      ::-webkit-scrollbar-thumb {
         background: #22c55e;
-        border-radius: 10px;
+        border-radius: 50%;
+        animation: pulse 1.5s infinite;
       }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #15803d;
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.5;
+          transform: scale(1.2);
+        }
+      }
+
+      .btn-3d-red {
+        transition: 0.15s linear;
+        box-shadow: 0 4px 0 #991b1b;
+        border-radius: 16px;
+      }
+      .btn-3d-red:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 7px 0 #991b1b;
       }
 
       @keyframes fadeInUp {
@@ -133,78 +308,118 @@
         animation: fadeInUp 0.5s ease-out;
       }
 
-      @keyframes modalEnter {
-        from {
-          opacity: 0;
-          transform: scale(0.95);
+      .bell-pulse {
+        position: relative;
+      }
+      .bell-pulse::after {
+        content: "";
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        width: 10px;
+        height: 10px;
+        background: #22c55e;
+        border-radius: 50%;
+        animation: pulseRing 1.5s infinite;
+      }
+      @keyframes pulseRing {
+        0% {
+          transform: scale(0.8);
+          opacity: 0.6;
         }
-        to {
-          opacity: 1;
-          transform: scale(1);
+        100% {
+          transform: scale(1.8);
+          opacity: 0;
         }
       }
-      .modal-enter {
-        animation: modalEnter 0.3s ease-out;
+
+      .table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .table-scroll table {
+        min-width: 800px;
+      }
+
+      /* Top-right toast animation */
+      .toast-top-right {
+        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      }
+      .toast-slide-down {
+        transform: translateY(-100%);
+      }
+      .toast-slide-down.show {
+        transform: translateY(0);
       }
     </style>
   </head>
-
   <body
-    class="bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 font-sans antialiased"
+    class="bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 antialiased"
   >
+    <div class="mobile-sidebar-toggle" id="mobileSidebarToggle">
+      <i class="fas fa-bars"></i>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <div class="min-h-screen flex">
-      <!-- Sidebar Navigation -->
       <aside
-        class="w-80 bg-white shadow-2xl border-r border-gray-100 flex flex-col"
+        class="sidebar-desktop w-80 bg-white shadow-2xl border-r border-gray-100 flex flex-col z-20"
+        id="sidebar"
       >
         <div class="p-6 flex-1">
           <div
-            class="flex items-center space-x-3 mb-8 pb-6 border-b border-gray-100"
+            class="flex items-center justify-between mb-8 pb-5 border-b border-emerald-100"
           >
-            <div
-              class="w-12 h-12 gradient-bg rounded-2xl flex items-center justify-center shadow-lg"
-            >
-              <i class="fas fa-plane-departure text-white text-xl"></i>
-            </div>
-            <div>
-              <h1
-                class="text-2xl font-bold tracking-tight bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent"
+            <div class="flex items-center space-x-3">
+              <div
+                class="w-12 h-12 gradient-bg rounded-2xl flex items-center justify-center shadow-lg"
               >
-                SNS Travel
-              </h1>
-              <p class="text-xs text-gray-500">& Tours</p>
+                <i class="fas fa-plane-departure text-white text-xl"></i>
+              </div>
+              <div>
+                <h1
+                  class="text-2xl font-black tracking-tight bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent"
+                >
+                  SNS Travel
+                </h1>
+                <p class="text-xs font-medium text-gray-500">& Tours · Live</p>
+              </div>
             </div>
+            <button
+              class="md:hidden text-gray-500 hover:text-gray-700"
+              id="closeMobileSidebar"
+            >
+              <i class="fas fa-times text-xl"></i>
+            </button>
           </div>
-
-          <nav class="space-y-2">
+          <nav class="space-y-1 mt-2">
             <a
               href="#"
               data-page="dashboard"
-              class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group active"
+              class="sidebar-item flex items-center space-x-3 px-5 py-3.5 transition-all duration-200 group active"
             >
-              <i class="fas fa-chart-pie w-5 text-primary-600"></i>
-              <span class="font-medium text-gray-700">Dashboard</span>
+              <i class="fas fa-chart-line w-5 text-gray-600 text-lg"></i>
+              <span class="font-semibold text-gray-800">Dashboard</span>
             </a>
             <a
               href="#"
               data-page="destinations"
-              class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group"
+              class="sidebar-item flex items-center space-x-3 px-5 py-3.5 transition-all duration-200 group"
             >
-              <i class="fas fa-map-marked-alt w-5 text-primary-600"></i>
-              <span class="font-medium text-gray-700">Destinations</span>
+              <i class="fas fa-umbrella-beach w-5 text-gray-600 text-lg"></i>
+              <span class="font-semibold text-gray-800">Destinations</span>
             </a>
             <a
               href="#"
               data-page="bookings"
-              class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group"
+              class="sidebar-item flex items-center space-x-3 px-5 py-3.5 transition-all duration-200 group"
             >
-              <i class="fas fa-calendar-check w-5 text-primary-600"></i>
-              <span class="font-medium text-gray-700">Bookings</span>
+              <i class="fas fa-ticket-alt w-5 text-gray-600 text-lg"></i>
+              <span class="font-semibold text-gray-800">Bookings</span>
             </a>
           </nav>
         </div>
-
-        <div class="p-6 border-t border-gray-100 bg-gray-50/30">
+        <div class="p-6 border-t border-gray-100 bg-gray-50/40">
           <div class="flex items-center space-x-3 mb-4">
             <div
               class="w-10 h-10 rounded-full gradient-bg flex items-center justify-center shadow-md"
@@ -213,7 +428,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <p
-                class="text-sm font-semibold text-gray-800 truncate"
+                class="text-sm font-extrabold text-gray-800 truncate"
                 id="user-name"
               >
                 Loading...
@@ -225,67 +440,70 @@
           </div>
           <button
             id="logout-btn"
-            class="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-white hover:bg-red-50 border border-gray-200 hover:border-red-200 text-gray-600 hover:text-red-600 rounded-lg transition-all duration-200 text-sm font-medium group"
+            class="w-full btn-3d-red flex items-center justify-center space-x-2 px-3 py-2.5 bg-gradient-to-r from-red-500 to-red-700 text-white rounded-xl text-sm font-semibold"
           >
-            <i
-              class="fas fa-sign-out-alt text-xs group-hover:translate-x-0.5 transition-transform"
-            ></i>
-            <span>Logout</span>
+            <i class="fas fa-sign-out-alt text-xs"></i><span>Logout</span>
           </button>
         </div>
       </aside>
 
-      <!-- Main Content Area -->
-      <div class="flex-1 flex flex-col overflow-hidden">
+      <div class="flex-1 flex flex-col overflow-hidden main-content-area">
         <header
-          class="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-40"
+          class="premium-header sticky top-0 z-30 bg-white/90 backdrop-blur-sm"
         >
-          <div class="px-8 py-5 flex items-center justify-between">
+          <div
+            class="px-4 md:px-8 py-4 md:py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+          >
             <div class="animate-fadeInUp">
-              <h2 class="text-2xl font-bold text-gray-800" id="page-title">
+              <h2
+                class="text-xl md:text-2xl font-black text-gray-800"
+                id="page-title"
+              >
                 Dashboard
               </h2>
-              <p class="text-sm text-gray-500 mt-1">
-                Welcome back! Here's what's happening today.
+              <p
+                class="text-xs md:text-sm text-gray-500 mt-0.5"
+                id="page-subtitle"
+              >
+                Live data - Auto refreshes in real-time
               </p>
             </div>
-
-            <div class="flex items-center space-x-4">
-              <div
-                class="hidden md:flex items-center text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100"
-              >
-                <i class="far fa-calendar-alt mr-2 text-primary-600"></i>
-                <span id="current-date" class="font-medium"></span>
+            <div
+              class="flex items-center justify-between md:justify-end space-x-4"
+            >
+              <div class="live-indicator">
+                <span class="live-dot"></span>
+                <span>LIVE</span>
               </div>
-
-              <button
-                class="relative text-gray-500 hover:text-primary-600 transition-colors"
+              <div
+                class="hidden sm:flex items-center text-sm bg-emerald-50/80 px-3 md:px-4 py-2 rounded-2xl border border-emerald-200"
               >
-                <i class="fas fa-bell text-xl"></i>
+                <i class="far fa-calendar-alt mr-2 text-emerald-600"></i>
                 <span
-                  class="absolute -top-1 -right-1 w-2 h-2 bg-primary-500 rounded-full animate-pulse"
+                  id="current-date"
+                  class="font-semibold text-gray-700 text-xs md:text-sm"
                 ></span>
-              </button>
+              </div>
+              <div class="relative bell-pulse cursor-pointer">
+                <i
+                  class="fas fa-bell text-gray-500 text-lg md:text-xl hover:text-emerald-500"
+                ></i>
+              </div>
             </div>
           </div>
         </header>
-
-        <main class="flex-1 overflow-y-auto p-8" id="main-content">
+        <main class="flex-1 overflow-y-auto p-4 md:p-8" id="main-content">
           <div class="flex items-center justify-center h-64">
             <div class="text-center">
               <div
                 class="animate-spin rounded-full h-12 w-12 border-4 border-primary-200 border-t-primary-600 mx-auto"
               ></div>
-              <p class="mt-4 text-gray-600 font-medium">Loading dashboard...</p>
+              <p class="mt-4 text-gray-600 font-medium">Loading live data...</p>
             </div>
           </div>
         </main>
       </div>
     </div>
-
-    <!-- ============================================= -->
-    <!-- SCRIPTS - MUST LOAD IN THIS ORDER WITH CACHE BUSTING -->
-    <!-- ============================================= -->
 
     <!-- 1. Core Config (defines SupabaseService and global helpers) -->
     <script src="../assets/js/config-admin.js?v=2"></script>
@@ -304,341 +522,534 @@
     <script src="../assets/js/bookings.js?v=3"></script>
 
     <script>
-      // =============================================
-      // NAVIGATION CONTROLLER
-      // =============================================
+      // ========== LIVE DATA MANAGER - ENHANCES WITHOUT BREAKING ==========
+      let liveSubscriptions = [];
+      let autoRefreshInterval = null;
 
-      const Navigation = {
-        currentPage: "dashboard",
+      const LiveDataManager = {
+        isInitialized: false,
 
-        init: function () {
-          console.log("🚀 Navigation initializing...");
-          console.log(
-            "✅ SupabaseService:",
-            typeof SupabaseService !== "undefined",
+        init() {
+          if (this.isInitialized) return;
+          if (!window.supabase) {
+            console.log("Waiting for Supabase...");
+            setTimeout(() => this.init(), 1000);
+            return;
+          }
+
+          console.log("🚀 Initializing live data subscriptions...");
+
+          // Subscribe to bookings table changes
+          const bookingsSub = window.supabase
+            .channel("bookings-live")
+            .on(
+              "postgres_changes",
+              { event: "*", schema: "public", table: "b2b_bookings" },
+              (payload) => {
+                console.log("📦 Booking change:", payload.eventType);
+                this.handleBookingChange(payload);
+              },
+            )
+            .subscribe();
+
+          // Subscribe to destinations table changes
+          const destinationsSub = window.supabase
+            .channel("destinations-live")
+            .on(
+              "postgres_changes",
+              { event: "*", schema: "public", table: "destinations" },
+              (payload) => {
+                console.log("📍 Destination change:", payload.eventType);
+                this.handleDestinationChange(payload);
+              },
+            )
+            .subscribe();
+
+          // Subscribe to packages table changes
+          const packagesSub = window.supabase
+            .channel("packages-live")
+            .on(
+              "postgres_changes",
+              { event: "*", schema: "public", table: "destination_packages" },
+              (payload) => {
+                console.log("📦 Package change:", payload.eventType);
+                this.handlePackageChange(payload);
+              },
+            )
+            .subscribe();
+
+          liveSubscriptions = [bookingsSub, destinationsSub, packagesSub];
+
+          // Auto-refresh fallback every 30 seconds
+          autoRefreshInterval = setInterval(() => {
+            this.refreshCurrentPage();
+          }, 30000);
+
+          this.isInitialized = true;
+          this.showToast(
+            "Live updates active! Data refreshes automatically",
+            "success",
           );
-          console.log("✅ Dashboard:", typeof Dashboard !== "undefined");
-          console.log("✅ Destinations:", typeof Destinations !== "undefined");
-          console.log(
-            "✅ initBookingsModule:",
-            typeof initBookingsModule !== "undefined",
-          );
-
-          this.bindSidebarNavigation();
-          this.loadUserInfo();
-          this.setupLogout();
-          this.setupNewBookingButton();
-          this.loadPage("dashboard");
         },
 
-        bindSidebarNavigation: function () {
-          const sidebarItems = document.querySelectorAll(".sidebar-item");
-
-          sidebarItems.forEach((item) => {
-            item.addEventListener("click", (e) => {
-              e.preventDefault();
-              const page = item.dataset.page;
-
-              sidebarItems.forEach((i) => i.classList.remove("active"));
-              item.classList.add("active");
-
-              this.loadPage(page);
-            });
-          });
+        handleBookingChange(payload) {
+          if (payload.eventType === "INSERT") {
+            this.showToast(
+              `✨ New booking: ${payload.new.booking_reference || "Booking created"}`,
+              "info",
+            );
+          }
+          // Refresh current page data
+          this.refreshCurrentPage();
         },
 
-        loadUserInfo: function () {
-          const userStr = sessionStorage.getItem("user");
-
-          if (userStr) {
-            try {
-              const user = JSON.parse(userStr);
-              const userNameElement = document.getElementById("user-name");
-              const userEmailElement = document.getElementById("user-email");
-
-              if (userNameElement)
-                userNameElement.textContent =
-                  user.name || user.email?.split("@")[0] || "Admin";
-              if (userEmailElement)
-                userEmailElement.textContent =
-                  user.email || "admin@travelb2b.com";
-            } catch (e) {
-              console.error("Error parsing user data:", e);
-              this.setDefaultUserInfo();
-            }
+        handleDestinationChange(payload) {
+          if (
+            Navigation.currentPage === "destinations" &&
+            typeof Destinations !== "undefined"
+          ) {
+            Destinations.loadStats();
+            Destinations.loadDestinations();
           } else {
-            this.setDefaultUserInfo();
+            this.refreshCurrentPage();
           }
         },
 
-        setDefaultUserInfo: function () {
-          const userNameElement = document.getElementById("user-name");
-          const userEmailElement = document.getElementById("user-email");
-          if (userNameElement) userNameElement.textContent = "Admin User";
-          if (userEmailElement)
-            userEmailElement.textContent = "admin@travelb2b.com";
-        },
-
-        setupLogout: function () {
-          const logoutBtn = document.getElementById("logout-btn");
-          if (logoutBtn) {
-            logoutBtn.addEventListener("click", () => {
-              if (confirm("Are you sure you want to log out?")) {
-                sessionStorage.clear();
-                this.showToast(
-                  "Logged out successfully! Redirecting...",
-                  "success",
-                );
-                setTimeout(() => {
-                  window.location.href = "./login.html";
-                }, 1500);
-              }
-            });
+        handlePackageChange(payload) {
+          if (
+            Navigation.currentPage === "destinations" &&
+            typeof Destinations !== "undefined"
+          ) {
+            Destinations.loadStats();
+            Destinations.loadDestinations();
           }
         },
 
-        setupNewBookingButton: function () {
-          const newBookingBtn = document.getElementById("newBookingHeaderBtn");
-          if (newBookingBtn) {
-            newBookingBtn.addEventListener("click", () => {
-              if (typeof window.openCreateBookingModal !== "undefined") {
-                window.openCreateBookingModal();
-              } else {
-                this.showToast(
-                  "Booking module not ready yet. Please try again.",
-                  "warning",
-                );
-              }
-            });
-          }
-        },
-
-        loadPage: function (page) {
-          this.currentPage = page;
-
-          const titles = {
-            dashboard: "Dashboard",
-            destinations: "Destinations Management",
-            bookings: "Bookings Management",
-          };
-
-          const subtitles = {
-            dashboard: "Overview of your travel business performance",
-            destinations: "Manage your travel destinations and packages",
-            bookings: "View and manage customer bookings",
-          };
-
-          const pageTitle = document.getElementById("page-title");
-          const pageSubtitle = document.querySelector("header p");
-
-          if (pageTitle) pageTitle.textContent = titles[page] || "Dashboard";
-          if (pageSubtitle)
-            pageSubtitle.textContent = subtitles[page] || "Welcome back!";
-
-          switch (page) {
-            case "dashboard":
-              if (typeof Dashboard !== "undefined") {
-                Dashboard.load();
-              } else {
-                this.loadFallback("dashboard");
-              }
-              break;
-            case "destinations":
-              if (typeof Destinations !== "undefined") {
-                Destinations.load();
-              } else {
-                this.loadFallback("destinations");
-              }
-              break;
-            case "bookings":
-              this.loadBookingsPage();
-              break;
-          }
-        },
-
-        loadBookingsPage: function () {
-          const content = document.getElementById("main-content");
-
-          if (typeof initBookingsModule !== "undefined") {
-            content.innerHTML = `
-                        <div class="flex items-center justify-center h-64">
-                            <div class="text-center">
-                                <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-200 border-t-primary-600 mx-auto"></div>
-                                <p class="mt-4 text-gray-600 font-medium">Loading bookings...</p>
-                            </div>
-                        </div>
-                    `;
-            initBookingsModule().catch((error) => {
-              console.error("Bookings module error:", error);
-              content.innerHTML = `
-                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                                <div class="text-center py-12">
-                                    <div class="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                                        <i class="fas fa-exclamation-triangle text-4xl text-red-600"></i>
-                                    </div>
-                                    <h3 class="text-2xl font-semibold text-gray-800 mb-2">Error Loading Bookings</h3>
-                                    <p class="text-gray-500 mb-6">${error.message || "Failed to load bookings module"}</p>
-                                    <button onclick="location.reload()" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-                                        Retry
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-            });
-          } else {
-            content.innerHTML = `
-                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                            <div class="text-center py-12">
-                                <i class="fas fa-calendar-check text-5xl text-gray-300 mb-4"></i>
-                                <h3 class="text-xl font-semibold text-gray-800 mb-2">Bookings Module</h3>
-                                <p class="text-gray-500">The bookings module is being loaded. Please wait...</p>
-                                <div class="mt-4">
-                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-
-            // Try to load dynamically
-            const script = document.createElement("script");
-            script.src = "../assets/js/modules/bookings.js?v=3";
-            script.onload = () => {
-              if (typeof initBookingsModule !== "undefined") {
-                initBookingsModule();
-              }
-            };
-            document.head.appendChild(script);
-          }
-        },
-
-        loadFallback: function (page) {
-          const content = document.getElementById("main-content");
+        refreshCurrentPage() {
+          const page = Navigation.currentPage;
           if (page === "dashboard") {
-            content.innerHTML = `
-                        <div class="animate-fadeInUp">
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                                <div class="stat-card bg-white rounded-2xl p-6 shadow-sm">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center"><i class="fas fa-calendar-check text-primary-600 text-xl"></i></div>
-                                        <span class="text-2xl font-bold text-gray-800">0</span>
-                                    </div>
-                                    <h3 class="text-gray-600 font-medium">Total Bookings</h3>
-                                </div>
-                                <div class="stat-card bg-white rounded-2xl p-6 shadow-sm">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center"><i class="fas fa-chart-line text-emerald-600 text-xl"></i></div>
-                                        <span class="text-2xl font-bold text-gray-800">₱0</span>
-                                    </div>
-                                    <h3 class="text-gray-600 font-medium">Total Revenue</h3>
-                                </div>
-                                <div class="stat-card bg-white rounded-2xl p-6 shadow-sm">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center"><i class="fas fa-box text-blue-600 text-xl"></i></div>
-                                        <span class="text-2xl font-bold text-gray-800">0</span>
-                                    </div>
-                                    <h3 class="text-gray-600 font-medium">Active Packages</h3>
-                                </div>
-                                <div class="stat-card bg-white rounded-2xl p-6 shadow-sm">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center"><i class="fas fa-map-marked-alt text-amber-600 text-xl"></i></div>
-                                        <span class="text-2xl font-bold text-gray-800">0</span>
-                                    </div>
-                                    <h3 class="text-gray-600 font-medium">Destinations</h3>
-                                </div>
-                            </div>
-                            <div class="bg-white rounded-2xl p-8 shadow-sm text-center">
-                                <i class="fas fa-chart-line text-5xl text-gray-300 mb-4"></i>
-                                <h3 class="text-lg font-medium text-gray-600">Dashboard Ready</h3>
-                                <p class="text-sm text-gray-500">Connect to Supabase to see real data</p>
-                            </div>
-                        </div>
-                    `;
-          } else if (page === "destinations") {
-            content.innerHTML = `
-                        <div class="bg-white rounded-2xl p-8 shadow-sm text-center">
-                            <i class="fas fa-map-marked-alt text-5xl text-gray-300 mb-4"></i>
-                            <h3 class="text-lg font-medium text-gray-600">Destinations Module</h3>
-                            <p class="text-sm text-gray-500">Loading destinations data...</p>
-                            <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Retry</button>
-                        </div>
-                    `;
+            this.refreshDashboardData();
+          } else if (
+            page === "bookings" &&
+            typeof window.fetchBookings === "function"
+          ) {
+            window
+              .fetchBookings()
+              .then(() => {
+                if (typeof window.renderBookingsTable === "function")
+                  window.renderBookingsTable();
+              })
+              .catch((e) => console.log("Bookings refresh error:", e));
+          } else if (
+            page === "destinations" &&
+            typeof Destinations !== "undefined"
+          ) {
+            Destinations.loadStats();
+            Destinations.loadDestinations();
           }
         },
 
-        showToast: function (message, type = "success") {
+        async refreshDashboardData() {
+          if (!window.supabase) return;
+          try {
+            const [
+              bookingsCount,
+              packagesCount,
+              destinationsCount,
+              recentBookings,
+            ] = await Promise.all([
+              window.supabase
+                .from("b2b_bookings")
+                .select("id", { count: "exact", head: true }),
+              window.supabase
+                .from("destination_packages")
+                .select("id", { count: "exact", head: true })
+                .eq("is_active", true),
+              window.supabase
+                .from("destinations")
+                .select("id", { count: "exact", head: true })
+                .eq("is_active", true),
+              window.supabase
+                .from("b2b_bookings")
+                .select("*")
+                .order("created_at", { ascending: false })
+                .limit(5),
+            ]);
+
+            const stats = {
+              totalBookings: bookingsCount.count || 0,
+              activePackages: packagesCount.count || 0,
+              destinations: destinationsCount.count || 0,
+            };
+            const recent = recentBookings.data || [];
+
+            this.updateDashboardUI(stats, recent);
+          } catch (error) {
+            console.error("Refresh error:", error);
+          }
+        },
+
+        updateDashboardUI(stats, recentBookings) {
+          const statsGrid = document.querySelector(
+            ".grid.grid-cols-1.md\\:grid-cols-3.gap-6",
+          );
+          if (statsGrid) {
+            const statValues = statsGrid.querySelectorAll(".gradient-number");
+            if (statValues.length >= 3) {
+              statValues[0].textContent = stats.totalBookings;
+              statValues[1].textContent = stats.activePackages;
+              statValues[2].textContent = stats.destinations;
+            }
+          }
+
+          const recentContainer = document.getElementById(
+            "recent-booking-list-ui",
+          );
+          if (recentContainer && recentBookings.length > 0) {
+            recentContainer.innerHTML = recentBookings
+              .map(
+                (b) => `
+                        <div class="booking-list-item p-4 flex flex-wrap items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white flex items-center justify-center font-bold shadow-sm">
+                                    ${(b.client_name || "G").charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <p class="font-black text-gray-800">${b.client_name || "Guest"}</p>
+                                    <p class="text-sm text-gray-500"><i class="fas fa-location-dot text-emerald-500 mr-1"></i>${b.category_name || "Destination"}</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-4 mt-2 sm:mt-0">
+                                <div class="text-right">
+                                    <p class="text-xs text-gray-400">${b.created_at ? new Date(b.created_at).toLocaleDateString() : "Recent"}</p>
+                                    <p class="font-bold text-emerald-700">₱${(Number(b.total_amount) || 0).toLocaleString()}</p>
+                                </div>
+                                <span class="px-3 py-1 text-xs rounded-full font-semibold ${b.status === "confirmed" ? "bg-green-100 text-green-700" : b.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}">
+                                    ${(b.status || "pending").toUpperCase()}
+                                </span>
+                            </div>
+                        </div>
+                    `,
+              )
+              .join("");
+          }
+        },
+
+        // ===== UPDATED: Toast appears at TOP RIGHT (not bottom right) =====
+        showToast(message, type = "success") {
           const toast = document.createElement("div");
-          toast.className = `fixed bottom-4 right-4 z-50 px-6 py-3 rounded-xl shadow-lg text-white ${
+          // Changed from bottom-4 to top-4 to show at top right corner
+          toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-xl shadow-lg text-white ${
             type === "success"
               ? "bg-gradient-to-r from-primary-600 to-primary-700"
-              : type === "error"
-                ? "bg-gradient-to-r from-red-500 to-red-600"
-                : type === "warning"
-                  ? "bg-gradient-to-r from-yellow-500 to-yellow-600"
-                  : "bg-gradient-to-r from-blue-500 to-blue-600"
-          } transform transition-all duration-300 translate-x-full`;
-          toast.innerHTML = `<i class="fas ${type === "success" ? "fa-check-circle" : type === "error" ? "fa-exclamation-circle" : "fa-info-circle"} mr-2"></i>${message}`;
+              : "bg-gradient-to-r from-blue-500 to-blue-600"
+          } transform transition-all duration-300 toast-top-right -translate-y-full opacity-0`;
+
+          toast.innerHTML = `<i class="fas ${type === "success" ? "fa-check-circle" : "fa-info-circle"} mr-2"></i>${message}`;
           document.body.appendChild(toast);
 
-          setTimeout(() => toast.classList.remove("translate-x-full"), 100);
+          // Animate in (slide down + fade)
           setTimeout(() => {
-            toast.classList.add("translate-x-full");
+            toast.classList.remove("-translate-y-full", "opacity-0");
+            toast.classList.add("translate-y-0", "opacity-100");
+          }, 10);
+
+          // Auto remove after 4 seconds with slide-up animation
+          setTimeout(() => {
+            toast.classList.remove("translate-y-0", "opacity-100");
+            toast.classList.add("-translate-y-full", "opacity-0");
             setTimeout(() => toast.remove(), 300);
-          }, 3000);
+          }, 4000);
+        },
+
+        cleanup() {
+          if (liveSubscriptions.length) {
+            liveSubscriptions.forEach((sub) => {
+              if (sub && sub.unsubscribe) sub.unsubscribe();
+            });
+            liveSubscriptions = [];
+          }
+          if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+          }
+          this.isInitialized = false;
         },
       };
 
-      // =============================================
-      // INITIALIZE DASHBOARD
-      // =============================================
+      // ========== MOBILE SIDEBAR ==========
+      const sidebar = document.getElementById("sidebar");
+      const toggleBtn = document.getElementById("mobileSidebarToggle");
+      const overlay = document.getElementById("sidebarOverlay");
+      const closeBtn = document.getElementById("closeMobileSidebar");
+
+      function openSidebar() {
+        if (sidebar) sidebar.classList.add("open");
+        if (overlay) overlay.classList.add("active");
+      }
+      function closeSidebar() {
+        if (sidebar) sidebar.classList.remove("open");
+        if (overlay) overlay.classList.remove("active");
+      }
+      if (toggleBtn) toggleBtn.addEventListener("click", openSidebar);
+      if (closeBtn) closeBtn.addEventListener("click", closeSidebar);
+      if (overlay) overlay.addEventListener("click", closeSidebar);
+      window.addEventListener("resize", () => {
+        if (window.innerWidth > 768 && sidebar?.classList.contains("open"))
+          closeSidebar();
+      });
+
+      // ========== NAVIGATION CONTROLLER - PRESERVES ORIGINAL MODULES ==========
+      const Navigation = {
+        currentPage: "dashboard",
+        init() {
+          this.bindSidebar();
+          this.loadUserInfo();
+          this.setupLogout();
+          this.updateDate();
+          this.loadPage("dashboard");
+          // Start live data after modules are loaded
+          setTimeout(() => LiveDataManager.init(), 2000);
+        },
+        bindSidebar() {
+          document.querySelectorAll(".sidebar-item").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              e.preventDefault();
+              const page = btn.dataset.page;
+              document
+                .querySelectorAll(".sidebar-item")
+                .forEach((i) => i.classList.remove("active"));
+              btn.classList.add("active");
+              this.loadPage(page);
+              if (window.innerWidth <= 768) closeSidebar();
+            });
+          });
+        },
+        updateDate() {
+          const el = document.getElementById("current-date");
+          if (el)
+            el.textContent = new Date().toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            });
+        },
+        loadUserInfo() {
+          const userStr = sessionStorage.getItem("user");
+          if (userStr) {
+            try {
+              const u = JSON.parse(userStr);
+              document.getElementById("user-name").innerText =
+                u.name || u.email?.split("@")[0] || "Admin";
+              document.getElementById("user-email").innerText =
+                u.email || "admin@travelb2b.com";
+            } catch (e) {
+              this.setDefault();
+            }
+          } else this.setDefault();
+        },
+        setDefault() {
+          document.getElementById("user-name").innerText = "Admin User";
+          document.getElementById("user-email").innerText =
+            "admin@travelb2b.com";
+        },
+        setupLogout() {
+          document
+            .getElementById("logout-btn")
+            ?.addEventListener("click", () => {
+              if (confirm("Logout?")) {
+                LiveDataManager.cleanup();
+                sessionStorage.clear();
+                window.location.href = "./login.html";
+              }
+            });
+        },
+        loadPage(page) {
+          this.currentPage = page;
+          const titles = {
+            dashboard: "Live Dashboard",
+            destinations: "Destinations Management",
+            bookings: "Bookings Management",
+          };
+          const subtitles = {
+            dashboard: "Real-time business performance - Auto updates",
+            destinations: "Manage your travel destinations",
+            bookings: "Live customer bookings",
+          };
+          document.getElementById("page-title").innerText = titles[page];
+          document.getElementById("page-subtitle").innerText = subtitles[page];
+
+          if (page === "dashboard") {
+            if (typeof Dashboard !== "undefined") Dashboard.load();
+            else this.loadFallback("dashboard");
+            setTimeout(() => {
+              this.enhanceDashboardUI();
+              LiveDataManager.refreshDashboardData();
+            }, 500);
+          } else if (page === "destinations") {
+            if (typeof Destinations !== "undefined") {
+              Destinations.load();
+            } else {
+              this.loadFallback("destinations");
+            }
+          } else if (page === "bookings") {
+            if (typeof initBookingsModule !== "undefined") {
+              initBookingsModule();
+            } else {
+              const content = document.getElementById("main-content");
+              content.innerHTML = `<div class="glass-panel p-8 text-center"><i class="fas fa-calendar-check text-5xl text-gray-300 mb-4"></i><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div><p class="mt-4">Loading live bookings...</p></div>`;
+              const script = document.createElement("script");
+              script.src = "../assets/js/modules/bookings.js?v=3";
+              script.onload = () => {
+                if (typeof initBookingsModule !== "undefined")
+                  initBookingsModule();
+              };
+              document.head.appendChild(script);
+            }
+          }
+        },
+        enhanceDashboardUI() {
+          const statsGrid = document.querySelector(
+            ".grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4.gap-6",
+          );
+          if (statsGrid) {
+            const cards = statsGrid.querySelectorAll(".stat-card");
+            if (cards.length === 4) {
+              cards[1].remove();
+              statsGrid.className =
+                "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8 stats-grid-mobile";
+            }
+          }
+          const statCards = document.querySelectorAll(".stat-card");
+          const iconStyles = [
+            {
+              bg: "icon-emerald-bg",
+              icon: "fa-calendar-check",
+              color: "text-emerald-600",
+            },
+            { bg: "icon-blue-bg", icon: "fa-boxes", color: "text-blue-600" },
+            {
+              bg: "icon-amber-bg",
+              icon: "fa-map-marked-alt",
+              color: "text-amber-600",
+            },
+          ];
+          statCards.forEach((card, idx) => {
+            if (idx < iconStyles.length) {
+              const iconDiv = card.querySelector(".w-12.h-12");
+              if (iconDiv) {
+                iconDiv.classList.remove(
+                  "bg-primary-100",
+                  "bg-emerald-100",
+                  "bg-blue-100",
+                  "bg-amber-100",
+                );
+                iconDiv.classList.add(iconStyles[idx].bg);
+                const icon = iconDiv.querySelector("i");
+                if (icon)
+                  icon.classList.remove(
+                    "text-primary-600",
+                    "text-emerald-600",
+                    "text-blue-600",
+                    "text-amber-600",
+                  );
+                if (icon) icon.classList.add(iconStyles[idx].color);
+              }
+              const numberSpan = card.querySelector(".text-2xl.font-bold");
+              if (numberSpan) {
+                numberSpan.classList.add("gradient-number");
+                numberSpan.classList.remove("text-gray-800");
+              }
+            }
+          });
+
+          const welcomeBanner = document.querySelector(
+            ".bg-gradient-to-r.from-primary-600.to-primary-800",
+          );
+          if (welcomeBanner) {
+            const innerDiv = welcomeBanner.querySelector(
+              ".flex.items-center.justify-between",
+            );
+            if (innerDiv)
+              innerDiv.innerHTML = `<div><h2 class="text-xl md:text-2xl font-bold mb-2">Welcome back, Admin! 👋</h2><p class="text-primary-100 text-sm md:text-base">Live dashboard - New bookings appear instantly</p></div><div class="hidden md:block"><i class="fas fa-charging-station text-5xl text-primary-200"></i></div>`;
+          }
+
+          document
+            .querySelectorAll(
+              ".bg-white.rounded-xl.shadow-sm.p-6.border.border-gray-100",
+            )
+            .forEach((c) => {
+              c.classList.add("glass-panel");
+              c.classList.remove("shadow-sm", "border", "border-gray-100");
+            });
+
+          const recentHeader = document.querySelector(".glass-panel h3");
+          if (
+            recentHeader &&
+            recentHeader.textContent &&
+            recentHeader.textContent.includes("Recent Bookings")
+          ) {
+            recentHeader.innerHTML =
+              '<i class="fas fa-clock text-primary-500 mr-2"></i>Recent Bookings';
+          }
+
+          const quickActions = document.querySelector(
+            ".grid.grid-cols-2.gap-4",
+          );
+          if (quickActions && quickActions.children.length >= 2) {
+            const btns = quickActions.querySelectorAll("button");
+            if (btns.length >= 2) {
+              btns[0].outerHTML = `<div class="photo-action-card" style="background-image: url('https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=600&h=350&fit=crop');"><div class="action-content"><i class="fas fa-map-marked-alt"></i><p class="text-lg md:text-xl font-bold">Explore Destinations</p><p class="text-xs opacity-90">Live availability</p></div></div>`;
+              btns[1].outerHTML = `<div class="photo-action-card" style="background-image: url('https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=600&h=350&fit=crop');"><div class="action-content"><i class="fas fa-calendar-plus"></i><p class="text-lg md:text-xl font-bold">New Booking</p><p class="text-xs opacity-90">Real-time creation</p></div></div>`;
+              const newCards = quickActions.children;
+              if (newCards[0])
+                newCards[0].addEventListener("click", () =>
+                  this.loadPage("destinations"),
+                );
+              if (newCards[1])
+                newCards[1].addEventListener("click", () => {
+                  if (typeof window.openCreateBookingModal !== "undefined")
+                    window.openCreateBookingModal();
+                  else alert("Booking modal ready");
+                });
+              quickActions.className =
+                "grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 quick-actions-mobile";
+            }
+          }
+        },
+        loadFallback(page) {
+          const content = document.getElementById("main-content");
+          if (page === "dashboard") {
+            content.innerHTML = `<div class="animate-fadeInUp"><div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8" id="dashboard-stats-grid">
+                        <div class="stat-card p-4 md:p-6 flex items-center justify-between"><div><p class="text-gray-500 font-semibold text-xs md:text-sm">Total Bookings</p><div class="gradient-number text-2xl md:text-4xl mt-1">0</div></div><div class="stat-icon-box icon-emerald-bg"><i class="fas fa-calendar-check text-emerald-600"></i></div></div>
+                        <div class="stat-card p-4 md:p-6 flex items-center justify-between"><div><p class="text-gray-500 font-semibold text-xs md:text-sm">Active Packages</p><div class="gradient-number text-2xl md:text-4xl mt-1">0</div></div><div class="stat-icon-box icon-blue-bg"><i class="fas fa-boxes text-blue-600"></i></div></div>
+                        <div class="stat-card p-4 md:p-6 flex items-center justify-between"><div><p class="text-gray-500 font-semibold text-xs md:text-sm">Destinations</p><div class="gradient-number text-2xl md:text-4xl mt-1">0</div></div><div class="stat-icon-box icon-amber-bg"><i class="fas fa-map-marked-alt text-amber-600"></i></div></div>
+                    </div><div class="glass-panel p-5 md:p-7 bg-gradient-to-r from-emerald-50 to-white"><h2 class="text-xl md:text-2xl font-black">Welcome back, Admin! 👋</h2><p class="text-sm md:text-base">Live dashboard active - Data auto-refreshes</p></div><div id="recent-booking-list-ui" class="mt-6 space-y-3"></div></div>`;
+          } else {
+            content.innerHTML = `<div class="glass-panel p-8 text-center"><i class="fas fa-map-marked-alt text-5xl text-gray-300 mb-4"></i><h3 class="text-lg font-medium">Module Loading</h3><button onclick="location.reload()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg">Retry</button></div>`;
+          }
+        },
+      };
 
       document.addEventListener("DOMContentLoaded", function () {
-        console.log("📊 Dashboard initializing...");
-
-        // Check authentication
         const user = sessionStorage.getItem("user");
         if (!user) {
-          console.log("No user found, redirecting to login...");
           window.location.href = "./login.html";
           return;
         }
 
-        // Update date display
-        const dateElement = document.getElementById("current-date");
-        if (dateElement) {
-          const options = {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          };
-          dateElement.textContent = new Date().toLocaleDateString(
-            "en-US",
-            options,
-          );
-        }
-
-        // Initialize Supabase
         if (typeof SupabaseService !== "undefined") {
           SupabaseService.init(
             "https://rpapduavenpzwtptgopm.supabase.co",
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYXBkdWF2ZW5wend0cHRnb3BtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NTI5NDUsImV4cCI6MjA4NjMyODk0NX0.IVTVByGm8LuykvYQ5wRzK4WBT1mA9Ew5fy6uTjokMbg",
           )
             .then((success) => {
-              if (success && SupabaseService.client) {
-                // Make supabase client globally available for bookings module
+              if (success && SupabaseService.client)
                 window.supabase = SupabaseService.client;
-                console.log("✅ Supabase client ready");
-              } else {
-                console.warn("⚠️ Supabase initialization had issues");
-              }
               Navigation.init();
             })
-            .catch((err) => {
-              console.error("Supabase init error:", err);
-              Navigation.init();
-            });
+            .catch(() => Navigation.init());
         } else {
-          console.error("SupabaseService not defined");
           Navigation.init();
         }
       });

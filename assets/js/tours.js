@@ -1,6 +1,6 @@
 // ============================================
-// TOURS.JS - COMPLETE WITH PAX TYPE RADIO BUTTONS & ITINERARIES
-// FULLY MATCHING YOUR ACTUAL DATABASE SCHEMA
+// TOURS.JS - COMPLETE WITH REQUIRED ID PICTURE UPLOAD
+// ID PICTURE IS REQUIRED - MUST BE UPLOADED
 // ============================================
 
 console.log("✅ tours.js loading...");
@@ -351,23 +351,30 @@ class DestinationsManager {
     const filterContainer = document.getElementById("filterButtons");
     if (!filterContainer) return;
 
-    const localCount = this.destinations.filter(
-      (d) => d.country === "Philippines",
+    const landToursCount = this.destinations.filter(
+      (d) => d.category === "Land Tours" || d.tour_type === "Land Tours",
     ).length;
-    const intlCount = this.destinations.filter(
-      (d) => d.country !== "Philippines",
+    const domesticCount = this.destinations.filter(
+      (d) => d.category === "Domestic" || d.country === "Philippines",
     ).length;
+    const promoCount = this.destinations.filter(
+      (d) => d.category === "Promo" || d.has_promo === true,
+    ).length;
+    const allCount = this.destinations.length;
 
     filterContainer.innerHTML = `
       <div class="flex flex-wrap gap-3 mb-6 justify-center">
         <button class="filter-btn px-5 py-2.5 rounded-full text-sm transition-all ${this.currentFilter === "all" ? "bg-gradient-to-r from-[#076653] to-[#0a8a6e] text-white shadow-md" : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"}" data-filter="all">
-          <i class="fas fa-globe-asia mr-1"></i> All (${this.destinations.length})
+          <i class="fas fa-globe-asia mr-1"></i> All (${allCount})
         </button>
-        <button class="filter-btn px-5 py-2.5 rounded-full text-sm transition-all ${this.currentFilter === "local" ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-md" : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"}" data-filter="local">
-          <i class="fas fa-map-pin mr-1"></i> Local (${localCount})
+        <button class="filter-btn px-5 py-2.5 rounded-full text-sm transition-all ${this.currentFilter === "land_tours" ? "bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md" : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"}" data-filter="land_tours">
+          <i class="fas fa-mountain mr-1"></i> Land Tours (${landToursCount})
         </button>
-        <button class="filter-btn px-5 py-2.5 rounded-full text-sm transition-all ${this.currentFilter === "international" ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md" : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"}" data-filter="international">
-          <i class="fas fa-plane mr-1"></i> International (${intlCount})
+        <button class="filter-btn px-5 py-2.5 rounded-full text-sm transition-all ${this.currentFilter === "domestic" ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-md" : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"}" data-filter="domestic">
+          <i class="fas fa-map-pin mr-1"></i> Domestic (${domesticCount})
+        </button>
+        <button class="filter-btn px-5 py-2.5 rounded-full text-sm transition-all ${this.currentFilter === "promo" ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md" : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"}" data-filter="promo">
+          <i class="fas fa-tag mr-1"></i> Promo (${promoCount})
         </button>
       </div>
       <div class="text-center mt-2">
@@ -386,17 +393,26 @@ class DestinationsManager {
 
   applyFilter(filter) {
     this.currentFilter = filter;
+
     if (filter === "all") {
       this.filteredDestinations = [...this.destinations];
-    } else if (filter === "local") {
+    } else if (filter === "land_tours") {
       this.filteredDestinations = this.destinations.filter(
-        (d) => d.country === "Philippines",
+        (d) =>
+          d.category === "Land Tours" ||
+          d.tour_type === "Land Tours" ||
+          d.name.toLowerCase().includes("tour"),
       );
-    } else if (filter === "international") {
+    } else if (filter === "domestic") {
       this.filteredDestinations = this.destinations.filter(
-        (d) => d.country !== "Philippines",
+        (d) => d.country === "Philippines" || d.category === "Domestic",
+      );
+    } else if (filter === "promo") {
+      this.filteredDestinations = this.destinations.filter(
+        (d) => d.category === "Promo" || d.has_promo === true || d.promo_price,
       );
     }
+
     this.renderFilterButtons();
     this.renderDestinations(this.filteredDestinations);
   }
@@ -431,6 +447,18 @@ class DestinationsManager {
         dest.destination_packages && dest.destination_packages.length > 0;
       const description = dest.description || "No description available";
 
+      let categoryBadge = "";
+      if (dest.category === "Land Tours" || dest.tour_type === "Land Tours") {
+        categoryBadge =
+          '<span class="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold bg-amber-500 text-white"><i class="fas fa-mountain mr-1"></i>Land Tour</span>';
+      } else if (dest.category === "Promo" || dest.has_promo) {
+        categoryBadge =
+          '<span class="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold bg-red-500 text-white"><i class="fas fa-tag mr-1"></i>PROMO</span>';
+      } else if (dest.country === "Philippines") {
+        categoryBadge =
+          '<span class="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold bg-green-500 text-white"><i class="fas fa-map-pin mr-1"></i>Domestic</span>';
+      }
+
       html += `
         <div class="destination-card group cursor-pointer bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden" 
              onclick="window.destinationsManager.showDestinationModal(${dest.id})">
@@ -441,6 +469,7 @@ class DestinationsManager {
                 ${badgeIcon} ${dest.country === "Philippines" ? "Local" : "International"}
               </span>
             </div>
+            ${categoryBadge}
             ${!hasPackages ? `<div class="absolute inset-0 bg-black/50 flex items-center justify-center"><span class="bg-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold">Coming Soon</span></div>` : ""}
           </div>
           <div class="p-5">
@@ -489,7 +518,7 @@ class DestinationsManager {
   }
 
   // ============================================
-  // RENDER COMPLETE MODAL - WITH ITINERARIES
+  // RENDER COMPLETE MODAL
   // ============================================
   renderCompleteModal(destination, packages) {
     if (!this.detailContent) return;
@@ -648,9 +677,10 @@ class DestinationsManager {
 
     this.detailContent.innerHTML = `
       <div class="max-w-7xl mx-auto px-4 py-8 relative">
-        <button onclick="window.destinationsManager.closeModal()" class="exit-btn fixed top-4 right-4 z-50 w-12 h-12 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg transition-all duration-300 flex items-center justify-center group">
-          <i class="fas fa-sign-out-alt text-xl group-hover:rotate-180 transition-transform duration-300"></i>
-          <span class="absolute -top-8 right-0 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Exit</span>
+        <button onclick="window.destinationsManager.closeModal()" 
+                class="fixed top-4 right-4 z-50 px-5 py-2.5 bg-gray-800 hover:bg-red-600 text-white rounded-full shadow-lg transition-all duration-300 flex items-center gap-2 group font-medium border border-white/20">
+          <i class="fas fa-times-circle text-base group-hover:rotate-90 transition-transform duration-300"></i>
+          <span class="text-sm font-medium">Close Window</span>
         </button>
         
         <div class="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-xl border border-indigo-100 mb-6">
@@ -802,7 +832,7 @@ class DestinationsManager {
             extraNightRates.length
               ? `
             <div class="p-4 bg-yellow-50 border-b">
-              <p class="text-sm font-semibold text-yellow-700 mb-3"><i class="fas fa-moon"></i> Extra Night Rates (per night):</p>
+              <p class="text-sm font-semibold text-yellow-700 mb-3"><i class="fas fa-moon"></i> Extra Night Rates (per person, per night): <span class="text-gray-500 font-normal">(Optional)</span></p>
               <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 ${extraNightRates.map((r) => `<div class="bg-yellow-100 p-2 rounded-lg text-center border border-yellow-200"><div class="text-xs text-gray-600">${r.label}</div><div class="font-bold text-orange-600 text-base">₱${Number(r.value).toLocaleString()}</div></div>`).join("")}
               </div>
@@ -847,7 +877,7 @@ class DestinationsManager {
   }
 
   // ============================================
-  // OPEN BOOKING MODAL - WITH PAX TYPE RADIO BUTTONS
+  // OPEN BOOKING MODAL - WITH REQUIRED ID PICTURE
   // ============================================
   async openBookingModal(packageName, packageId) {
     console.log("🟢 Opening booking modal for:", { packageName, packageId });
@@ -912,10 +942,37 @@ class DestinationsManager {
     });
 
     this.attachBookingFormEvents();
+    this.attachIdPicturePreview();
+  }
+
+  // Attach preview for ID picture file input (REQUIRED)
+  attachIdPicturePreview() {
+    const fileInput = document.getElementById("idPicture");
+    if (!fileInput) return;
+    const preview = document.getElementById("idPicturePreview");
+
+    // Add required attribute to make it mandatory
+    fileInput.setAttribute("required", "required");
+
+    fileInput.addEventListener("change", (e) => {
+      if (preview) {
+        if (fileInput.files && fileInput.files[0]) {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            preview.src = ev.target.result;
+            preview.style.display = "block";
+          };
+          reader.readAsDataURL(fileInput.files[0]);
+        } else {
+          preview.src = "";
+          preview.style.display = "none";
+        }
+      }
+    });
   }
 
   // ============================================
-  // BUILD BOOKING MODAL HTML - WITH PAX TYPE RADIO BUTTONS
+  // BUILD BOOKING MODAL HTML - WITH REQUIRED ID PICTURE SECTION
   // ============================================
   buildBookingModalHTML(
     destination,
@@ -925,107 +982,110 @@ class DestinationsManager {
     today,
     maxDateStr,
   ) {
-    // Build hotel categories with PAX TYPE radio buttons
-    const hotelOptionsHtml = hotelCategories
-      .map((cat, index) => {
-        const rate = packageRates.find((r) => r.hotel_category_id === cat.id);
-        if (!rate) return "";
+    let hotelOptionsHtml = "";
+    let categoryIndex = 0;
 
-        const hotels = cat.hotels?.filter((h) => h.is_active) || [];
+    for (const cat of hotelCategories) {
+      const rate = packageRates.find((r) => r.hotel_category_id === cat.id);
+      if (!rate) continue;
 
-        // Define pax types based on available rates
-        const paxTypes = [
-          { label: "Solo", value: "solo", paxCount: 1, rate: rate.rate_solo },
-          { label: "2 Pax", value: "2pax", paxCount: 2, rate: rate.rate_2pax },
-          { label: "3 Pax", value: "3pax", paxCount: 3, rate: rate.rate_3pax },
-          { label: "4 Pax", value: "4pax", paxCount: 4, rate: rate.rate_4pax },
-          { label: "5 Pax", value: "5pax", paxCount: 5, rate: rate.rate_5pax },
-          { label: "6 Pax", value: "6pax", paxCount: 6, rate: rate.rate_6pax },
-          { label: "7 Pax", value: "7pax", paxCount: 7, rate: rate.rate_7pax },
-          { label: "8 Pax", value: "8pax", paxCount: 8, rate: rate.rate_8pax },
-          { label: "9 Pax", value: "9pax", paxCount: 9, rate: rate.rate_9pax },
-          {
-            label: "10 Pax",
-            value: "10pax",
-            paxCount: 10,
-            rate: rate.rate_10pax,
-          },
-          {
-            label: "11 Pax",
-            value: "11pax",
-            paxCount: 11,
-            rate: rate.rate_11pax,
-          },
-          {
-            label: "12 Pax",
-            value: "12pax",
-            paxCount: 12,
-            rate: rate.rate_12pax,
-          },
-          {
-            label: "Child",
-            value: "child",
-            paxCount: 1,
-            rate: rate.rate_child_no_breakfast || rate.rate_child_4_9,
-          },
-        ].filter((p) => p.rate && parseFloat(p.rate) > 0);
+      const hotels = cat.hotels?.filter((h) => h.is_active) || [];
 
-        // Extra night rates
-        const extraNightTypes = [
-          { label: "Solo", value: "solo", rate: rate.extra_night_solo },
-          { label: "2 Pax", value: "2pax", rate: rate.extra_night_2pax },
-          { label: "3 Pax", value: "3pax", rate: rate.extra_night_3pax },
-          { label: "4 Pax", value: "4pax", rate: rate.extra_night_4pax },
-          { label: "5 Pax", value: "5pax", rate: rate.extra_night_5pax },
-          { label: "6 Pax", value: "6pax", rate: rate.extra_night_6pax },
-          { label: "7 Pax", value: "7pax", rate: rate.extra_night_7pax },
-          { label: "8 Pax", value: "8pax", rate: rate.extra_night_8pax },
-          { label: "9 Pax", value: "9pax", rate: rate.extra_night_9pax },
-          { label: "10 Pax", value: "10pax", rate: rate.extra_night_10pax },
-          { label: "11 Pax", value: "11pax", rate: rate.extra_night_11pax },
-          { label: "12 Pax", value: "12pax", rate: rate.extra_night_12pax },
-        ].filter((p) => p.rate && parseFloat(p.rate) > 0);
+      const paxTypes = [
+        { label: "Solo", value: "solo", paxCount: 1, rate: rate.rate_solo },
+        { label: "2 Pax", value: "2pax", paxCount: 2, rate: rate.rate_2pax },
+        { label: "3 Pax", value: "3pax", paxCount: 3, rate: rate.rate_3pax },
+        { label: "4 Pax", value: "4pax", paxCount: 4, rate: rate.rate_4pax },
+        { label: "5 Pax", value: "5pax", paxCount: 5, rate: rate.rate_5pax },
+        { label: "6 Pax", value: "6pax", paxCount: 6, rate: rate.rate_6pax },
+        { label: "7 Pax", value: "7pax", paxCount: 7, rate: rate.rate_7pax },
+        { label: "8 Pax", value: "8pax", paxCount: 8, rate: rate.rate_8pax },
+        { label: "9 Pax", value: "9pax", paxCount: 9, rate: rate.rate_9pax },
+        {
+          label: "10 Pax",
+          value: "10pax",
+          paxCount: 10,
+          rate: rate.rate_10pax,
+        },
+        {
+          label: "11 Pax",
+          value: "11pax",
+          paxCount: 11,
+          rate: rate.rate_11pax,
+        },
+        {
+          label: "12 Pax",
+          value: "12pax",
+          paxCount: 12,
+          rate: rate.rate_12pax,
+        },
+        {
+          label: "Child",
+          value: "child",
+          paxCount: 1,
+          rate: rate.rate_child_no_breakfast || rate.rate_child_4_9,
+        },
+      ].filter((p) => p.rate && parseFloat(p.rate) > 0);
 
-        // Generate radio buttons for PAX TYPES
-        const paxTypeRadios = paxTypes
-          .map(
-            (p, idx) => `
-        <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-orange-50 cursor-pointer transition ${idx === 0 ? "bg-orange-50 border border-orange-200" : ""}">
-          <input type="radio" name="paxType_${cat.id}" value="${p.value}" data-pax-count="${p.paxCount}" data-rate="${p.rate}" data-pax-label="${p.label}" data-category="${cat.id}" class="w-4 h-4 accent-orange-500" ${idx === 0 ? "checked" : ""}>
+      const extraNightTypes = [
+        { label: "Solo", value: "solo", rate: rate.extra_night_solo },
+        { label: "2 Pax", value: "2pax", rate: rate.extra_night_2pax },
+        { label: "3 Pax", value: "3pax", rate: rate.extra_night_3pax },
+        { label: "4 Pax", value: "4pax", rate: rate.extra_night_4pax },
+        { label: "5 Pax", value: "5pax", rate: rate.extra_night_5pax },
+        { label: "6 Pax", value: "6pax", rate: rate.extra_night_6pax },
+        { label: "7 Pax", value: "7pax", rate: rate.extra_night_7pax },
+        { label: "8 Pax", value: "8pax", rate: rate.extra_night_8pax },
+        { label: "9 Pax", value: "9pax", rate: rate.extra_night_9pax },
+        { label: "10 Pax", value: "10pax", rate: rate.extra_night_10pax },
+        { label: "11 Pax", value: "11pax", rate: rate.extra_night_11pax },
+        { label: "12 Pax", value: "12pax", rate: rate.extra_night_12pax },
+      ].filter((p) => p.rate && parseFloat(p.rate) > 0);
+
+      const paxTypeRadios = paxTypes
+        .map(
+          (p) => `
+        <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-orange-50 cursor-pointer transition" data-pax-rate="${p.rate}" data-pax-count="${p.paxCount}" data-pax-label="${p.label}">
+          <input type="radio" name="paxType_${cat.id}" value="${p.value}" data-pax-count="${p.paxCount}" data-rate="${p.rate}" data-pax-label="${p.label}" data-category="${cat.id}" class="w-4 h-4 accent-orange-500" onchange="window.destinationsManager.onPaxTypeChange(this)">
           <span class="text-sm font-medium text-gray-700">${p.label}</span>
           <span class="text-xs text-orange-600 ml-auto">₱${Number(p.rate).toLocaleString()}</span>
         </label>
       `,
-          )
-          .join("");
+        )
+        .join("");
 
-        // Generate radio buttons for EXTRA NIGHT RATES
-        const extraNightRadios =
-          extraNightTypes.length > 0
-            ? `
+      const extraNightRadios =
+        extraNightTypes.length > 0
+          ? `
         <div class="mt-3 pt-2 border-t border-dashed">
-          <p class="text-xs font-semibold text-yellow-600 mb-2"><i class="fas fa-moon"></i> Extra Night Rate (per night):</p>
-          <div class="grid grid-cols-2 gap-2">
+          <p class="text-xs font-semibold text-yellow-600 mb-2"><i class="fas fa-moon"></i> Extra Night Rate (per person, per night): <span class="text-gray-500 font-normal">(Optional - select if you want extra night)</span></p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="extraNightGroup_${cat.id}">
             ${extraNightTypes
               .map(
-                (p, idx) => `
-              <label class="flex items-center gap-2 p-1 rounded hover:bg-yellow-50 cursor-pointer">
-                <input type="radio" name="extraNight_${cat.id}" value="${p.value}" data-extra-rate="${p.rate}" data-extra-label="${p.label}" class="w-3 h-3 accent-yellow-500">
+                (p) => `
+              <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-yellow-50 cursor-pointer transition">
+                <input type="radio" name="extraNight_${cat.id}" value="${p.value}" data-extra-rate="${p.rate}" data-extra-label="${p.label}" class="w-4 h-4 accent-yellow-500" onchange="window.destinationsManager.updateTotalPrice()">
                 <span class="text-xs text-gray-600">${p.label}</span>
                 <span class="text-xs text-yellow-600 ml-auto">₱${Number(p.rate).toLocaleString()}</span>
               </label>
             `,
               )
               .join("")}
+            <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition bg-gray-50 border border-gray-200">
+              <input type="radio" name="extraNight_${cat.id}" value="" data-extra-rate="0" data-extra-label="None" class="w-4 h-4 accent-gray-500" checked onchange="window.destinationsManager.updateTotalPrice()">
+              <span class="text-xs text-gray-600">No Extra Night</span>
+              <span class="text-xs text-gray-400 ml-auto">₱0</span>
+            </label>
           </div>
+          <p class="text-xs text-gray-500 mt-1">* Select "No Extra Night" or choose your preferred extra night rate</p>
+          <p class="text-xs text-orange-500 mt-1">⚠️ Extra night rate must match your selected pax type</p>
         </div>
-      `
-            : "";
+        `
+          : "";
 
-        // Hotels selection
-        const hotelsHtml =
-          hotels.length > 0
-            ? `
+      const hotelsHtml =
+        hotels.length > 0
+          ? `
         <div class="mt-4 pt-3 border-t">
           <p class="text-sm font-semibold text-teal-700 mb-2"><i class="fas fa-hotel"></i> Select Hotel:</p>
           <div class="space-y-2 max-h-48 overflow-y-auto">
@@ -1050,9 +1110,9 @@ class DestinationsManager {
           </div>
         </div>
       `
-            : '<p class="text-gray-500 text-sm mt-2">No specific hotels available</p>';
+          : '<p class="text-gray-500 text-sm mt-2">No specific hotels available</p>';
 
-        return `
+      hotelOptionsHtml += `
         <div class="border rounded-lg mb-4 overflow-hidden" data-category-id="${cat.id}">
           <div class="bg-gradient-to-r from-teal-600 to-teal-700 p-3">
             <div class="flex justify-between items-center">
@@ -1061,34 +1121,35 @@ class DestinationsManager {
                 <p class="text-xs text-white/80">Max: ${cat.max_room_capacity || 4} pax</p>
                 ${cat.has_breakfast ? '<p class="text-xs text-white/80"><i class="fas fa-coffee"></i> Breakfast Included</p>' : ""}
               </div>
-              <input type="radio" name="hotelCategory" value="${cat.id}" data-category-name="${cat.category_name}" class="w-5 h-5 accent-orange-500" ${index === 0 ? "checked" : ""}>
+              <input type="radio" name="hotelCategory" value="${cat.id}" data-category-name="${cat.category_name}" class="w-5 h-5 accent-orange-500" ${categoryIndex === 0 ? "checked" : ""} onchange="window.destinationsManager.onCategoryChange(this)">
             </div>
           </div>
           
           <div class="p-4">
-            <!-- Pax Type Selection -->
-            <p class="text-sm font-semibold text-teal-700 mb-2"><i class="fas fa-users"></i> Select Pax Type:</p>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+            <p class="text-sm font-semibold text-teal-700 mb-2"><i class="fas fa-users"></i> Select Pax Type: <span class="text-red-500">*</span></p>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3" id="paxTypeGroup_${cat.id}">
               ${paxTypeRadios}
             </div>
-            
             ${extraNightRadios}
-            
             ${hotelsHtml}
           </div>
         </div>
       `;
-      })
-      .join("");
+      categoryIndex++;
+    }
 
     return `
       <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto relative">
-        <!-- Exit Button -->
-        <button onclick="window.destinationsManager.closeBookingModal()" class="absolute top-4 right-4 w-10 h-10 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg z-10 flex items-center justify-center">
-          <i class="fas fa-sign-out-alt text-lg"></i>
+        <button onclick="window.destinationsManager.closeBookingModal()" 
+                class="sticky top-4 right-4 ml-auto mr-4 mt-4 px-4 py-2 bg-gray-800 hover:bg-red-600 text-white rounded-full shadow-lg z-10 flex items-center gap-2 transition-all duration-300 border border-white/20"
+                style="float: right;">
+          <i class="fas fa-times-circle text-sm"></i>
+          <span class="text-sm font-medium">Close</span>
         </button>
         
-        <div class="bg-gradient-to-r from-teal-700 to-orange-600 text-white p-5 rounded-t-2xl sticky top-0">
+        <div class="clear-both"></div>
+        
+        <div class="bg-gradient-to-r from-teal-700 to-orange-600 text-white p-5 rounded-t-2xl">
           <h2 class="text-2xl font-bold">${this.escapeHtml(destination.name)}</h2>
           <p>${this.escapeHtml(pkg.package_name)}</p>
           <p class="text-xs">${this.escapeHtml(pkg.package_code || "")}</p>
@@ -1107,6 +1168,32 @@ class DestinationsManager {
             ${pkg.has_extra_night ? '<p class="mt-2 text-xs text-blue-600"><i class="fas fa-moon"></i> Extra Night Available</p>' : ""}
           </div>
           
+          <!-- PRICE SUMMARY SECTION - AUTO-COMPUTE -->
+          <div class="bg-gradient-to-r from-teal-50 to-orange-50 p-5 rounded-xl mb-6 border-2 border-teal-200">
+            <h3 class="text-xl font-bold text-teal-700 mb-4 flex items-center gap-2">
+              <i class="fas fa-calculator"></i> Price Summary
+            </h3>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between py-2 border-b border-dashed">
+                <span class="text-gray-600">Base Rate (per person):</span>
+                <span class="font-semibold text-teal-700" id="displayBaseRate">₱0</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-dashed">
+                <span class="text-gray-600">Number of Travelers:</span>
+                <span class="font-semibold" id="displayPaxCount">0</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-dashed">
+                <span class="text-gray-600">Extra Night:</span>
+                <span class="font-semibold text-orange-600" id="displayExtraNight">None</span>
+              </div>
+              <div class="flex justify-between py-2 text-lg font-bold">
+                <span>TOTAL AMOUNT:</span>
+                <span class="text-teal-700 text-2xl" id="totalAmountDisplay">₱0</span>
+              </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-3 text-center">* Final price will be confirmed upon booking</p>
+          </div>
+          
           <h3 class="text-xl font-bold text-teal-700 mb-4">Select Accommodation</h3>
           <div id="hotelSelection">
             ${hotelOptionsHtml || '<p class="text-gray-500">No hotel options available.</p>'}
@@ -1122,6 +1209,15 @@ class DestinationsManager {
             </div>
             <div class="mt-4">
               <textarea id="requests" rows="2" class="w-full p-3 border rounded-lg" placeholder="Special requests (dietary, room preferences, etc.)"></textarea>
+            </div>
+            
+            <!-- ID Picture Upload Section - REQUIRED -->
+            <div class="mt-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">ID Picture <span class="text-red-500">*</span></label>
+              <input type="file" id="idPicture" accept="image/*" required class="w-full p-2 border rounded-lg">
+              <img id="idPicturePreview" style="display: none; max-width: 150px; margin-top: 8px; border-radius: 8px;">
+              <p class="text-xs text-gray-500 mt-1">Accepted formats: JPG, PNG, GIF, WEBP (max 5MB) - REQUIRED</p>
+              <p class="text-xs text-red-500 mt-1">⚠️ Valid ID picture is required to complete your booking</p>
             </div>
           </div>
           
@@ -1142,21 +1238,161 @@ class DestinationsManager {
   }
 
   // ============================================
-  // ATTACH BOOKING FORM EVENTS
+  // ON PAX TYPE CHANGE
   // ============================================
-  attachBookingFormEvents() {
-    // Handle hotel category selection
-    document
-      .querySelectorAll('input[name="hotelCategory"]')
-      .forEach((radio) => {
-        radio.addEventListener("change", (e) => {
-          // No need to hide anything
-        });
-      });
+  onPaxTypeChange(radioElement) {
+    const categoryId = radioElement.getAttribute("name").split("_")[1];
+    const selectedValue = radioElement.value;
+
+    const extraNightRadios = document.querySelectorAll(
+      `input[name="extraNight_${categoryId}"]`,
+    );
+    const hasSelection = Array.from(extraNightRadios).some(
+      (radio) => radio.checked && radio.value !== "",
+    );
+
+    if (!hasSelection) {
+      const noExtraNightOption = document.querySelector(
+        `input[name="extraNight_${categoryId}"][value=""]`,
+      );
+      if (noExtraNightOption) {
+        noExtraNightOption.checked = true;
+      }
+    }
+
+    this.updateTotalPrice();
   }
 
   // ============================================
-  // SUBMIT BOOKING - FIXED ERROR
+  // ON CATEGORY CHANGE
+  // ============================================
+  onCategoryChange(radioElement) {
+    const categoryId = radioElement.value;
+    const paxRadios = document.querySelectorAll(
+      `input[name="paxType_${categoryId}"]`,
+    );
+
+    if (
+      paxRadios.length > 0 &&
+      !document.querySelector(`input[name="paxType_${categoryId}"]:checked`)
+    ) {
+      paxRadios[0].checked = true;
+      this.onPaxTypeChange(paxRadios[0]);
+    } else if (
+      document.querySelector(`input[name="paxType_${categoryId}"]:checked`)
+    ) {
+      const selectedPax = document.querySelector(
+        `input[name="paxType_${categoryId}"]:checked`,
+      );
+      this.onPaxTypeChange(selectedPax);
+    }
+
+    this.updateTotalPrice();
+  }
+
+  // ============================================
+  // UPDATE TOTAL PRICE
+  // ============================================
+  updateTotalPrice() {
+    const selectedCategory = document.querySelector(
+      'input[name="hotelCategory"]:checked',
+    );
+    if (!selectedCategory) return;
+
+    const categoryId = selectedCategory.value;
+
+    const selectedPax = document.querySelector(
+      `input[name="paxType_${categoryId}"]:checked`,
+    );
+    if (!selectedPax) {
+      const displayBaseRate = document.getElementById("displayBaseRate");
+      const displayPaxCount = document.getElementById("displayPaxCount");
+      const displayExtraNight = document.getElementById("displayExtraNight");
+      const totalAmountDisplay = document.getElementById("totalAmountDisplay");
+      if (displayBaseRate) displayBaseRate.innerHTML = `₱0`;
+      if (displayPaxCount) displayPaxCount.innerHTML = `0`;
+      if (displayExtraNight) displayExtraNight.innerHTML = "None";
+      if (totalAmountDisplay) totalAmountDisplay.innerHTML = `₱0`;
+      return;
+    }
+
+    const baseRate = parseFloat(selectedPax.dataset.rate);
+    const paxCount = parseInt(selectedPax.dataset.paxCount);
+    const paxLabel = selectedPax.dataset.paxLabel;
+    const selectedPaxValue = selectedPax.value;
+
+    const selectedExtraNight = document.querySelector(
+      `input[name="extraNight_${categoryId}"]:checked`,
+    );
+    let extraNightRatePerPerson = 0;
+    let extraNightLabel = "None";
+    let extraNightTotal = 0;
+    let isValid = true;
+
+    if (selectedExtraNight && selectedExtraNight.value !== "") {
+      if (selectedExtraNight.value === selectedPaxValue) {
+        extraNightRatePerPerson = parseFloat(
+          selectedExtraNight.dataset.extraRate,
+        );
+        extraNightLabel =
+          selectedExtraNight.dataset.extraLabel || selectedExtraNight.value;
+        extraNightTotal = extraNightRatePerPerson * paxCount;
+      } else {
+        isValid = false;
+        extraNightLabel = `⚠️ Mismatch: ${selectedExtraNight.dataset.extraLabel} (should match ${paxLabel})`;
+      }
+    }
+
+    const baseTotal = baseRate * paxCount;
+    const totalAmount = baseTotal + extraNightTotal;
+
+    const displayBaseRate = document.getElementById("displayBaseRate");
+    const displayPaxCount = document.getElementById("displayPaxCount");
+    const displayExtraNight = document.getElementById("displayExtraNight");
+    const totalAmountDisplay = document.getElementById("totalAmountDisplay");
+
+    if (displayBaseRate)
+      displayBaseRate.innerHTML = `₱${baseRate.toLocaleString()}`;
+    if (displayPaxCount)
+      displayPaxCount.innerHTML = `${paxCount} (${paxLabel})`;
+
+    if (displayExtraNight) {
+      if (extraNightRatePerPerson > 0 && isValid) {
+        displayExtraNight.innerHTML = `₱${extraNightRatePerPerson.toLocaleString()} × ${paxCount} pax = ₱${extraNightTotal.toLocaleString()} (${extraNightLabel})`;
+        displayExtraNight.className = "font-semibold text-orange-600";
+      } else if (!isValid) {
+        displayExtraNight.innerHTML = extraNightLabel;
+        displayExtraNight.className = "font-semibold text-red-500 text-xs";
+      } else {
+        displayExtraNight.innerHTML = "None (No extra night selected)";
+        displayExtraNight.className = "font-semibold text-gray-500";
+      }
+    }
+
+    if (totalAmountDisplay)
+      totalAmountDisplay.innerHTML = `₱${totalAmount.toLocaleString()}`;
+
+    this.currentSelectedRate = baseRate;
+    this.currentSelectedPaxCount = paxCount;
+    this.currentSelectedPaxLabel = paxLabel;
+    this.currentSelectedExtraNightRatePerPerson = extraNightRatePerPerson;
+    this.currentSelectedExtraNightTotal = extraNightTotal;
+    this.currentSelectedExtraNightLabel = extraNightLabel;
+    this.currentSelectedPaxValue = selectedPaxValue;
+    this.currentExtraNightValid = isValid;
+  }
+
+  // ============================================
+  // ATTACH BOOKING FORM EVENTS
+  // ============================================
+  attachBookingFormEvents() {
+    setTimeout(() => {
+      this.updateTotalPrice();
+    }, 100);
+  }
+
+  // ============================================
+  // SUBMIT BOOKING - WITH REQUIRED ID PICTURE UPLOAD
   // ============================================
   async submitBooking() {
     const fullName = document.getElementById("fullName")?.value.trim();
@@ -1170,7 +1406,6 @@ class DestinationsManager {
     const selectedCategory = document.querySelector(
       'input[name="hotelCategory"]:checked',
     );
-
     if (!selectedCategory) {
       alert("Please select a hotel category");
       return;
@@ -1179,12 +1414,14 @@ class DestinationsManager {
     const categoryId = selectedCategory.value;
     const categoryName = selectedCategory.dataset.categoryName;
 
-    // Get selected pax type for this category
+    // Get selected pax type
     const selectedPaxType = document.querySelector(
       `input[name="paxType_${categoryId}"]:checked`,
     );
     if (!selectedPaxType) {
-      alert("Please select a pax type (Solo, 2 Pax, etc.)");
+      alert(
+        "Please select a pax type (Solo, 2 Pax, 3 Pax, etc.) before proceeding",
+      );
       return;
     }
 
@@ -1205,35 +1442,97 @@ class DestinationsManager {
     const hotelId = selectedHotel.value;
     const hotelName = selectedHotel.dataset.hotelName;
 
-    // Get extra night selection if any
+    // Get extra night selection
     const selectedExtraNight = document.querySelector(
       `input[name="extraNight_${categoryId}"]:checked`,
     );
-    let hotelExtraNightRate = null;
-    let extraNightLabel = null;
-    let extraNightInfo = "";
-    let hotelNights = 0;
+    let extraNightRatePerPerson = 0;
+    let extraNightLabel = "None";
+    let extraNightTotal = 0;
 
-    if (selectedExtraNight) {
-      hotelExtraNightRate = parseFloat(selectedExtraNight.dataset.extraRate);
+    if (selectedExtraNight && selectedExtraNight.value !== "") {
+      if (selectedExtraNight.value !== selectedPaxType.value) {
+        alert(
+          `⚠️ Mismatch Error!\n\nYou selected "${paxLabel}" for Pax Type, but selected "${selectedExtraNight.dataset.extraLabel}" for Extra Night.\n\nPlease either:\n- Select "No Extra Night"\n- Or choose the matching extra night rate for ${paxLabel}`,
+        );
+        return;
+      }
+
+      extraNightRatePerPerson = parseFloat(
+        selectedExtraNight.dataset.extraRate,
+      );
       extraNightLabel =
         selectedExtraNight.dataset.extraLabel || selectedExtraNight.value;
-      extraNightInfo = `\nExtra Night: ${extraNightLabel} - ₱${Number(hotelExtraNightRate).toLocaleString()}`;
-      hotelNights = 1; // Default to 1 night
+      extraNightTotal = extraNightRatePerPerson * paxCount;
     }
 
-    // Calculate total amount (base rate * pax count)
-    const totalAmount = selectedRate * paxCount;
+    // Calculate total amount
+    const baseTotal = selectedRate * paxCount;
+    const totalAmount = baseTotal + extraNightTotal;
 
-    // Combine special requests with extra night info
-    let fullSpecialRequests = requests || "";
-    if (extraNightInfo) {
-      fullSpecialRequests = fullSpecialRequests
-        ? `${fullSpecialRequests}${extraNightInfo}`
-        : extraNightInfo;
+    // Get ID picture file - REQUIRED
+    const idPictureFile = document.getElementById("idPicture")?.files[0];
+
+    // Validation - ID picture is REQUIRED
+    if (!idPictureFile) {
+      alert(
+        "❌ ID Picture is required!\n\nPlease upload a valid ID picture to complete your booking.",
+      );
+      return;
     }
 
-    // Validation
+    let idPictureUrl = null;
+    let idPictureStoragePath = null;
+
+    try {
+      // Validate file size (5MB limit)
+      if (idPictureFile.size > 5 * 1024 * 1024) {
+        alert("❌ ID picture is too large. Max size is 5MB.");
+        return;
+      }
+
+      // Validate file type
+      const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+      if (!validTypes.includes(idPictureFile.type)) {
+        alert("❌ Invalid file type. Please upload JPG, PNG, GIF, or WEBP.");
+        return;
+      }
+
+      // Upload to Supabase Storage bucket 'id_pictures'
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(2, 8);
+      const fileExt = idPictureFile.name.split(".").pop();
+      const fileName = `${timestamp}-${random}.${fileExt}`;
+
+      const { data, error } = await window.sns_supabase_client.storage
+        .from("id_pictures")
+        .upload(fileName, idPictureFile, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      const {
+        data: { publicUrl },
+      } = window.sns_supabase_client.storage
+        .from("id_pictures")
+        .getPublicUrl(fileName);
+
+      idPictureUrl = publicUrl;
+      idPictureStoragePath = fileName;
+      console.log("✅ ID picture uploaded:", idPictureUrl);
+    } catch (uploadError) {
+      console.error("❌ ID picture upload error:", uploadError);
+      alert(
+        "❌ Failed to upload ID picture: " +
+          uploadError.message +
+          "\n\nPlease try again with a valid image file.",
+      );
+      return;
+    }
+
+    // Validation for other required fields
     const errors = [];
     if (!fullName) errors.push("Full Name is required");
     if (!email) errors.push("Email is required");
@@ -1252,7 +1551,6 @@ class DestinationsManager {
     // Generate unique booking reference
     const bookingRef = `SNS-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
-    // Match exactly with your database schema columns
     const bookingData = {
       booking_reference: bookingRef,
       destination_id: this.currentPackageData.destinationId,
@@ -1271,20 +1569,20 @@ class DestinationsManager {
       hotel_Name: hotelName,
       package_Name: this.currentPackage,
       hotel_Rates_Selected: selectedRate,
-      special_requests: fullSpecialRequests || null,
+      special_requests: requests || null,
       booking_source: "website",
-      hotel_extra_night_rate: hotelExtraNightRate,
+      hotel_extra_night_rate: extraNightRatePerPerson,
       hotel_pax_count: paxCount,
-      hotel_nights: hotelNights,
+      hotel_nights: extraNightRatePerPerson > 0 ? 1 : 0,
       base_rate: selectedRate,
-      extra_nights_total: hotelExtraNightRate
-        ? hotelExtraNightRate * hotelNights
-        : null,
+      extra_nights_total: extraNightTotal > 0 ? extraNightTotal : null,
       selected_rate_details: `${paxLabel} - ₱${selectedRate.toLocaleString()}`,
       selected_pax_type: paxTypeValue,
+      id_picture_url: idPictureUrl,
+      id_picture_storage_path: idPictureStoragePath,
     };
 
-    console.log("Submitting booking with schema-matched data:", bookingData);
+    console.log("Submitting booking with required ID picture:", bookingData);
 
     const btn = document.querySelector("#bookingModal button:last-child");
     const originalText = btn?.innerHTML;
@@ -1307,8 +1605,8 @@ class DestinationsManager {
       console.log("Booking successful:", data);
 
       let extraNightMsg = "";
-      if (hotelExtraNightRate) {
-        extraNightMsg = `\nExtra Night: ${extraNightLabel} - ₱${Number(hotelExtraNightRate).toLocaleString()}`;
+      if (extraNightRatePerPerson > 0) {
+        extraNightMsg = `\nExtra Night: ${extraNightLabel} - ₱${extraNightRatePerPerson.toLocaleString()} × ${paxCount} pax = ₱${extraNightTotal.toLocaleString()}`;
       }
 
       alert(
@@ -1321,7 +1619,8 @@ class DestinationsManager {
           `Travelers: ${paxCount}\n` +
           `Rate: ₱${Number(selectedRate).toLocaleString()} per person${extraNightMsg}\n` +
           `Total Amount: ₱${totalAmount.toLocaleString()}\n` +
-          `Hotel: ${hotelName}\n\n` +
+          `Hotel: ${hotelName}\n` +
+          `ID Picture: Uploaded successfully ✅\n\n` +
           `We will contact you within 24 hours to confirm your booking.`,
       );
 
@@ -1432,8 +1731,10 @@ class DestinationsManager {
     if (!this.detailContent) return;
     this.detailContent.innerHTML = `
       <div class="max-w-4xl mx-auto px-4 py-8 relative">
-        <button onclick="window.destinationsManager.closeModal()" class="fixed top-4 right-4 w-12 h-12 bg-red-600 text-white rounded-full shadow-lg flex items-center justify-center">
-          <i class="fas fa-sign-out-alt text-xl"></i>
+        <button onclick="window.destinationsManager.closeModal()" 
+                class="fixed top-4 right-4 px-5 py-2.5 bg-gray-800 hover:bg-red-600 text-white rounded-full shadow-lg transition-all duration-300 flex items-center gap-2">
+          <i class="fas fa-times-circle text-base"></i>
+          <span class="text-sm font-medium">Close Window</span>
         </button>
         <div class="bg-white rounded-xl p-8 text-center">
           <i class="fas fa-clock text-5xl text-amber-500 mb-4"></i>
@@ -1530,6 +1831,4 @@ window.showTermsModal = () => {
   );
 };
 
-console.log(
-  "✅ tours.js loaded - COMPLETE WITH PAX TYPE RADIO BUTTONS & FIXED ERROR!",
-);
+console.log("✅ tours.js loaded - WITH REQUIRED ID PICTURE UPLOAD!");

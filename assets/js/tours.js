@@ -1391,10 +1391,38 @@ class DestinationsManager {
     }, 100);
   }
 
-  // ============================================
-  // SUBMIT BOOKING - WITH REQUIRED ID PICTURE UPLOAD
-  // ============================================
   async submitBooking() {
+    // Helper to show SweetAlert with highest z-index
+    const showSwal = (options) => {
+      return Swal.fire({
+        ...options,
+        didOpen: () => {
+          const popup = Swal.getPopup();
+          const container = Swal.getContainer();
+          if (popup) popup.style.zIndex = "10000000";
+          if (container) container.style.zIndex = "9999999";
+        },
+      });
+    };
+
+    // 1. Extract package data
+    const currentPackageData = this.currentPackageData;
+    if (!currentPackageData) {
+      await showSwal({
+        icon: "error",
+        title: "Booking Error",
+        text: "Package information is missing. Please reload the page and try again.",
+        confirmButtonColor: "#dc2626",
+      });
+      return;
+    }
+
+    const destinationId = currentPackageData.destinationId;
+    const destinationName = currentPackageData.destination;
+    const packageId = this.currentPackageId;
+    const packageName = this.currentPackage;
+
+    // 2. Gather form data
     const fullName = document.getElementById("fullName")?.value.trim();
     const email = document.getElementById("email")?.value.trim();
     const phone = document.getElementById("phone")?.value.trim();
@@ -1402,62 +1430,54 @@ class DestinationsManager {
     const requests = document.getElementById("requests")?.value.trim();
     const terms = document.getElementById("terms")?.checked;
 
-    // Get selected hotel category
+    const showError = async (message) => {
+      await showSwal({
+        icon: "error",
+        title: "Validation Error",
+        text: message,
+        confirmButtonColor: "#dc2626",
+      });
+      return false;
+    };
+
+    // Validate hotel category
     const selectedCategory = document.querySelector(
       'input[name="hotelCategory"]:checked',
     );
-    if (!selectedCategory) {
-      alert("Please select a hotel category");
-      return;
-    }
-
+    if (!selectedCategory) return showError("Please select a hotel category");
     const categoryId = selectedCategory.value;
     const categoryName = selectedCategory.dataset.categoryName;
 
-    // Get selected pax type
+    // Validate pax type
     const selectedPaxType = document.querySelector(
       `input[name="paxType_${categoryId}"]:checked`,
     );
-    if (!selectedPaxType) {
-      alert(
-        "Please select a pax type (Solo, 2 Pax, 3 Pax, etc.) before proceeding",
-      );
-      return;
-    }
-
+    if (!selectedPaxType) return showError("Please select a pax type");
     const paxCount = parseInt(selectedPaxType.dataset.paxCount);
     const selectedRate = parseFloat(selectedPaxType.dataset.rate);
     const paxTypeValue = selectedPaxType.value;
     const paxLabel = selectedPaxType.dataset.paxLabel || paxTypeValue;
 
-    // Get selected hotel
+    // Validate hotel
     const selectedHotel = document.querySelector(
       `input[name="hotel_${categoryId}"]:checked`,
     );
-    if (!selectedHotel) {
-      alert("Please select a hotel");
-      return;
-    }
-
-    const hotelId = selectedHotel.value;
+    if (!selectedHotel) return showError("Please select a hotel");
     const hotelName = selectedHotel.dataset.hotelName;
 
-    // Get extra night selection
+    // Extra night handling
     const selectedExtraNight = document.querySelector(
       `input[name="extraNight_${categoryId}"]:checked`,
     );
     let extraNightRatePerPerson = 0;
     let extraNightLabel = "None";
     let extraNightTotal = 0;
-
     if (selectedExtraNight && selectedExtraNight.value !== "") {
       if (selectedExtraNight.value !== selectedPaxType.value) {
-        alert(
-          `⚠️ Mismatch Error!\n\nYou selected "${paxLabel}" for Pax Type, but selected "${selectedExtraNight.dataset.extraLabel}" for Extra Night.\n\nPlease either:\n- Select "No Extra Night"\n- Or choose the matching extra night rate for ${paxLabel}`,
+        return showError(
+          `Mismatch Error!\n\nYou selected "${paxLabel}" for Pax Type, but selected "${selectedExtraNight.dataset.extraLabel}" for Extra Night.\n\nPlease either:\n- Select "No Extra Night"\n- Or choose the matching extra night rate for ${paxLabel}`,
         );
-        return;
       }
-
       extraNightRatePerPerson = parseFloat(
         selectedExtraNight.dataset.extraRate,
       );
@@ -1466,52 +1486,62 @@ class DestinationsManager {
       extraNightTotal = extraNightRatePerPerson * paxCount;
     }
 
-    // Calculate total amount
     const baseTotal = selectedRate * paxCount;
     const totalAmount = baseTotal + extraNightTotal;
 
-    // Get ID picture file - REQUIRED
+    // ID picture validation
     const idPictureFile = document.getElementById("idPicture")?.files[0];
-
-    // Validation - ID picture is REQUIRED
-    if (!idPictureFile) {
-      alert(
-        "❌ ID Picture is required!\n\nPlease upload a valid ID picture to complete your booking.",
+    if (!idPictureFile)
+      return showError(
+        "ID Picture is required! Please upload a valid ID picture.",
       );
-      return;
-    }
+    if (idPictureFile.size > 5 * 1024 * 1024)
+      return showError("ID picture is too large. Max size is 5MB.");
+    const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!validTypes.includes(idPictureFile.type))
+      return showError(
+        "Invalid file type. Please upload JPG, PNG, GIF, or WEBP.",
+      );
+
+    // Other required fields
+    const errors = [];
+    if (!fullName) errors.push("Full Name is required");
+    if (!email) errors.push("Email is required");
+    if (!phone) errors.push("Phone number is required");
+    if (!travelDate) errors.push("Travel date is required");
+    if (!terms) errors.push("You must agree to the terms");
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      errors.push("Invalid email");
+    if (errors.length > 0) return showError(errors.join("\n"));
+
+    // 3. Upload ID picture
+    await showSwal({
+      title: "Processing Booking...",
+      text: "Uploading your ID and saving your booking. Please wait.",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+        const loadingPopup = Swal.getPopup();
+        if (loadingPopup) loadingPopup.style.zIndex = "10000000";
+      },
+    });
 
     let idPictureUrl = null;
     let idPictureStoragePath = null;
 
     try {
-      // Validate file size (5MB limit)
-      if (idPictureFile.size > 5 * 1024 * 1024) {
-        alert("❌ ID picture is too large. Max size is 5MB.");
-        return;
-      }
-
-      // Validate file type
-      const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-      if (!validTypes.includes(idPictureFile.type)) {
-        alert("❌ Invalid file type. Please upload JPG, PNG, GIF, or WEBP.");
-        return;
-      }
-
-      // Upload to Supabase Storage bucket 'id_pictures'
       const timestamp = Date.now();
       const random = Math.random().toString(36).substring(2, 8);
       const fileExt = idPictureFile.name.split(".").pop();
       const fileName = `${timestamp}-${random}.${fileExt}`;
 
-      const { data, error } = await window.sns_supabase_client.storage
+      const { error: uploadError } = await window.sns_supabase_client.storage
         .from("id_pictures")
         .upload(fileName, idPictureFile, {
           cacheControl: "3600",
           upsert: false,
         });
-
-      if (error) throw error;
+      if (uploadError) throw uploadError;
 
       const {
         data: { publicUrl },
@@ -1521,40 +1551,23 @@ class DestinationsManager {
 
       idPictureUrl = publicUrl;
       idPictureStoragePath = fileName;
-      console.log("✅ ID picture uploaded:", idPictureUrl);
     } catch (uploadError) {
-      console.error("❌ ID picture upload error:", uploadError);
-      alert(
-        "❌ Failed to upload ID picture: " +
-          uploadError.message +
-          "\n\nPlease try again with a valid image file.",
-      );
+      console.error("Upload error:", uploadError);
+      await showSwal({
+        icon: "error",
+        title: "Upload Failed",
+        text: "Failed to upload ID picture: " + uploadError.message,
+        confirmButtonColor: "#dc2626",
+      });
       return;
     }
 
-    // Validation for other required fields
-    const errors = [];
-    if (!fullName) errors.push("Full Name is required");
-    if (!email) errors.push("Email is required");
-    if (!phone) errors.push("Phone number is required");
-    if (!travelDate) errors.push("Travel date is required");
-    if (!terms) errors.push("You must agree to the terms");
-
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      errors.push("Invalid email");
-
-    if (errors.length > 0) {
-      alert("Please fix:\n\n" + errors.join("\n"));
-      return;
-    }
-
-    // Generate unique booking reference
+    // 4. Create booking data (MUST be defined before try block)
     const bookingRef = `SNS-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-
     const bookingData = {
       booking_reference: bookingRef,
-      destination_id: this.currentPackageData.destinationId,
-      package_id: this.currentPackageId,
+      destination_id: destinationId,
+      package_id: packageId,
       hotel_category_id: parseInt(categoryId),
       travel_dates: [travelDate],
       total_amount: totalAmount,
@@ -1567,7 +1580,7 @@ class DestinationsManager {
       created_at: new Date().toISOString(),
       category_name: categoryName,
       hotel_Name: hotelName,
-      package_Name: this.currentPackage,
+      package_Name: packageName,
       hotel_Rates_Selected: selectedRate,
       special_requests: requests || null,
       booking_source: "website",
@@ -1582,8 +1595,7 @@ class DestinationsManager {
       id_picture_storage_path: idPictureStoragePath,
     };
 
-    console.log("Submitting booking with required ID picture:", bookingData);
-
+    // Disable submit button (if still present)
     const btn = document.querySelector("#bookingModal button:last-child");
     const originalText = btn?.innerHTML;
     if (btn) {
@@ -1594,45 +1606,63 @@ class DestinationsManager {
     try {
       const { data, error } = await window.sns_supabase_client
         .from("b2b_bookings")
-        .insert([bookingData])
+        .insert([bookingData]) // Now bookingData is defined
         .select();
 
-      if (error) {
-        console.error("Supabase error:", error);
-        throw new Error(error.message);
-      }
-
+      if (error) throw error;
       console.log("Booking successful:", data);
 
+      // Forcefully close the booking modal BEFORE showing success
+      const modal = document.getElementById("bookingModal");
+      if (modal) {
+        modal.style.display = "none";
+        modal.remove();
+      }
+      this.currentPackageData = null;
+
+      // Build success message
       let extraNightMsg = "";
       if (extraNightRatePerPerson > 0) {
         extraNightMsg = `\nExtra Night: ${extraNightLabel} - ₱${extraNightRatePerPerson.toLocaleString()} × ${paxCount} pax = ₱${extraNightTotal.toLocaleString()}`;
       }
 
-      alert(
-        `✅ BOOKING CONFIRMED!\n\n` +
-          `Reference: ${bookingRef}\n` +
-          `Package: ${this.currentPackage}\n` +
-          `Destination: ${this.currentPackageData.destination}\n` +
-          `Travel Date: ${travelDate}\n` +
-          `Pax Type: ${paxLabel}\n` +
-          `Travelers: ${paxCount}\n` +
-          `Rate: ₱${Number(selectedRate).toLocaleString()} per person${extraNightMsg}\n` +
-          `Total Amount: ₱${totalAmount.toLocaleString()}\n` +
-          `Hotel: ${hotelName}\n` +
-          `ID Picture: Uploaded successfully ✅\n\n` +
-          `We will contact you within 24 hours to confirm your booking.`,
-      );
-
-      this.closeBookingModal();
+      await showSwal({
+        icon: "success",
+        title: "✅ BOOKING CONFIRMED!",
+        html: `
+        <div style="text-align: left;">
+          <p><strong>Reference:</strong> ${bookingRef}</p>
+          <p><strong>Package:</strong> ${packageName}</p>
+          <p><strong>Destination:</strong> ${destinationName}</p>
+          <p><strong>Travel Date:</strong> ${travelDate}</p>
+          <p><strong>Pax Type:</strong> ${paxLabel}</p>
+          <p><strong>Travelers:</strong> ${paxCount}</p>
+          <p><strong>Rate:</strong> ₱${Number(selectedRate).toLocaleString()} per person${extraNightMsg}</p>
+          <p><strong>Total Amount:</strong> ₱${totalAmount.toLocaleString()}</p>
+          <p><strong>Hotel:</strong> ${hotelName}</p>
+          <p><strong>ID Picture:</strong> Uploaded successfully ✅</p>
+          <p class="mt-2 text-sm text-gray-500">We will contact you within 24 hours to confirm your booking.</p>
+        </div>
+      `,
+        confirmButtonText: "OK",
+        confirmButtonColor: "#0f766e",
+      });
     } catch (error) {
       console.error("Booking error:", error);
-      alert("Booking failed: " + error.message);
+      await showSwal({
+        icon: "error",
+        title: "Booking Failed",
+        text:
+          error.message || "An unexpected error occurred. Please try again.",
+        confirmButtonColor: "#dc2626",
+      });
+      // Re‑enable button only on error (since modal stays open)
       if (btn) {
         btn.innerHTML = originalText;
         btn.disabled = false;
       }
     }
+    // No finally block – loading SweetAlert is replaced automatically
   }
 
   // ============================================

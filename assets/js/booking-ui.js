@@ -5,6 +5,138 @@ console.log(
   "🎨 Booking Details UI Module Loading - FULLY EDITABLE VERSION WITH ID PICTURE",
 );
 
+// =====================================================
+// CUSTOM CENTERED POPUP MESSAGES
+// =====================================================
+
+// Show centered success message
+function showSuccess(message, title = "Success!") {
+  showCenteredPopup(message, title, "success");
+}
+
+// Show centered error message
+function showError(message, title = "Error!") {
+  showCenteredPopup(message, title, "error");
+}
+
+// Show centered warning message
+function showWarning(message, title = "Warning!") {
+  showCenteredPopup(message, title, "warning");
+}
+
+// Show centered info message
+function showInfo(message, title = "Info") {
+  showCenteredPopup(message, title, "info");
+}
+
+// Show centered confirmation dialog
+async function showConfirm(message, title = "Confirm Action") {
+  return new Promise((resolve) => {
+    const modalId = "customConfirmModal";
+    const existingModal = document.getElementById(modalId);
+    if (existingModal) existingModal.remove();
+
+    const modalHtml = `
+      <div id="${modalId}" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 20000; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out;">
+        <div style="background: white; border-radius: 24px; max-width: 400px; width: 90%; padding: 28px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <div style="width: 56px; height: 56px; background: #fef3c7; border-radius: 28px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+              <i class="fas fa-question-circle" style="font-size: 28px; color: #f59e0b;"></i>
+            </div>
+            <h3 style="font-size: 20px; font-weight: 700; color: #1f2937; margin: 0 0 8px 0;">${escapeHtml(title)}</h3>
+            <p style="color: #6b7280; margin: 0; line-height: 1.5; white-space: pre-line;">${escapeHtml(message)}</p>
+          </div>
+          <div style="display: flex; gap: 12px; justify-content: center;">
+            <button onclick="resolveConfirm(false)" style="padding: 10px 24px; background: #f3f4f6; border: none; border-radius: 12px; font-weight: 500; color: #4b5563; cursor: pointer; transition: all 0.2s;">Cancel</button>
+            <button onclick="resolveConfirm(true)" style="padding: 10px 24px; background: linear-gradient(135deg, #059669, #10b981); border: none; border-radius: 12px; font-weight: 500; color: white; cursor: pointer; transition: all 0.2s;">Confirm</button>
+          </div>
+        </div>
+      </div>
+      <style>
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      </style>
+    `;
+
+    document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+    window.resolveConfirm = (result) => {
+      const modal = document.getElementById(modalId);
+      if (modal) modal.remove();
+      resolve(result);
+    };
+
+    // Close on backdrop click
+    document.getElementById(modalId).addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) {
+        window.resolveConfirm(false);
+      }
+    });
+  });
+}
+
+// Main centered popup function
+function showCenteredPopup(message, title, type = "info") {
+  const modalId = "customPopupModal";
+  const existingModal = document.getElementById(modalId);
+  if (existingModal) existingModal.remove();
+
+  const icons = {
+    success: { icon: "fa-check-circle", bg: "#d1fae5", color: "#059669" },
+    error: { icon: "fa-exclamation-circle", bg: "#fee2e2", color: "#dc2626" },
+    warning: {
+      icon: "fa-exclamation-triangle",
+      bg: "#fef3c7",
+      color: "#f59e0b",
+    },
+    info: { icon: "fa-info-circle", bg: "#dbeafe", color: "#3b82f6" },
+  };
+
+  const iconConfig = icons[type] || icons.info;
+
+  const modalHtml = `
+    <div id="${modalId}" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 20000; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out;">
+      <div style="background: white; border-radius: 24px; max-width: 400px; width: 90%; padding: 28px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); animation: slideUp 0.3s ease-out;">
+        <div style="text-align: center;">
+          <div style="width: 64px; height: 64px; background: ${iconConfig.bg}; border-radius: 32px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+            <i class="fas ${iconConfig.icon}" style="font-size: 32px; color: ${iconConfig.color};"></i>
+          </div>
+          <h3 style="font-size: 22px; font-weight: 700; color: #1f2937; margin: 0 0 12px 0;">${escapeHtml(title)}</h3>
+          <p style="color: #6b7280; margin: 0 0 24px 0; line-height: 1.5; white-space: pre-line;">${escapeHtml(message)}</p>
+          <button onclick="closeCenteredPopup()" style="padding: 10px 32px; background: linear-gradient(135deg, #059669, #10b981); border: none; border-radius: 12px; font-weight: 500; color: white; cursor: pointer; transition: all 0.2s;">OK</button>
+        </div>
+      </div>
+    </div>
+    <style>
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+    </style>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+  window.closeCenteredPopup = () => {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.remove();
+  };
+
+  // Auto close after 3 seconds for success/info messages
+  if (type === "success" || type === "info") {
+    setTimeout(() => {
+      const modal = document.getElementById(modalId);
+      if (modal) modal.remove();
+    }, 3000);
+  }
+}
+
 // Helper function to get pax type label from booking data
 function getPaxTypeLabel(booking) {
   if (booking.selected_pax_type) {
@@ -64,19 +196,22 @@ function getOptionalTourBreakdown(booking) {
 // Function to upload ID picture to Supabase Storage
 window.uploadIdPicture = async function (bookingId, file) {
   if (!file) {
-    alert("Please select a file to upload.");
+    showWarning("Please select a file to upload.", "No File Selected");
     return;
   }
 
   // Validate file type (images only)
   if (!file.type.startsWith("image/")) {
-    alert("Please select a valid image file (JPEG, PNG, etc.)");
+    showError(
+      "Please select a valid image file (JPEG, PNG, etc.)",
+      "Invalid File Type",
+    );
     return;
   }
 
   // Validate file size (max 5MB)
   if (file.size > 5 * 1024 * 1024) {
-    alert("File size should be less than 5MB");
+    showError("File size should be less than 5MB", "File Too Large");
     return;
   }
 
@@ -90,7 +225,7 @@ window.uploadIdPicture = async function (bookingId, file) {
   try {
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("booking-documents") // Your bucket name
+      .from("booking-documents")
       .upload(filePath, file);
 
     if (uploadError) throw uploadError;
@@ -112,11 +247,11 @@ window.uploadIdPicture = async function (bookingId, file) {
 
     if (updateError) throw updateError;
 
-    alert("✅ ID picture uploaded successfully!");
+    showSuccess("ID picture uploaded successfully!", "Upload Successful");
     await window.viewBookingDetails(bookingId); // Refresh modal
   } catch (error) {
     console.error("Error uploading ID picture:", error);
-    alert("Failed to upload ID picture: " + error.message);
+    showError("Failed to upload ID picture: " + error.message, "Upload Failed");
   } finally {
     if (typeof showLoading !== "undefined") showLoading(false);
   }
@@ -124,12 +259,11 @@ window.uploadIdPicture = async function (bookingId, file) {
 
 // Function to delete ID picture
 window.deleteIdPicture = async function (bookingId, storagePath) {
-  if (
-    !confirm(
-      "Are you sure you want to delete this ID picture? This action cannot be undone.",
-    )
-  )
-    return;
+  const confirmed = await showConfirm(
+    "This action cannot be undone!",
+    "Delete ID Picture?",
+  );
+  if (!confirmed) return;
 
   if (typeof showLoading !== "undefined")
     showLoading(true, "Deleting ID picture...");
@@ -156,11 +290,11 @@ window.deleteIdPicture = async function (bookingId, storagePath) {
 
     if (updateError) throw updateError;
 
-    alert("✅ ID picture deleted successfully!");
+    showSuccess("ID picture deleted successfully!", "Deleted");
     await window.viewBookingDetails(bookingId); // Refresh modal
   } catch (error) {
     console.error("Error deleting ID picture:", error);
-    alert("Failed to delete ID picture: " + error.message);
+    showError("Failed to delete ID picture: " + error.message, "Delete Failed");
   } finally {
     if (typeof showLoading !== "undefined") showLoading(false);
   }
@@ -172,7 +306,7 @@ window.viewBookingDetails = async function (id) {
 
   const booking = await window.fetchBookingById(id);
   if (!booking) {
-    alert("Booking not found");
+    showError("Booking not found", "Not Found");
     return;
   }
 
@@ -221,20 +355,21 @@ window.viewBookingDetails = async function (id) {
 
   const modalHtml = `
     <div id="bookingDetailsModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;">
-      <div style="background: white; border-radius: 28px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: modalSlideIn 0.3s ease-out;">
+      <div style="background: white; border-radius: 28px; max-width: 900px; width: 100%; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: modalSlideIn 0.3s ease-out;">
         
-        <!-- Header -->
-        <div style="background: linear-gradient(135deg, #059669, #10b981); padding: 20px 28px; border-radius: 28px 28px 0 0; position: sticky; top: 0; z-index: 10;">
+        <!-- Header - Fixed at top -->
+        <div style="background: linear-gradient(135deg, #059669, #10b981); padding: 20px 28px; border-radius: 28px 28px 0 0; flex-shrink: 0;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
               <h2 style="color: white; margin: 0; font-size: 22px;">Edit Booking Details</h2>
               <p style="color: #d1fae5; margin: 4px 0 0 0; font-family: monospace;">${booking.booking_reference}</p>
             </div>
-            <button onclick="closeDetailsModal()" style="width: 36px; height: 36px; background: rgba(255,255,255,0.2); border: none; border-radius: 18px; color: white; font-size: 20px; cursor: pointer;">&times;</button>
+            <button onclick="closeDetailsModal()" style="width: 36px; height: 36px; background: rgba(255,255,255,0.2); border: none; border-radius: 18px; color: white; font-size: 20px; cursor: pointer; transition: all 0.2s;">&times;</button>
           </div>
         </div>
         
-        <div style="padding: 28px;">
+        <!-- Scrollable Content Area -->
+        <div style="flex: 1; overflow-y: auto; padding: 28px;">
           <!-- Status Cards -->
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px;">
             <div style="background: ${isPending ? "#fef3c7" : isConfirmed ? "#dcfce7" : "#fee2e2"}; border-radius: 16px; padding: 12px 18px;">
@@ -551,45 +686,45 @@ window.viewBookingDetails = async function (id) {
               </div>
             </div>
           </div>
-          
-          <!-- Action Buttons -->
-          <div style="border-top: 2px solid #e5e7eb; padding-top: 24px;">
-            <div style="display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;">
-              <button onclick="closeDetailsModal()" style="padding: 10px 24px; background: white; border: 1px solid #d1d5db; border-radius: 12px; cursor: pointer; font-weight: 500;">
-                Close
+        </div>
+        
+        <!-- Footer - Fixed at bottom -->
+        <div style="border-top: 2px solid #e5e7eb; padding: 24px 28px; flex-shrink: 0; background: white; border-radius: 0 0 28px 28px;">
+          <div style="display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;">
+            <button onclick="closeDetailsModal()" style="padding: 10px 24px; background: white; border: 1px solid #d1d5db; border-radius: 12px; cursor: pointer; font-weight: 500;">
+              Close
+            </button>
+            
+            ${
+              isPending
+                ? `
+              <button onclick="handleApproveWithFees(${booking.id})" style="padding: 10px 24px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 500;">
+                ✓ Approve & Send Email
               </button>
-              
-              ${
-                isPending
-                  ? `
-                <button onclick="handleApproveWithFees(${booking.id})" style="padding: 10px 24px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 500;">
-                  ✓ Approve & Send Email
-                </button>
-                <button onclick="handleRejectBooking(${booking.id})" style="padding: 10px 24px; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 500;">
-                  ✗ Reject
-                </button>
-              `
-                  : `
-                <button onclick="handleSetPending(${booking.id})" style="padding: 10px 24px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 500;">
-                  ↺ Set as Pending
-                </button>
-              `
-              }
-              
-              ${
-                !isPaid && isConfirmed
-                  ? `
-                <button onclick="handlePaymentConfirmation(${booking.id})" style="padding: 10px 24px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 500;">
-                  💰 Mark Paid & Send Receipt
-                </button>
-              `
-                  : ""
-              }
-              
-              <button onclick="if(confirm('⚠️ Delete this booking?')) handleDeleteBooking(${booking.id}, '${booking.booking_reference}')" style="padding: 10px 24px; background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 500;">
-                🗑️ Delete
+              <button onclick="handleRejectBooking(${booking.id})" style="padding: 10px 24px; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 500;">
+                ✗ Reject
               </button>
-            </div>
+            `
+                : `
+              <button onclick="handleSetPending(${booking.id})" style="padding: 10px 24px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 500;">
+                ↺ Set as Pending
+              </button>
+            `
+            }
+            
+            ${
+              !isPaid && isConfirmed
+                ? `
+              <button onclick="handlePaymentConfirmation(${booking.id})" style="padding: 10px 24px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 500;">
+                💰 Mark Paid & Send Receipt
+              </button>
+            `
+                : ""
+            }
+            
+            <button onclick="handleDeleteBooking(${booking.id}, '${booking.booking_reference}')" style="padding: 10px 24px; background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 500;">
+              🗑️ Delete
+            </button>
           </div>
         </div>
       </div>
@@ -604,12 +739,33 @@ window.viewBookingDetails = async function (id) {
         border-color: #10b981;
         box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
       }
+      /* Custom scrollbar */
+      #bookingDetailsModal > div > div:nth-child(2)::-webkit-scrollbar {
+        width: 8px;
+      }
+      #bookingDetailsModal > div > div:nth-child(2)::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+      }
+      #bookingDetailsModal > div > div:nth-child(2)::-webkit-scrollbar-thumb {
+        background: #10b981;
+        border-radius: 4px;
+      }
+      #bookingDetailsModal > div > div:nth-child(2)::-webkit-scrollbar-thumb:hover {
+        background: #059669;
+      }
     </style>
   `;
 
   const existingModal = document.getElementById("bookingDetailsModal");
   if (existingModal) existingModal.remove();
   document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+  // Remove aria-hidden from modal after it's added to prevent focus issues
+  const modalContainer = document.getElementById("bookingDetailsModal");
+  if (modalContainer) {
+    modalContainer.removeAttribute("aria-hidden");
+  }
 
   // Add real-time total update for fees
   const additionalFeeInput = document.getElementById("additionalFeeInput");
@@ -685,7 +841,7 @@ function cancelEdit(section) {
 }
 
 // =====================================================
-// SAVE FUNCTIONS
+// SAVE FUNCTIONS - FULLY EDITABLE
 // =====================================================
 
 // Save Client Info
@@ -696,7 +852,7 @@ window.saveClientInfo = async function (bookingId) {
   const nationality = document.getElementById("editNationality")?.value;
 
   if (!name || !email) {
-    alert("Name and Email are required");
+    showWarning("Name and Email are required", "Missing Information");
     return;
   }
 
@@ -714,12 +870,12 @@ window.saveClientInfo = async function (bookingId) {
 
     if (error) throw error;
 
-    alert("✅ Client information updated successfully!");
+    showSuccess("Client information updated successfully!", "Updated");
     cancelEdit("clientInfo");
     await window.viewBookingDetails(bookingId);
   } catch (error) {
     console.error("Error updating client info:", error);
-    alert("Failed to update: " + error.message);
+    showError("Failed to update: " + error.message, "Update Failed");
   }
 };
 
@@ -754,12 +910,12 @@ window.saveTripDetails = async function (bookingId) {
 
     if (error) throw error;
 
-    alert("✅ Trip details updated successfully!");
+    showSuccess("Trip details updated successfully!", "Updated");
     cancelEdit("tripDetails");
     await window.viewBookingDetails(bookingId);
   } catch (error) {
     console.error("Error updating trip details:", error);
-    alert("Failed to update: " + error.message);
+    showError("Failed to update: " + error.message, "Update Failed");
   }
 };
 
@@ -801,12 +957,15 @@ window.saveHotelRates = async function (bookingId) {
 
     if (error) throw error;
 
-    alert(`✅ Hotel rates updated! New Total: ₱${newTotal.toLocaleString()}`);
+    showSuccess(
+      `Hotel rates updated! New Total: ₱${newTotal.toLocaleString()}`,
+      "Updated",
+    );
     cancelEdit("hotelRates");
     await window.viewBookingDetails(bookingId);
   } catch (error) {
     console.error("Error updating hotel rates:", error);
-    alert("Failed to update: " + error.message);
+    showError("Failed to update: " + error.message, "Update Failed");
   }
 };
 
@@ -846,12 +1005,15 @@ window.saveOptionalTour = async function (bookingId) {
 
     if (error) throw error;
 
-    alert(`✅ Optional tour updated! New Total: ₱${newTotal.toLocaleString()}`);
+    showSuccess(
+      `Optional tour updated! New Total: ₱${newTotal.toLocaleString()}`,
+      "Updated",
+    );
     cancelEdit("optionalTour");
     await window.viewBookingDetails(bookingId);
   } catch (error) {
     console.error("Error updating optional tour:", error);
-    alert("Failed to update: " + error.message);
+    showError("Failed to update: " + error.message, "Update Failed");
   }
 };
 
@@ -870,55 +1032,12 @@ window.saveSpecialRequests = async function (bookingId) {
 
     if (error) throw error;
 
-    alert("✅ Special requests updated!");
+    showSuccess("Special requests updated!", "Updated");
     cancelEdit("specialRequests");
     await window.viewBookingDetails(bookingId);
   } catch (error) {
     console.error("Error updating special requests:", error);
-    alert("Failed to update: " + error.message);
-  }
-};
-
-// =====================================================
-// UPDATE TRAVEL DATES FUNCTION (Legacy - kept for compatibility)
-// =====================================================
-
-window.updateTravelDates = async function (bookingId) {
-  const travelDatesInput = document.getElementById("editTravelDates");
-  if (!travelDatesInput) return;
-
-  const travelDatesStr = travelDatesInput.value;
-  if (!travelDatesStr) {
-    alert("Please enter travel dates in format: YYYY-MM-DD, YYYY-MM-DD");
-    return;
-  }
-
-  const travelDatesArray = travelDatesStr
-    .split(",")
-    .map((d) => new Date(d.trim()));
-  if (travelDatesArray.length < 2) {
-    alert("Please enter both start and end dates");
-    return;
-  }
-
-  if (!confirm(`Update travel dates to:\n${travelDatesStr}?`)) return;
-
-  try {
-    const { error } = await supabase
-      .from("b2b_bookings")
-      .update({
-        travel_dates: travelDatesArray,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", bookingId);
-
-    if (error) throw error;
-
-    alert("✅ Travel dates updated successfully!");
-    await window.viewBookingDetails(bookingId);
-  } catch (error) {
-    console.error("Error updating travel dates:", error);
-    alert("Failed to update travel dates: " + error.message);
+    showError("Failed to update: " + error.message, "Update Failed");
   }
 };
 
@@ -938,7 +1057,7 @@ window.updateBookingFees = async function (bookingId) {
 
   const booking = await window.fetchBookingById(bookingId);
   if (!booking) {
-    alert("Booking not found");
+    showError("Booking not found", "Not Found");
     return;
   }
 
@@ -956,13 +1075,12 @@ window.updateBookingFees = async function (bookingId) {
   const subtotal = hotelTotal + optionalTourTotal;
   const newTotal = subtotal + additionalFee - discountAmount;
 
-  if (
-    !confirm(
-      `Update fees?\n\nAdditional Fee: ₱${additionalFee.toLocaleString()}${additionalFeeDesc ? ` (${additionalFeeDesc})` : ""}\nDiscount: ₱${discountAmount.toLocaleString()}${discountDesc ? ` (${discountDesc})` : ""}\nNew Total: ₱${newTotal.toLocaleString()}`,
-    )
-  ) {
-    return;
-  }
+  const confirmed = await showConfirm(
+    `Additional Fee: ₱${additionalFee.toLocaleString()}${additionalFeeDesc ? ` (${additionalFeeDesc})` : ""}\nDiscount: ₱${discountAmount.toLocaleString()}${discountDesc ? ` (${discountDesc})` : ""}\nNew Total: ₱${newTotal.toLocaleString()}`,
+    "Update Fees?",
+  );
+
+  if (!confirmed) return;
 
   try {
     const { error } = await supabase
@@ -979,13 +1097,14 @@ window.updateBookingFees = async function (bookingId) {
 
     if (error) throw error;
 
-    alert(
-      `✅ Fees updated successfully!\nNew Total: ₱${newTotal.toLocaleString()}`,
+    showSuccess(
+      `Fees updated successfully! New Total: ₱${newTotal.toLocaleString()}`,
+      "Updated",
     );
     await window.viewBookingDetails(bookingId);
   } catch (error) {
     console.error("Error updating fees:", error);
-    alert("Failed to update fees: " + error.message);
+    showError("Failed to update fees: " + error.message, "Update Failed");
   }
 };
 
@@ -994,18 +1113,20 @@ window.updateBookingFees = async function (bookingId) {
 // =====================================================
 
 window.handleApproveWithFees = async function (bookingId) {
+  // First save the fees
   await window.updateBookingFees(bookingId);
 
   setTimeout(async () => {
     const booking = await window.fetchBookingById(bookingId);
     if (booking) {
       const totalAmount = booking.total_amount;
-      if (
-        !confirm(
-          `Approve this booking with total amount ₱${totalAmount.toLocaleString()}?`,
-        )
-      )
-        return;
+
+      const confirmed = await showConfirm(
+        `Approve this booking with total amount ₱${totalAmount.toLocaleString()}?\n\nA confirmation email will be sent to the customer.`,
+        "Approve Booking?",
+      );
+
+      if (!confirmed) return;
 
       try {
         if (typeof showLoading !== "undefined")
@@ -1021,9 +1142,12 @@ window.handleApproveWithFees = async function (bookingId) {
           if (typeof window.sendApprovalEmail !== "undefined") {
             await window.sendApprovalEmail(bookingId);
           }
-          alert(
-            `✅ Booking approved with amount ₱${totalAmount.toLocaleString()}!`,
+
+          showSuccess(
+            `Booking approved with amount ₱${totalAmount.toLocaleString()}! Email sent to customer.`,
+            "Approved!",
           );
+
           await window.fetchBookings();
           if (typeof window.renderBookingsTable === "function")
             window.renderBookingsTable();
@@ -1033,7 +1157,10 @@ window.handleApproveWithFees = async function (bookingId) {
         if (typeof showLoading !== "undefined") showLoading(false);
       } catch (error) {
         console.error("Error:", error);
-        alert("Failed to approve booking");
+        showError(
+          "Failed to approve booking: " + error.message,
+          "Approval Failed",
+        );
         if (typeof showLoading !== "undefined") showLoading(false);
       }
     }
@@ -1045,7 +1172,12 @@ window.handleApproveWithFees = async function (bookingId) {
 // =====================================================
 
 window.handleRejectBooking = async function (bookingId) {
-  if (!confirm("Reject this booking? This action cannot be undone.")) return;
+  const confirmed = await showConfirm(
+    "This action cannot be undone. The customer will be notified.",
+    "Reject Booking?",
+  );
+
+  if (!confirmed) return;
 
   try {
     const updateResult = await window.updateBookingStatusAndAmount(
@@ -1053,14 +1185,14 @@ window.handleRejectBooking = async function (bookingId) {
       "rejected",
     );
     if (updateResult) {
-      alert("✅ Booking rejected");
+      showSuccess("Booking has been rejected", "Rejected!");
       await window.fetchBookings();
       window.renderBookingsTable();
       closeDetailsModal();
     }
   } catch (error) {
     console.error("Error:", error);
-    alert("Failed to reject booking");
+    showError("Failed to reject booking: " + error.message, "Rejection Failed");
   }
 };
 
@@ -1069,7 +1201,12 @@ window.handleRejectBooking = async function (bookingId) {
 // =====================================================
 
 window.handleSetPending = async function (bookingId) {
-  if (!confirm("Set this booking back to pending status?")) return;
+  const confirmed = await showConfirm(
+    "Set this booking back to pending status?",
+    "Set to Pending?",
+  );
+
+  if (!confirmed) return;
 
   try {
     const updateResult = await window.updateBookingStatusAndAmount(
@@ -1077,14 +1214,17 @@ window.handleSetPending = async function (bookingId) {
       "pending",
     );
     if (updateResult) {
-      alert("✅ Booking status set to pending");
+      showSuccess("Booking status set to pending", "Updated");
       await window.fetchBookings();
       window.renderBookingsTable();
       closeDetailsModal();
     }
   } catch (error) {
     console.error("Error:", error);
-    alert("Failed to update booking status");
+    showError(
+      "Failed to update booking status: " + error.message,
+      "Update Failed",
+    );
   }
 };
 
@@ -1093,8 +1233,12 @@ window.handleSetPending = async function (bookingId) {
 // =====================================================
 
 window.handlePaymentConfirmation = async function (bookingId) {
-  if (!confirm("Mark this booking as paid? This will send a receipt email."))
-    return;
+  const confirmed = await showConfirm(
+    "Mark this booking as paid? This will send a receipt email to the customer.",
+    "Confirm Payment?",
+  );
+
+  if (!confirmed) return;
 
   try {
     const { error } = await supabase
@@ -1112,13 +1256,19 @@ window.handlePaymentConfirmation = async function (bookingId) {
       await window.sendPaymentReceipt(bookingId);
     }
 
-    alert("✅ Payment confirmed and receipt sent!");
+    showSuccess(
+      "Payment confirmed and receipt sent to customer!",
+      "Payment Confirmed!",
+    );
     await window.fetchBookings();
     window.renderBookingsTable();
     closeDetailsModal();
   } catch (error) {
     console.error("Error:", error);
-    alert("Failed to confirm payment");
+    showError(
+      "Failed to confirm payment: " + error.message,
+      "Confirmation Failed",
+    );
   }
 };
 
@@ -1127,10 +1277,12 @@ window.handlePaymentConfirmation = async function (bookingId) {
 // =====================================================
 
 window.handleDeleteBooking = async function (bookingId, bookingRef) {
-  if (
-    !confirm(`⚠️ Delete booking ${bookingRef}? This action cannot be undone!`)
-  )
-    return;
+  const confirmed = await showConfirm(
+    `⚠️ Delete booking ${bookingRef}? This action cannot be undone!`,
+    "Delete Booking?",
+  );
+
+  if (!confirmed) return;
 
   try {
     const { error } = await supabase
@@ -1139,13 +1291,13 @@ window.handleDeleteBooking = async function (bookingId, bookingRef) {
       .eq("id", bookingId);
     if (error) throw error;
 
-    alert(`✅ Booking ${bookingRef} deleted successfully`);
+    showSuccess(`Booking ${bookingRef} deleted successfully`, "Deleted!");
     await window.fetchBookings();
     window.renderBookingsTable();
     closeDetailsModal();
   } catch (error) {
     console.error("Error:", error);
-    alert("Failed to delete booking");
+    showError("Failed to delete booking: " + error.message, "Delete Failed");
   }
 };
 

@@ -1514,11 +1514,12 @@ class DestinationsManager {
       errors.push("Invalid email");
     if (errors.length > 0) return showError(errors.join("\n"));
 
-    // 3. Upload ID picture
-    await showSwal({
+    // 3. Show loading SweetAlert (no await, so execution continues)
+    Swal.fire({
       title: "Processing Booking...",
       text: "Uploading your ID and saving your booking. Please wait.",
       allowOutsideClick: false,
+      showConfirmButton: false,
       didOpen: () => {
         Swal.showLoading();
         const loadingPopup = Swal.getPopup();
@@ -1553,6 +1554,7 @@ class DestinationsManager {
       idPictureStoragePath = fileName;
     } catch (uploadError) {
       console.error("Upload error:", uploadError);
+      Swal.close(); // close the loading alert
       await showSwal({
         icon: "error",
         title: "Upload Failed",
@@ -1562,7 +1564,7 @@ class DestinationsManager {
       return;
     }
 
-    // 4. Create booking data (MUST be defined before try block)
+    // 4. Create booking data
     const bookingRef = `SNS-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     const bookingData = {
       booking_reference: bookingRef,
@@ -1606,13 +1608,16 @@ class DestinationsManager {
     try {
       const { data, error } = await window.sns_supabase_client
         .from("b2b_bookings")
-        .insert([bookingData]) // Now bookingData is defined
+        .insert([bookingData])
         .select();
 
       if (error) throw error;
       console.log("Booking successful:", data);
 
-      // Forcefully close the booking modal BEFORE showing success
+      // Close loading alert
+      Swal.close();
+
+      // Forcefully close the booking modal
       const modal = document.getElementById("bookingModal");
       if (modal) {
         modal.style.display = "none";
@@ -1649,6 +1654,7 @@ class DestinationsManager {
       });
     } catch (error) {
       console.error("Booking error:", error);
+      Swal.close(); // close loading alert
       await showSwal({
         icon: "error",
         title: "Booking Failed",
@@ -1662,7 +1668,6 @@ class DestinationsManager {
         btn.disabled = false;
       }
     }
-    // No finally block – loading SweetAlert is replaced automatically
   }
 
   // ============================================

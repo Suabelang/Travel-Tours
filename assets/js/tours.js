@@ -1,6 +1,7 @@
 // ============================================
 // TOURS.JS - COMPLETE WITH REQUIRED ID PICTURE UPLOAD
 // ID PICTURE IS REQUIRED - MUST BE UPLOADED
+// WITH SUB-CATEGORY FILTERING
 // ============================================
 
 console.log("✅ tours.js loading...");
@@ -74,6 +75,11 @@ class DestinationsManager {
     this.optionalTourCategories = [];
     this.optionalTourRates = [];
     this.packageOptionalTours = [];
+
+    // Track expanded states
+    this.isLocalExpanded = false;
+    this.isIntlExpanded = false;
+    this.isPromoExpanded = false;
 
     if (this.grid) {
       this.grid.innerHTML =
@@ -345,34 +351,100 @@ class DestinationsManager {
   }
 
   // ============================================
-  // RENDER FILTER BUTTONS
+  // RENDER FILTER BUTTONS - WITH SUB-CATEGORY FILTERING
   // ============================================
   renderFilterButtons() {
     const filterContainer = document.getElementById("filterButtons");
     if (!filterContainer) return;
 
-    const landToursCount = this.destinations.filter(
-      (d) => d.category === "Land Tours" || d.tour_type === "Land Tours",
-    ).length;
-    const domesticCount = this.destinations.filter(
-      (d) => d.category === "Domestic" || d.country === "Philippines",
-    ).length;
-    const promoCount = this.destinations.filter(
-      (d) => d.category === "Promo" || d.has_promo === true,
-    ).length;
+    // Calculate counts based on sub_category
     const allCount = this.destinations.length;
 
+    // Local (Philippines) destinations
+    const localCount = this.destinations.filter(
+      (d) =>
+        d.country === "Philippines" ||
+        d.country?.toLowerCase() === "philippines",
+    ).length;
+
+    // International (Non-Philippines) destinations
+    const internationalCount = this.destinations.filter(
+      (d) =>
+        d.country !== "Philippines" &&
+        d.country?.toLowerCase() !== "philippines",
+    ).length;
+
+    // Sub-category counts for Local
+    const localLandToursCount = this.destinations.filter(
+      (d) =>
+        (d.country === "Philippines" ||
+          d.country?.toLowerCase() === "philippines") &&
+        (d.sub_category === "Land Tours" ||
+          d.sub_category?.toLowerCase() === "land tours"),
+    ).length;
+
+    const localDomesticCount = this.destinations.filter(
+      (d) =>
+        (d.country === "Philippines" ||
+          d.country?.toLowerCase() === "philippines") &&
+        (d.sub_category === "Domestic" ||
+          d.sub_category?.toLowerCase() === "domestic"),
+    ).length;
+
+    // Sub-category counts for International
+    const intlLandToursCount = this.destinations.filter(
+      (d) =>
+        d.country !== "Philippines" &&
+        d.country?.toLowerCase() !== "philippines" &&
+        (d.sub_category === "Land Tours" ||
+          d.sub_category?.toLowerCase() === "land tours"),
+    ).length;
+
+    const intlDomesticCount = this.destinations.filter(
+      (d) =>
+        d.country !== "Philippines" &&
+        d.country?.toLowerCase() !== "philippines" &&
+        (d.sub_category === "Domestic" ||
+          d.sub_category?.toLowerCase() === "domestic"),
+    ).length;
+
+    // Promo count
+    const promoCount = this.destinations.filter(
+      (d) =>
+        d.sub_category === "Promo" || d.sub_category?.toLowerCase() === "promo",
+    ).length;
+
     filterContainer.innerHTML = `
-      <div class="flex flex-wrap gap-3 mb-6 justify-center">
+      <div class="flex flex-wrap gap-3 justify-center mb-4">
         <button class="filter-btn px-5 py-2.5 rounded-full text-sm transition-all ${this.currentFilter === "all" ? "bg-gradient-to-r from-[#076653] to-[#0a8a6e] text-white shadow-md" : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"}" data-filter="all">
           <i class="fas fa-globe-asia mr-1"></i> All (${allCount})
         </button>
-        <button class="filter-btn px-5 py-2.5 rounded-full text-sm transition-all ${this.currentFilter === "land_tours" ? "bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md" : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"}" data-filter="land_tours">
-          <i class="fas fa-mountain mr-1"></i> Land Tours (${landToursCount})
-        </button>
-        <button class="filter-btn px-5 py-2.5 rounded-full text-sm transition-all ${this.currentFilter === "domestic" ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-md" : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"}" data-filter="domestic">
-          <i class="fas fa-map-pin mr-1"></i> Domestic (${domesticCount})
-        </button>
+        <div class="relative inline-block">
+          <button class="filter-category-btn px-5 py-2.5 rounded-full text-sm transition-all ${this.currentFilter === "local" ? "bg-gradient-to-r from-green-700 to-green-800 text-white shadow-md" : "bg-green-100 text-green-700 border border-green-300 hover:bg-green-200"}" data-filter="local">
+            <i class="fas fa-map-pin mr-1"></i> 🇵🇭 LOCAL (${localCount})
+          </button>
+          <div id="localSubCategories" class="absolute left-0 top-full mt-2 flex flex-wrap gap-2 bg-white p-3 rounded-xl shadow-lg border border-gray-200 z-10 whitespace-nowrap" style="display: ${this.isLocalExpanded ? "flex" : "none"}">
+            <button class="filter-sub-btn px-4 py-2 rounded-full text-xs transition-all ${this.currentFilter === "local_land_tours" ? "bg-amber-600 text-white shadow-md" : "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"}" data-filter="local_land_tours">
+              <i class="fas fa-mountain mr-1"></i> Land Tours (${localLandToursCount})
+            </button>
+            <button class="filter-sub-btn px-4 py-2 rounded-full text-xs transition-all ${this.currentFilter === "local_domestic" ? "bg-emerald-600 text-white shadow-md" : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"}" data-filter="local_domestic">
+              <i class="fas fa-umbrella-beach mr-1"></i> Domestic (${localDomesticCount})
+            </button>
+          </div>
+        </div>
+        <div class="relative inline-block">
+          <button class="filter-category-btn px-5 py-2.5 rounded-full text-sm transition-all ${this.currentFilter === "international" ? "bg-gradient-to-r from-blue-700 to-blue-800 text-white shadow-md" : "bg-blue-100 text-blue-700 border border-blue-300 hover:bg-blue-200"}" data-filter="international">
+            <i class="fas fa-globe mr-1"></i> 🌍 INTERNATIONAL (${internationalCount})
+          </button>
+          <div id="intlSubCategories" class="absolute left-0 top-full mt-2 flex flex-wrap gap-2 bg-white p-3 rounded-xl shadow-lg border border-gray-200 z-10 whitespace-nowrap" style="display: ${this.isIntlExpanded ? "flex" : "none"}">
+            <button class="filter-sub-btn px-4 py-2 rounded-full text-xs transition-all ${this.currentFilter === "intl_land_tours" ? "bg-amber-600 text-white shadow-md" : "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"}" data-filter="intl_land_tours">
+              <i class="fas fa-mountain mr-1"></i> Land Tours (${intlLandToursCount})
+            </button>
+            <button class="filter-sub-btn px-4 py-2 rounded-full text-xs transition-all ${this.currentFilter === "intl_domestic" ? "bg-teal-600 text-white shadow-md" : "bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100"}" data-filter="intl_domestic">
+              <i class="fas fa-city mr-1"></i> Domestic (${intlDomesticCount})
+            </button>
+          </div>
+        </div>
         <button class="filter-btn px-5 py-2.5 rounded-full text-sm transition-all ${this.currentFilter === "promo" ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md" : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"}" data-filter="promo">
           <i class="fas fa-tag mr-1"></i> Promo (${promoCount})
         </button>
@@ -384,36 +456,137 @@ class DestinationsManager {
       </div>
     `;
 
+    // Add event listeners to main filter buttons (All, Promo)
     document.querySelectorAll(".filter-btn").forEach((btn) => {
-      btn.addEventListener("click", (e) =>
-        this.applyFilter(btn.dataset.filter),
-      );
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        this.applyFilter(btn.dataset.filter);
+      });
+    });
+
+    // Add event listeners to category buttons (LOCAL, INTERNATIONAL) - for toggling AND filtering
+    document.querySelectorAll(".filter-category-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const filterValue = btn.dataset.filter;
+
+        // Toggle expansion
+        if (filterValue === "local") {
+          this.isLocalExpanded = !this.isLocalExpanded;
+          // Close the other dropdown if open
+          if (this.isIntlExpanded && filterValue === "local") {
+            this.isIntlExpanded = false;
+          }
+        } else if (filterValue === "international") {
+          this.isIntlExpanded = !this.isIntlExpanded;
+          // Close the other dropdown if open
+          if (this.isLocalExpanded && filterValue === "international") {
+            this.isLocalExpanded = false;
+          }
+        }
+
+        // Apply the filter
+        this.applyFilter(filterValue);
+      });
+    });
+
+    // Add event listeners to sub-category buttons
+    document.querySelectorAll(".filter-sub-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        this.applyFilter(btn.dataset.filter);
+      });
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener("click", (e) => {
+      if (
+        !e.target.closest(".filter-category-btn") &&
+        !e.target.closest(".filter-sub-btn")
+      ) {
+        if (this.isLocalExpanded || this.isIntlExpanded) {
+          this.isLocalExpanded = false;
+          this.isIntlExpanded = false;
+          this.renderFilterButtons();
+        }
+      }
     });
   }
 
+  // ============================================
+  // APPLY FILTER - WITH SUB-CATEGORIES
+  // ============================================
   applyFilter(filter) {
     this.currentFilter = filter;
 
+    let filtered = [];
+
     if (filter === "all") {
-      this.filteredDestinations = [...this.destinations];
-    } else if (filter === "land_tours") {
-      this.filteredDestinations = this.destinations.filter(
-        (d) =>
-          d.category === "Land Tours" ||
-          d.tour_type === "Land Tours" ||
-          d.name.toLowerCase().includes("tour"),
-      );
-    } else if (filter === "domestic") {
-      this.filteredDestinations = this.destinations.filter(
-        (d) => d.country === "Philippines" || d.category === "Domestic",
-      );
+      filtered = [...this.destinations];
     } else if (filter === "promo") {
-      this.filteredDestinations = this.destinations.filter(
-        (d) => d.category === "Promo" || d.has_promo === true || d.promo_price,
+      filtered = this.destinations.filter(
+        (d) =>
+          d.sub_category === "Promo" ||
+          d.sub_category?.toLowerCase() === "promo",
+      );
+    } else if (filter === "local") {
+      // All local destinations (Philippines)
+      filtered = this.destinations.filter(
+        (d) =>
+          d.country === "Philippines" ||
+          d.country?.toLowerCase() === "philippines",
+      );
+    } else if (filter === "local_land_tours") {
+      // Local Land Tours only
+      filtered = this.destinations.filter(
+        (d) =>
+          (d.country === "Philippines" ||
+            d.country?.toLowerCase() === "philippines") &&
+          (d.sub_category === "Land Tours" ||
+            d.sub_category?.toLowerCase() === "land tours"),
+      );
+    } else if (filter === "local_domestic") {
+      // Local Domestic (non-land tours)
+      filtered = this.destinations.filter(
+        (d) =>
+          (d.country === "Philippines" ||
+            d.country?.toLowerCase() === "philippines") &&
+          (d.sub_category === "Domestic" ||
+            d.sub_category?.toLowerCase() === "domestic"),
+      );
+    } else if (filter === "international") {
+      // All international destinations (non-Philippines)
+      filtered = this.destinations.filter(
+        (d) =>
+          d.country !== "Philippines" &&
+          d.country?.toLowerCase() !== "philippines",
+      );
+    } else if (filter === "intl_land_tours") {
+      // International Land Tours only
+      filtered = this.destinations.filter(
+        (d) =>
+          d.country !== "Philippines" &&
+          d.country?.toLowerCase() !== "philippines" &&
+          (d.sub_category === "Land Tours" ||
+            d.sub_category?.toLowerCase() === "land tours"),
+      );
+    } else if (filter === "intl_domestic") {
+      // International Domestic (non-land tours)
+      filtered = this.destinations.filter(
+        (d) =>
+          d.country !== "Philippines" &&
+          d.country?.toLowerCase() !== "philippines" &&
+          (d.sub_category === "Domestic" ||
+            d.sub_category?.toLowerCase() === "domestic"),
       );
     }
 
+    this.filteredDestinations = filtered;
+
+    // Re-render buttons to update active state
     this.renderFilterButtons();
+
+    // Render the filtered destinations
     this.renderDestinations(this.filteredDestinations);
   }
 
@@ -448,15 +621,24 @@ class DestinationsManager {
       const description = dest.description || "No description available";
 
       let categoryBadge = "";
-      if (dest.category === "Land Tours" || dest.tour_type === "Land Tours") {
+      if (
+        dest.sub_category === "Land Tours" ||
+        dest.sub_category?.toLowerCase() === "land tours"
+      ) {
         categoryBadge =
           '<span class="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold bg-amber-500 text-white"><i class="fas fa-mountain mr-1"></i>Land Tour</span>';
-      } else if (dest.category === "Promo" || dest.has_promo) {
+      } else if (
+        dest.sub_category === "Promo" ||
+        dest.sub_category?.toLowerCase() === "promo"
+      ) {
         categoryBadge =
           '<span class="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold bg-red-500 text-white"><i class="fas fa-tag mr-1"></i>PROMO</span>';
-      } else if (dest.country === "Philippines") {
+      } else if (
+        dest.sub_category === "Domestic" ||
+        dest.sub_category?.toLowerCase() === "domestic"
+      ) {
         categoryBadge =
-          '<span class="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold bg-green-500 text-white"><i class="fas fa-map-pin mr-1"></i>Domestic</span>';
+          '<span class="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white"><i class="fas fa-umbrella-beach mr-1"></i>Domestic</span>';
       }
 
       html += `
@@ -588,7 +770,7 @@ class DestinationsManager {
           <div class="flex flex-col md:flex-row justify-between items-start gap-4">
             <div>
               <h3 class="text-2xl font-bold text-teal-700">${this.escapeHtml(pkg.package_name)}</h3>
-              <p class="text-sm text-gray-500 mt-1">${this.escapeHtml(pkg.package_code || "")} • ${this.escapeHtml(pkg.tour_category || "Standard")}</p>
+              <p class="text-sm text-gray-500 mt-1">${this.escapeHtml(pkg.package_code || "")} • ${this.escapeHtml(pkg.tour_category || destination.sub_category || "Standard")}</p>
               ${pkg.has_extra_night ? '<span class="inline-block mt-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full"><i class="fas fa-moon mr-1"></i> Extra Night Available</span>' : ""}
             </div>
             <button class="book-now-btn px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg transition" data-package-name="${this.escapeHtml(pkg.package_name)}" data-package-id="${pkg.id}">
@@ -691,6 +873,7 @@ class DestinationsManager {
               <p class="text-gray-600 mb-4">${this.escapeHtml(destination.description || "No description available.")}</p>
               <div class="grid grid-cols-2 gap-3">
                 <div class="bg-white p-3 rounded-lg shadow-sm"><p class="text-xs text-gray-500">Country</p><p class="font-bold">${this.escapeHtml(destination.country || "Philippines")}</p></div>
+                <div class="bg-white p-3 rounded-lg shadow-sm"><p class="text-xs text-gray-500">Category</p><p class="font-bold">${this.escapeHtml(destination.sub_category || "Land Tours")}</p></div>
                 <div class="bg-white p-3 rounded-lg shadow-sm"><p class="text-xs text-gray-500">Status</p><span class="px-2 py-1 text-xs rounded-full ${destination.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}">${destination.is_active ? "Active" : "Inactive"}</span></div>
               </div>
             </div>
@@ -1162,7 +1345,7 @@ class DestinationsManager {
             <div class="grid grid-cols-2 gap-2 text-sm mt-2">
               <div><span class="text-gray-600">Package:</span> ${this.escapeHtml(pkg.package_name)}</div>
               <div><span class="text-gray-600">Code:</span> ${this.escapeHtml(pkg.package_code || "N/A")}</div>
-              <div><span class="text-gray-600">Category:</span> ${this.escapeHtml(pkg.tour_category || "Standard")}</div>
+              <div><span class="text-gray-600">Category:</span> ${this.escapeHtml(pkg.tour_category || destination.sub_category || "Standard")}</div>
               <div><span class="text-gray-600">Destination:</span> ${this.escapeHtml(destination.name)}</div>
             </div>
             ${pkg.has_extra_night ? '<p class="mt-2 text-xs text-blue-600"><i class="fas fa-moon"></i> Extra Night Available</p>' : ""}
@@ -1866,4 +2049,6 @@ window.showTermsModal = () => {
   );
 };
 
-console.log("✅ tours.js loaded - WITH REQUIRED ID PICTURE UPLOAD!");
+console.log(
+  "✅ tours.js loaded - WITH REQUIRED ID PICTURE UPLOAD & SUB-CATEGORY FILTERS!",
+);

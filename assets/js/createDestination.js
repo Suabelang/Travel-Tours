@@ -95,7 +95,7 @@ const CreateDestination = {
             'input[name="destination_id"]',
           )?.value;
           if (!destinationId) {
-            alert("image uploaded succesfully");
+            alert("Please save the destination first before uploading images.");
             return;
           }
           await this.handleImageUpload(
@@ -394,12 +394,21 @@ const CreateDestination = {
     const formData = new FormData(form);
 
     try {
+      // Get the sub_category/tour_category value from the select
+      const tourCategorySelect = document.querySelector(
+        'select[name="tour_category"]',
+      );
+      const subCategoryValue = tourCategorySelect
+        ? tourCategorySelect.value
+        : "Land Tours";
+
       // STEP 1: SAVE DESTINATION
       const destinationData = {
         name: formData.get("destination_name"),
         description: formData.get("destination_description"),
         airport_name: formData.get("airport_name") || null,
         country: formData.get("country") || "Philippines",
+        sub_category: subCategoryValue,
         is_active: formData.get("destination_is_active") === "on",
         updated_at: new Date().toISOString(),
       };
@@ -747,6 +756,7 @@ const CreateDestination = {
           destination_id: destinationId,
           package_name: nameInput.value.trim(),
           package_code: packageCode,
+          tour_category: subCategoryValue, // Add tour_category from destination
           is_active: activeSelect ? activeSelect.value === "true" : true,
           base_price: priceInput ? parseFloat(priceInput.value) || 0 : 0,
           updated_at: new Date().toISOString(),
@@ -1536,7 +1546,7 @@ const CreateDestination = {
                     </div>
                     <div class="space-y-4">
                         <div><label class="block text-sm font-medium text-gray-700 mb-2">Destination Name <span class="text-red-500">*</span></label><input type="text" name="destination_name" value="${this.escapeHtml(dest.name || "")}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="e.g., Palawan, Boracay, Cebu"></div>
-                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Category</label><div class="grid grid-cols-2 gap-4"><div><select name="category_type" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"><option value="local">Local</option><option value="international">International</option></select></div><div><select name="tour_category" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"><option value="Land Tours">Land Tours</option><option value="Domestic">Domestic</option><option value="Promo">Promo</option></select></div></div></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Category</label><div class="grid grid-cols-2 gap-4"><div><select name="category_type" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"><option value="local">Local</option><option value="international">International</option></select></div><div><select name="tour_category" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"><option value="Land Tours" ${dest.sub_category === "Land Tours" ? "selected" : ""}>Land Tours</option><option value="Domestic" ${dest.sub_category === "Domestic" ? "selected" : ""}>Domestic</option><option value="Promo" ${dest.sub_category === "Promo" ? "selected" : ""}>Promo</option></select></div></div></div>
                         <div><label class="block text-sm font-medium text-gray-700 mb-2">Destination Images</label><div id="images-container" class="space-y-3">${this.generateImageFields(images)}</div><button type="button" onclick="CreateDestination.addImageField()" class="mt-2 px-3 py-1 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 text-sm"><i class="fas fa-plus mr-1"></i>Add Another Image</button></div>
                         <div><label class="block text-sm font-medium text-gray-700 mb-2">Destination Description</label><textarea name="destination_description" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Describe the destination...">${this.escapeHtml(dest.description || "")}</textarea></div>
                         <div><label class="block text-sm font-medium text-gray-700 mb-2">Airport Name</label><input type="text" name="airport_name" value="${this.escapeHtml(dest.airport_name || "")}" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="e.g., Ninoy Aquino International Airport"></div>
